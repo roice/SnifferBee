@@ -47,6 +47,7 @@
 #include "sensors/barometer.h"
 #include "sensors/gyro.h"
 #include "sensors/battery.h"
+#include "sensors/mocap.h"
 
 #include "io/beeper.h"
 #include "io/display.h"
@@ -726,7 +727,7 @@ void filterGyro(void) {
 void loop(void)
 {
     static uint32_t loopTime;
-#if defined(BARO) || defined(SONAR)
+#if defined(BARO) || defined(SONAR) || defined(MOCAP)
     static bool haveProcessedAnnexCodeOnce = false;
 #endif
 
@@ -754,14 +755,25 @@ void loop(void)
         }
 #endif
 
+#ifdef MOCAP
+        // the 'annexCode' initialses rcCommand, updateAltHoldState depends on valid rcCommand data.
+        if (haveProcessedAnnexCodeOnce) {
+            if (sensors(SENSOR_MOCAP)) {
+                updateMocapState();  // update AltHold state and Flightmode MOCAP_MODE
+            }
+        }
+#endif
+
     } else {
         // not processing rx this iteration
         executePeriodicTasks();
 
+#if defined(MOCAP)
+        gpsThread();
+#elif defined(GPS)
         // if GPS feature is enabled, gpsThread() will be called at some intervals to check for stuck
         // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
         // change this based on available hardware
-#ifdef GPS
         if (feature(FEATURE_GPS)) {
             gpsThread();
         }
@@ -791,7 +803,7 @@ void loop(void)
             filterRc();
         }
 
-#if defined(BARO) || defined(SONAR)
+#if defined(BARO) || defined(SONAR) || defined(MOCAP)
         haveProcessedAnnexCodeOnce = true;
 #endif
 
@@ -805,9 +817,9 @@ void loop(void)
         updateGtuneState();
 #endif
 
-#if defined(BARO) || defined(SONAR)
-        if (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR)) {
-            if (FLIGHT_MODE(BARO_MODE) || FLIGHT_MODE(SONAR_MODE)) {
+#if defined(BARO) || defined(SONAR) || defined(MOCAP)
+        if (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR) || sensors(SENSOR_MOCAP)) {
+            if (FLIGHT_MODE(BARO_MODE) || FLIGHT_MODE(SONAR_MODE) || FLIGHT_MODE(MOCAP_MODE)) {
                 applyAltHold(&masterConfig.airplaneConfig);
             }
         }
@@ -832,9 +844,9 @@ void loop(void)
             rcCommand[THROTTLE] += calculateThrottleAngleCorrection(currentProfile->throttle_correction_value);
         }
 
-#ifdef GPS
-        if (sensors(SENSOR_GPS)) {
-            if ((FLIGHT_MODE(GPS_HOME_MODE) || FLIGHT_MODE(GPS_HOLD_MODE)) && STATE(GPS_FIX_HOME)) {
+#if defined(GPS) || defined(MOCAP)
+        if (sensors(SENSOR_GPS) || sensors(SENSOR_MOCAP)) {
+            if (((FLIGHT_MODE(GPS_HOME_MODE) || FLIGHT_MODE(GPS_HOLD_MODE)) && STATE(GPS_FIX_HOME)) || FLIGHT_MODE(MOCAP_MODE)) {
                 updateGpsStateForHomeAndHoldMode();
             }
         }

@@ -281,11 +281,26 @@ void onGpsNewData(void)
     GPS_filter_index = (GPS_filter_index + 1) % GPS_FILTER_VECTOR_LENGTH;
     for (axis = 0; axis < 2; axis++) {
         GPS_read[axis] = GPS_coord[axis];               // latest unfiltered data is in GPS_latitude and GPS_longitude
+        
+        /* Originally Modified by Roice for v1.9.0, 20150720 
+         * Added by Roice for this version (v1.11.0), 20151223 */
+        /* for LLH, 10^(-7) degree is approx. equal to 1.11 cm
+         * this is not enough for indoor nav (& OptiTrack accuracy is 1 mm)
+         * so 10^(-8) is nesessary for OptiTrack indoor nav*/
+        #if defined(MOCAP)
+        // Note: GPS_FILTER_VECTOR_LENGTH must be limited (say, below 21 if using 'Guineabay~'), as the supreme of int_32_t is 2.1*10^9
+        GPS_degree[axis] = GPS_read[axis] / 100000000;
+        #else
         GPS_degree[axis] = GPS_read[axis] / 10000000;   // get the degree to assure the sum fits to the int32_t
+        #endif
 
         // How close we are to a degree line ? its the first three digits from the fractions of degree
         // later we use it to Check if we are close to a degree line, if yes, disable averaging,
+        #if defined(MOCAP)
+        fraction3[axis] = (GPS_read[axis] - GPS_degree[axis] * 100000000) / 100000;
+        #else
         fraction3[axis] = (GPS_read[axis] - GPS_degree[axis] * 10000000) / 10000;
+        #endif
 
         GPS_filter_sum[axis] -= GPS_filter[axis][GPS_filter_index];
         GPS_filter[axis][GPS_filter_index] = GPS_read[axis] - (GPS_degree[axis] * 10000000);
@@ -312,7 +327,7 @@ void onGpsNewData(void)
     // calculate the current velocity based on gps coordinates continously to get a valid speed at the moment when we start navigating
     GPS_calc_velocity();
 
-    if (FLIGHT_MODE(GPS_HOLD_MODE) || FLIGHT_MODE(GPS_HOME_MODE)) {
+    if (FLIGHT_MODE(GPS_HOLD_MODE) || FLIGHT_MODE(GPS_HOME_MODE) || FLIGHT_MODE(MOCAP_MODE)) {
         // we are navigating
 
         // gps nav calculations, these are common for nav and poshold

@@ -145,8 +145,9 @@ static void resetAccelerometerTrims(flightDynamicsTrims_t *accelerometerTrims)
 
 static void resetPidProfile(pidProfile_t *pidProfile)
 {
-    pidProfile->pidController = 1;
+    pidProfile->pidController = 0;
 
+#ifdef MICROBEE
     pidProfile->P8[ROLL] = 40;
     pidProfile->I8[ROLL] = 30;
     pidProfile->D8[ROLL] = 23;
@@ -175,6 +176,36 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->P8[PIDVEL] = 120;
     pidProfile->I8[PIDVEL] = 45;
     pidProfile->D8[PIDVEL] = 1;
+#else
+    pidProfile->P8[ROLL] = 40;
+    pidProfile->I8[ROLL] = 30;
+    pidProfile->D8[ROLL] = 23;
+    pidProfile->P8[PITCH] = 40;
+    pidProfile->I8[PITCH] = 30;
+    pidProfile->D8[PITCH] = 23;
+    pidProfile->P8[YAW] = 85;
+    pidProfile->I8[YAW] = 45;
+    pidProfile->D8[YAW] = 0;
+    pidProfile->P8[PIDALT] = 50;
+    pidProfile->I8[PIDALT] = 0;
+    pidProfile->D8[PIDALT] = 0;
+    pidProfile->P8[PIDPOS] = 15; // POSHOLD_P * 100;
+    pidProfile->I8[PIDPOS] = 0; // POSHOLD_I * 100;
+    pidProfile->D8[PIDPOS] = 0;
+    pidProfile->P8[PIDPOSR] = 34; // POSHOLD_RATE_P * 10;
+    pidProfile->I8[PIDPOSR] = 14; // POSHOLD_RATE_I * 100;
+    pidProfile->D8[PIDPOSR] = 53; // POSHOLD_RATE_D * 1000;
+    pidProfile->P8[PIDNAVR] = 25; // NAV_P * 10;
+    pidProfile->I8[PIDNAVR] = 33; // NAV_I * 100;
+    pidProfile->D8[PIDNAVR] = 83; // NAV_D * 1000;
+    pidProfile->P8[PIDLEVEL] = 90;
+    pidProfile->I8[PIDLEVEL] = 10;
+    pidProfile->D8[PIDLEVEL] = 100;
+    pidProfile->P8[PIDMAG] = 40;
+    pidProfile->P8[PIDVEL] = 120;
+    pidProfile->I8[PIDVEL] = 45;
+    pidProfile->D8[PIDVEL] = 1;
+#endif
 
     pidProfile->yaw_p_limit = YAW_P_LIMIT_MAX;
     pidProfile->gyro_cut_hz = 0;
@@ -210,6 +241,15 @@ static void resetPidProfile(pidProfile_t *pidProfile)
 #ifdef GPS
 void resetGpsProfile(gpsProfile_t *gpsProfile)
 {
+#ifdef MOCAP
+    gpsProfile->gps_wp_radius = 20; // 20 mm
+    gpsProfile->gps_lpf = 20;
+    gpsProfile->nav_slew_rate = 30;
+    gpsProfile->nav_controls_heading = 1;
+    gpsProfile->nav_speed_min = 100;
+    gpsProfile->nav_speed_max = 300;
+    gpsProfile->ap_mode = 40;
+#else
     gpsProfile->gps_wp_radius = 200;
     gpsProfile->gps_lpf = 20;
     gpsProfile->nav_slew_rate = 30;
@@ -217,6 +257,7 @@ void resetGpsProfile(gpsProfile_t *gpsProfile)
     gpsProfile->nav_speed_min = 100;
     gpsProfile->nav_speed_max = 300;
     gpsProfile->ap_mode = 40;
+#endif
 }
 #endif
 
@@ -224,8 +265,13 @@ void resetBarometerConfig(barometerConfig_t *barometerConfig)
 {
     barometerConfig->baro_sample_count = 21;
     barometerConfig->baro_noise_lpf = 0.6f;
+#ifdef MOCAP
+    barometerConfig->baro_cf_vel = 0.0f;
+    barometerConfig->baro_cf_alt = 0.965f;
+#else
     barometerConfig->baro_cf_vel = 0.985f;
     barometerConfig->baro_cf_alt = 0.965f;
+#endif
 }
 
 void resetSensorAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
@@ -237,8 +283,13 @@ void resetSensorAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
 
 void resetEscAndServoConfig(escAndServoConfig_t *escAndServoConfig)
 {
+#ifdef MICROBEE
+    escAndServoConfig->minthrottle = 1100;
+    escAndServoConfig->maxthrottle = 1900;
+#else
     escAndServoConfig->minthrottle = 1150;
     escAndServoConfig->maxthrottle = 1850;
+#endif
     escAndServoConfig->mincommand = 1000;
     escAndServoConfig->servoCenterPulse = 1500;
 }
@@ -292,10 +343,18 @@ void resetSerialConfig(serialConfig_t *serialConfig)
 
     for (index = 0; index < SERIAL_PORT_COUNT; index++) {
         serialConfig->portConfigs[index].identifier = serialPortIdentifiers[index];
+#ifdef MICROBEE
+        serialConfig->portConfigs[index].msp_baudrateIndex = BAUD_57600;
+#else
         serialConfig->portConfigs[index].msp_baudrateIndex = BAUD_115200;
+#endif
         serialConfig->portConfigs[index].gps_baudrateIndex = BAUD_57600;
         serialConfig->portConfigs[index].telemetry_baudrateIndex = BAUD_AUTO;
+#ifdef MICROBEE
+        serialConfig->portConfigs[index].blackbox_baudrateIndex = BAUD_57600;
+#else
         serialConfig->portConfigs[index].blackbox_baudrateIndex = BAUD_115200;
+#endif
     }
 
     serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
@@ -324,10 +383,17 @@ static void resetControlRateConfig(controlRateConfig_t *controlRateConfig) {
 }
 
 void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig) {
+#ifdef MICROBEE
+    rcControlsConfig->deadband = 10;
+    rcControlsConfig->yaw_deadband = 10;
+    rcControlsConfig->alt_hold_deadband = 40;
+    rcControlsConfig->alt_hold_fast_change = 0;
+#else
     rcControlsConfig->deadband = 0;
     rcControlsConfig->yaw_deadband = 0;
     rcControlsConfig->alt_hold_deadband = 40;
     rcControlsConfig->alt_hold_fast_change = 1;
+#endif
 }
 
 void resetMixerConfig(mixerConfig_t *mixerConfig) {
@@ -408,7 +474,11 @@ static void resetConf(void)
 
     masterConfig.boardAlignment.rollDegrees = 0;
     masterConfig.boardAlignment.pitchDegrees = 0;
+#ifdef MICROBEE
+    masterConfig.boardAlignment.yawDegrees = 180;
+#else
     masterConfig.boardAlignment.yawDegrees = 0;
+#endif
     masterConfig.acc_hardware = ACC_DEFAULT;     // default/autodetect
     masterConfig.max_angle_inclination = 500;    // 50 degrees
     masterConfig.yaw_control_direction = 1;
@@ -487,7 +557,9 @@ static void resetConf(void)
 
     resetRollAndPitchTrims(&currentProfile->accelerometerTrims);
 
-    currentProfile->mag_declination = 0;
+    // Lat 39°6'33" N, Lon 117°10'19.4" E, Tianjin University, China
+    // Magnetic declination: -6°44', NEGATIVE(WEST),
+    currentProfile->mag_declination = -644;
     currentProfile->acc_lpf_factor = 4;
     currentProfile->accz_lpf_cutoff = 5.0f;
     currentProfile->accDeadband.xy = 40;
@@ -550,6 +622,10 @@ static void resetConf(void)
 #endif
     masterConfig.blackbox_rate_num = 1;
     masterConfig.blackbox_rate_denom = 1;
+#endif
+
+#ifdef MICROBEE
+    featureSet(FEATURE_MOTOR_STOP);
 #endif
 
     // alternative defaults settings for COLIBRI RACE targets
@@ -906,6 +982,26 @@ void readEEPROM(void)
     setControlRateProfile(currentProfile->defaultRateProfileIndex);
 
     validateAndFixConfig();
+
+#ifdef MICROBEE
+    modeActivationCondition_t *mac;
+    /* Activate ANGLE at all conditions */
+    mac = &currentProfile->modeActivationConditions[0];
+    mac->modeId = BOXANGLE;     // ANGLE mode
+    mac->auxChannelIndex = 0;   // AUX1
+    mac->range.startStep = 0;   // 900us
+    mac->range.endStep = 48;    // 2100us
+
+    /* Activate MOCAP when AUX2 in 1800-2100 us */
+    mac = &currentProfile->modeActivationConditions[1];
+    mac->modeId = BOXMOCAP;     // MOCAP mode
+    mac->auxChannelIndex = 1;   // AUX2
+    mac->range.startStep = 36;  // 1800us
+    mac->range.endStep = 48;    // 2100us
+
+    useRcControlsConfig(currentProfile->modeActivationConditions, &masterConfig.escAndServoConfig, &currentProfile->pidProfile);
+#endif
+
     activateConfig();
 
     resumeRxSignal();

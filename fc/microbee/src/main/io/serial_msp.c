@@ -63,6 +63,7 @@
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
+#include "sensors/mocap.h"
 
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -167,6 +168,13 @@ static const char * const boardIdentifier = TARGET_BOARD_IDENTIFIER;
 #define CAP_NAVCAP                  ((uint32_t)1 << 4)
 #define CAP_EXTAUX                  ((uint32_t)1 << 5)
 
+/* SBSP Protocol */
+#define SBSP_VERSION                    0
+/* SBSP message ID */
+#define SBSP_IDENT                      50
+#define SBSP_FRESH_POS_OPT              61
+
+/* MSP Protocol */
 #define MSP_API_VERSION                 1    //out message
 #define MSP_FC_VARIANT                  2    //out message
 #define MSP_FC_VERSION                  3    //out message
@@ -353,6 +361,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXSERVO3, "SERVO3;", 25 },
     { BOXBLACKBOX, "BLACKBOX;", 26 },
     { BOXFAILSAFE, "FAILSAFE;", 27 },
+    { BOXMOCAP, "MOCAP;", 28 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -385,7 +394,14 @@ typedef enum {
     HEADER_ARROW,
     HEADER_SIZE,
     HEADER_CMD,
-    COMMAND_RECEIVED
+    COMMAND_RECEIVED,
+/* for SBSP protocol */
+    SBSP_START, // '$'
+    SBSP_B,     // 'B'
+    SBSP_ARROW,
+    SBSP_SIZE,
+    SBSP_CMD,
+    SBSP_CMD_RECEIVED
 } mspState_e;
 
 typedef enum {
@@ -447,6 +463,16 @@ static uint32_t read32(void)
     return t;
 }
 
+static void sbspHeadSerialResponse(uint8_t err, uint8_t responseBodySize)
+{
+    serialize8('$');
+    serialize8('B');
+    serialize8(err ? '!' : '>');
+    currentPort->checksum = 0;               // start calculating a new checksum
+    serialize8(responseBodySize);
+    serialize8(currentPort->cmdMSP);
+}
+
 static void headSerialResponse(uint8_t err, uint8_t responseBodySize)
 {
     serialize8('$');
@@ -457,9 +483,19 @@ static void headSerialResponse(uint8_t err, uint8_t responseBodySize)
     serialize8(currentPort->cmdMSP);
 }
 
+static void sbspHeadSerialReply(uint8_t responseBodySize)
+{
+    sbspHeadSerialResponse(0, responseBodySize);
+}
+
 static void headSerialReply(uint8_t responseBodySize)
 {
     headSerialResponse(0, responseBodySize);
+}
+
+static void sbspHeadSerialError(uint8_t responseBodySize)
+{
+    sbspHeadSerialResponse(1, responseBodySize); 
 }
 
 static void headSerialError(uint8_t responseBodySize)
@@ -1824,6 +1860,49 @@ static bool processInCommand(void)
     return true;
 }
 
+static bool sbspProcessCommand(void)
+{
+    int32_t tmp_1, tmp_2, tmp_3;
+
+    switch (currentPort->cmdMSP) {
+    
+    case SBSP_IDENT:
+        sbspHeadSerialReply(7);
+        serialize8(MW_VERSION);
+        serialize8(masterConfig.mixerMode);
+        serialize8(MSP_PROTOCOL_VERSION);
+        serialize32(CAP_DYNBALANCE | (masterConfig.airplaneConfig.flaps_speed ? CAP_FLAPS : 0)); // "capability"
+        tailSerialReply();
+        break;
+
+    // position data from OptiTrack Motion Capture
+    case SBSP_FRESH_POS_OPT:
+        tmp_1 = read32();   // in 0.1mm
+        tmp_2 = read32();   // in 0.1mm
+        tmp_3 = read32();   // in 0.1mm
+        // update Mocap data
+        updateMocap(tmp_1, tmp_2, tmp_3);   // update mocap struct
+        mocapUpdatePos();   // calculate altitude and lat/lon
+        calculateEstimatedAltitude(micros());  // calculate alt hold pid
+ 
+        break;
+ 
+    default:
+        // we do not know how to handle the (valid) message, indicate error MSP $M!
+        return false;
+    }
+    return true;
+}
+
+
+// SuperBee serial protocol cmd received
+static void sbspProcessReceivedCommand() {
+    if (!(sbspProcessCommand())) {
+        sbspHeadSerialError(0);
+    }
+    currentPort->c_state = IDLE;
+}
+
 static void mspProcessReceivedCommand() {
     if (!(processOutCommand(currentPort->cmdMSP) || processInCommand())) {
         headSerialError(0);
@@ -1841,7 +1920,17 @@ static bool mspProcessReceivedData(uint8_t c)
             return false;
         }
     } else if (currentPort->c_state == HEADER_START) {
+/* MSP and SBSP protocol divider */
+#if !defined(SUPERBEE) && !defined(MOCAP)
         currentPort->c_state = (c == 'M') ? HEADER_M : IDLE;
+#else
+        if (c == 'M')
+            currentPort->c_state = HEADER_M;
+        else if (c == 'B')
+            currentPort->c_state = SBSP_B;  // SuperBee SP start with '$B'
+        else
+            currentPort->c_state = IDLE;
+#endif
     } else if (currentPort->c_state == HEADER_M) {
         currentPort->c_state = (c == '<') ? HEADER_ARROW : IDLE;
     } else if (currentPort->c_state == HEADER_ARROW) {
@@ -1870,6 +1959,36 @@ static bool mspProcessReceivedData(uint8_t c)
             currentPort->c_state = IDLE;
         }
     }
+#if defined(SUPERBEE) || defined(MOCAP)
+    else if (currentPort->c_state == SBSP_B) {
+        currentPort->c_state = (c == '<') ? SBSP_ARROW : IDLE;
+    } else if (currentPort->c_state == SBSP_ARROW) {
+        if (c > INBUF_SIZE) {
+            currentPort->c_state = IDLE;
+
+        } else {
+            currentPort->dataSize = c;
+            currentPort->offset = 0;
+            currentPort->checksum = 0;
+            currentPort->indRX = 0;
+            currentPort->checksum ^= c;
+            currentPort->c_state = SBSP_SIZE;
+        }
+    } else if (currentPort->c_state == SBSP_SIZE) {
+        currentPort->cmdMSP = c;
+        currentPort->checksum ^= c;
+        currentPort->c_state = SBSP_CMD;
+    } else if (currentPort->c_state == SBSP_CMD && currentPort->offset < currentPort->dataSize) {
+        currentPort->checksum ^= c;
+        currentPort->inBuf[currentPort->offset++] = c;
+    } else if (currentPort->c_state == SBSP_CMD && currentPort->offset >= currentPort->dataSize) {
+        if (currentPort->checksum == c) {
+            currentPort->c_state = SBSP_CMD_RECEIVED;
+        } else {
+            currentPort->c_state = IDLE;
+        }
+    }
+#endif
     return true;
 }
 
@@ -1905,6 +2024,12 @@ void mspProcess(void)
                 mspProcessReceivedCommand();
                 break; // process one command at a time so as not to block.
             }
+            # if defined(SUPERBEE) || defined(MOCAP)
+            else if (currentPort->c_state == SBSP_CMD_RECEIVED) {
+                sbspProcessReceivedCommand();
+                break;
+            }
+            #endif
         }
 
         if (isRebootScheduled) {

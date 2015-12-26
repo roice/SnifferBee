@@ -224,6 +224,10 @@ void init(void)
     }
 #endif
 
+#ifdef MOCAP
+    sensorsSet(SENSOR_MOCAP);
+#endif
+
     // when using airplane/wing mixer, servo/motor outputs are remapped
     if (masterConfig.mixerMode == MIXER_AIRPLANE || masterConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerMode == MIXER_CUSTOM_AIRPLANE)
         pwm_params.airplane = true;

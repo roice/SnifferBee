@@ -37,6 +37,7 @@
 #include "drivers/light_led.h"
 
 #include "sensors/sensors.h"
+#include "sensors/mocap.h"
 
 #include "io/serial.h"
 #include "io/display.h"
@@ -191,6 +192,7 @@ static void shiftPacketLog(void)
     }
 }
 
+static bool mocapGPSNewData(void);
 static void gpsNewData(uint16_t c);
 static bool gpsNewFrameNMEA(char c);
 static bool gpsNewFrameUBLOX(uint8_t data);
@@ -358,11 +360,16 @@ void gpsInitHardware(void)
 
 void gpsThread(void)
 {
+#if defined(MOCAP)
+    if (!mocapGPSNewData())
+        return;
+#else
     // read out available GPS bytes
     if (gpsPort) {
         while (serialRxBytesWaiting(gpsPort))
             gpsNewData(serialRead(gpsPort));
     }
+#endif
 
     switch (gpsData.state) {
         case GPS_UNKNOWN:
@@ -397,6 +404,34 @@ void gpsThread(void)
             }
             break;
     }
+}
+
+static bool mocapGPSNewData(void)
+{
+    if (!isMocapGPSReady())
+        return false;
+    else
+        clearMocapGPSReadyFlag();
+
+    /* Refresh GPS state */
+    //save to global parameter
+    GPS_coord[0] = mocapReadGPSLL(0);   // lat
+    GPS_coord[1] = mocapReadGPSLL(1);   // lon
+    ENABLE_STATE(GPS_FIX);  // have a good GPS 3D FIX
+    GPS_numSat = 8; // >5 indicates good GPS signal
+
+    //Blink GPS update
+    if (GPS_update == 1) GPS_update = 0; else GPS_update = 1;
+    
+    gpsData.lastLastMessage = gpsData.lastMessage;
+    gpsData.lastMessage = millis();
+
+    // not to call updateGpsWaypointsAndMode();
+    sensorsClear(SENSOR_GPS);
+
+    onGpsNewData();
+
+    return true;
 }
 
 static void gpsNewData(uint16_t c)

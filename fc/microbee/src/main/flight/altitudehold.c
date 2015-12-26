@@ -36,6 +36,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/sonar.h"
+#include "sensors/mocap.h"
 
 #include "rx/rx.h"
 
@@ -74,7 +75,7 @@ void configureAltitudeHold(
     escAndServoConfig = initialEscAndServoConfig;
 }
 
-#if defined(BARO) || defined(SONAR)
+#if defined(BARO) || defined(SONAR) || defined(MOCAP)
 
 static int16_t initialThrottleHold;
 static int32_t EstAlt;                // in cm
@@ -169,6 +170,8 @@ void updateSonarAltHoldState(void)
     }
 }
 
+
+
 bool isThrustFacingDownwards(rollAndPitchInclination_t *inclination)
 {
     return ABS(inclination->values.rollDeciDegrees) < DEGREES_80_IN_DECIDEGREES && ABS(inclination->values.pitchDeciDegrees) < DEGREES_80_IN_DECIDEGREES;
@@ -229,8 +232,16 @@ void calculateEstimatedAltitude(uint32_t currentTime)
     float sonarTransition;
 
     dTime = currentTime - previousTime;
+
+#ifdef MOCAP
+    if (isMocapAltReady()) // if alt data calc from Motion Capture is ready
+        clearMocapAltReadyFlag(); // clear mocapAlt
+    else
+        return;
+#else
     if (dTime < BARO_UPDATE_FREQUENCY_40HZ)
         return;
+#endif
 
     previousTime = currentTime;
 
@@ -251,6 +262,7 @@ void calculateEstimatedAltitude(uint32_t currentTime)
     sonarAlt = sonarCalculateAltitude(sonarAlt, inclination.values.rollDeciDegrees, inclination.values.pitchDeciDegrees);
 #endif
 
+#if !defined(MOCAP)
     if (sonarAlt > 0 && sonarAlt < sonarCfAltCm) {
         // just use the SONAR
         baroAlt_offset = BaroAlt - sonarAlt;
@@ -263,10 +275,16 @@ void calculateEstimatedAltitude(uint32_t currentTime)
             BaroAlt = sonarAlt * sonarTransition + BaroAlt * (1.0f - sonarTransition);
         }
     }
+#endif
+
+// Get altitude from Motion Capture
+#ifdef MOCAP
+    BaroAlt = mocapReadAltitude();
+#endif
 
     dt = accTimeSum * 1e-6f; // delta acc reading time in seconds
 
-    // Integrator - velocity, cm/sec
+    // Integrator - velocity, cm/sec(BARO) mm/sec(MOCAP)
     if (accSumCount) {
         accZ_tmp = (float)accSum[2] / (float)accSumCount;
     } else {
@@ -274,7 +292,7 @@ void calculateEstimatedAltitude(uint32_t currentTime)
     }
     vel_acc = accZ_tmp * accVelScale * (float)accTimeSum;
 
-    // Integrator - Altitude in cm
+    // Integrator - Altitude in cm(BARO) mm(MOCAP)
     accAlt += (vel_acc * 0.5f) * dt + vel * dt;                                                                 // integrate velocity to get distance (x= a/2 * t^2)
     accAlt = accAlt * barometerConfig->baro_cf_alt + (float)BaroAlt * (1.0f - barometerConfig->baro_cf_alt);    // complementary filter for altitude estimation (baro & acc)
     vel += vel_acc;
@@ -293,18 +311,22 @@ void calculateEstimatedAltitude(uint32_t currentTime)
     }
 #endif
 
+#ifdef MOCAP
+    EstAlt = BaroAlt;
+#else
     if (sonarAlt > 0 && sonarAlt < sonarCfAltCm) {
         // the sonar has the best range
         EstAlt = BaroAlt;
     } else {
         EstAlt = accAlt;
     }
+#endif
 
-    baroVel = (BaroAlt - lastBaroAlt) * 1000000.0f / dTime;
+    baroVel = (BaroAlt - lastBaroAlt) * 1000000.0f / dTime; // cm/sec(BARO) mm/sec(MOCAP)
     lastBaroAlt = BaroAlt;
 
-    baroVel = constrain(baroVel, -1500, 1500);  // constrain baro velocity +/- 1500cm/s
-    baroVel = applyDeadband(baroVel, 10);       // to reduce noise near zero
+    baroVel = constrain(baroVel, -1500, 1500);  // constrain baro velocity +/- 1500cm/s(BARO) 1500mm/s(MOCAP)
+    baroVel = applyDeadband(baroVel, 10);       // to reduce noise near zero +/- 10cm/s(BARO) 10mm/s(MOCAP)
 
     // apply Complimentary Filter to keep the calculated velocity based on baro velocity (i.e. near real velocity).
     // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay

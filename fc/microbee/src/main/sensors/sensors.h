@@ -51,6 +51,9 @@ typedef enum {
     SENSOR_SONAR = 1 << 4,
     SENSOR_GPS = 1 << 5,
     SENSOR_GPSMAG = 1 << 6,
+#if defined(MOCAP)
+    SENSOR_MOCAP = 1 << 7,
+#endif
 } sensors_e;
 
 typedef enum {
