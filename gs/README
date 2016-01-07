@@ -1,1 +1,23 @@
 Ground Station
+
+FAQ:
+1. How to bind USB serial adapter to a fixed node?
+---------------------------------------------------
+FTDI serial adapter have unique serial numbers, we can create rules according to this attribute.
+Type this line into terminal to see the serial number of a FTDI adapter which has a device node of /dev/ttyUSB0:
+
+udevadm info -a -n /dev/ttyUSB0 | grep '{serial}'
+
+The output should be something like this:
+
+ATTRS{serial}=="AIO28765"
+ATTRS{serial}=="bcm2708_usb"
+
+Then we can create a rule by creating a file:
+/etc/udev/rules.d/10-usbserial.rules
+Since "10" is smaller than "40" and "99", which belong to system, this rule we created has higher priority than system defaults.
+The content of the rule file:
+
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AIO28765", GROUP="plugdev", SYMLINK+="ttyUSB_Radio"
+
+This rule file will create a symlink named ttyUSB_Radio when the serial adapter plugged in. Notice that idVendor and idProduct apply for FTDI chips only, they should be modified according to different vendors of chips.
