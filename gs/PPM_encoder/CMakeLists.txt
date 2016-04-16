@@ -4,13 +4,17 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 set(PRJ_NAME ppmencoder)
 
 # change this line according to arm gcc toolchain installation
-#set(TOOLCHAIN_PREFIX=/Users/roice/workspace/stm32-tools/gcc-arm-embedded-4_8-q3/gcc-arm-none-eabi-4_8-2014q3) # for my Mac
+message("cmake system name is \"${CMAKE_SYSTEM}\"")
+if(APPLE)
+    set(TOOLCHAIN_PREFIX /Users/roice/workspace/stm32-tools/gcc-arm-embedded-4_8-q3/gcc-arm-none-eabi-4_8-2014q3) # for my Mac
+    message("Toolchain prefix set to \"${TOOLCHAIN_PREFIX}\"")
+endif()
 
 # set stm32 cmake stuff
 set(STM32_CHIP STM32F103C8)
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/../../3rd-party/stm32-cmake/cmake/gcc_stm32.cmake)
-set(STM32Cube_DIR ${CMAKE_SOURCE_DIR}/../../3rd-party/STM32Cube_FW_F1_V1.3.0)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/../../3rd-party/stm32-cmake/cmake)
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/../../3rdparty/stm32-cmake/cmake/gcc_stm32.cmake)
+set(STM32Cube_DIR ${CMAKE_SOURCE_DIR}/../../3rdparty/STM32Cube_FW_F1_V1.3.0)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/../../3rdparty/stm32-cmake/cmake)
 
 # release or debug
 set(CMAKE_BUILD_TYPE Debug)
