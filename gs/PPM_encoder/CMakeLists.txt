@@ -3,6 +3,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 # name of this project
 set(PRJ_NAME ppmencoder)
 
+# change this line according to arm gcc toolchain installation
+#set(TOOLCHAIN_PREFIX=/Users/roice/workspace/stm32-tools/gcc-arm-embedded-4_8-q3/gcc-arm-none-eabi-4_8-2014q3) # for my Mac
+
 # set stm32 cmake stuff
 set(STM32_CHIP STM32F103C8)
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/../../3rd-party/stm32-cmake/cmake/gcc_stm32.cmake)
@@ -30,7 +33,7 @@ include_directories(${STM32HAL_INCLUDE_DIR})
 
 # source files of this project
 SET(PROJECT_SOURCES
-    src/main.c
+    src/main.c src/stm32f1xx_hal_msp.c src/stm32f1xx_it.c
 )
 
 # compile
