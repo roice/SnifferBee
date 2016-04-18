@@ -93,7 +93,7 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/draw/DrawScene.cxx src/ui/draw/materials.cxx
     src/ui/draw/draw_arena.cxx)
 # compile main file
-add_executable(${PRJ_NAME} src/Main.cxx src/GSRAO_Config.cxx)
+add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})
 
 #---- start linking ----
@@ -109,7 +109,7 @@ target_link_libraries(${PRJ_NAME} fltk_images)
 # link external blas library
 target_link_libraries(${PRJ_NAME} cblas)
 target_link_libraries(${PRJ_NAME} blas)
-#target_link_libraries(${PRJ_NAME} gfortran)
+target_link_libraries(${PRJ_NAME} gfortran)
 # link extern hdf5 library
 #target_link_libraries(${PRJ_NAME} ${HDF5_LIBRARIES})
 
