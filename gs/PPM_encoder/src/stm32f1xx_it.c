@@ -206,11 +206,7 @@ void USART1_IRQHandler(void)
 {
     /* USER CODE BEGIN USART1_IRQn 0 */
     uint32_t tmp_flag = 0;
-    uint32_t temp;
-
-    /* USER CODE END USART1_IRQn 0 */
-    HAL_UART_IRQHandler(&huart1);
-    /* USER CODE BEGIN USART1_IRQn 1 */
+    uint32_t temp; 
 
     tmp_flag =  __HAL_UART_GET_FLAG(&huart1,UART_FLAG_IDLE);
     if((tmp_flag != RESET))
@@ -221,11 +217,14 @@ void USART1_IRQHandler(void)
         HAL_UART_DMAStop(&huart1);
         temp  = hdma_usart1_rx.Instance->CNDTR;
         frame_len =  RXBUFFERSIZE - temp; // num of char received
-        memcpy(FrameBuffer, RxBuffer, frame_len*sizeof(uint8_t)); // copy this frame to the processing buffer
+        memcpy(&FrameBuffer, &RxBuffer, frame_len*sizeof(uint8_t)); // copy this frame to the processing buffer
         frame_received = TRUE; // tell main to process this frame
         HAL_UART_Receive_DMA(&huart1, RxBuffer, RXBUFFERSIZE); // enable dma receiving
     }
 
+    /* USER CODE END USART1_IRQn 0 */
+    HAL_UART_IRQHandler(&huart1);
+    /* USER CODE BEGIN USART1_IRQn 1 */
     /* USER CODE END USART1_IRQn 1 */
 }
 

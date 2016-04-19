@@ -50,8 +50,7 @@ int main(void)
     /* enable idle interrupt of UART1 */
     __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
 
-    HAL_UART_Transmit_DMA(&huart1, (uint8_t*)"1234", 4);
-
+    /* start DMA receiving process */
     HAL_UART_Receive_DMA(&huart1, RxBuffer, RXBUFFERSIZE); // enable dma receiving
 
     /* Infinite loop */
@@ -63,19 +62,25 @@ int main(void)
             // parse this frame
 
             // update PPM_Channel_Value
+            PPM_updating();
 
             // clear flag
-            frame_received = FALSE;
-
-HAL_UART_Transmit_DMA(&huart1, (uint8_t*)"1234", 4);
+            frame_received = FALSE; 
         }
-
     }
 
     return 0;
 }
 
+void FrameParsing(uint8_t* frame, uint16_t len)
+{
+//HAL_UART_Transmit_DMA(&huart1, (uint8_t*)"1234", 4);
+}
 
+void PPM_updating(void)
+{}
+
+/* ########################### MCU init functions ########################## */
 /**
   * @brief  System Clock Configuration
   *         The system Clock is configured as follow : 

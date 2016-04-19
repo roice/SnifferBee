@@ -1,7 +1,7 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#define RXBUFFERSIZE   100
+#define RXBUFFERSIZE   128
 
 #define TRUE    1
 #define FALSE   0
