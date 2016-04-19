@@ -38,6 +38,14 @@
 
 /* Private define ------------------------------------------------------------*/
 
+#define PPM_output_1_Pin GPIO_PIN_4
+#define PPM_output_1_GPIO_Port GPIOA
+#define PPM_output_2_Pin GPIO_PIN_5
+#define PPM_output_2_GPIO_Port GPIOA
+#define PPM_output_3_Pin GPIO_PIN_6
+#define PPM_output_3_GPIO_Port GPIOA
+#define PPM_output_4_Pin GPIO_PIN_7
+#define PPM_output_4_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
