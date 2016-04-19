@@ -222,7 +222,7 @@ void USART1_IRQHandler(void)
         temp  = hdma_usart1_rx.Instance->CNDTR;
         frame_len =  RXBUFFERSIZE - temp; // num of char received
         memcpy(FrameBuffer, RxBuffer, frame_len*sizeof(uint8_t)); // copy this frame to the processing buffer
-        frame_received = FALSE; // tell main to process this frame
+        frame_received = TRUE; // tell main to process this frame
         HAL_UART_Receive_DMA(&huart1, RxBuffer, RXBUFFERSIZE); // enable dma receiving
     }
 

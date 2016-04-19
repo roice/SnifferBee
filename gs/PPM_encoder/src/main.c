@@ -50,6 +50,10 @@ int main(void)
     /* enable idle interrupt of UART1 */
     __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
 
+    HAL_UART_Transmit_DMA(&huart1, (uint8_t*)"1234", 4);
+
+    HAL_UART_Receive_DMA(&huart1, RxBuffer, RXBUFFERSIZE); // enable dma receiving
+
     /* Infinite loop */
     while (1)
     {
@@ -62,6 +66,8 @@ int main(void)
 
             // clear flag
             frame_received = FALSE;
+
+HAL_UART_Transmit_DMA(&huart1, (uint8_t*)"1234", 4);
         }
 
     }
