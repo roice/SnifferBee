@@ -36,6 +36,7 @@
 #include "stm32f1xx_it.h"
 #include "config.h" // RXBUFFER_SIZE
 #include <string.h> // memcpy
+#include "ppm.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -54,6 +55,8 @@ extern uint8_t frame_received;
 extern uint16_t frame_len;
 extern uint8_t* FrameBuffer;
 extern uint8_t* RxBuffer;
+
+extern PPM_Signal_t PPM_Signal[];
 
 /******************************************************************************/
 /*            Cortex-M3 Processor Interruption and Exception Handlers         */ 
@@ -239,6 +242,22 @@ void TIM1_UP_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_UP_IRQn 0 */
 
+    if (__HAL_TIM_GET_FLAG(&htim1, TIM_FLAG_UPDATE) != RESET)
+    {
+        // stop interrupt of this timer
+        HAL_TIM_Base_Stop_IT(&htim1);
+
+        uint8_t level = PPM_Signal_Marching(&PPM_Signal[0]);
+        if (level == HIGH)
+            HAL_GPIO_WritePin(PPM_output_1_GPIO_Port, PPM_output_1_Pin, GPIO_PIN_SET);
+        else
+            HAL_GPIO_WritePin(PPM_output_1_GPIO_Port, PPM_output_1_Pin, GPIO_PIN_RESET);
+        htim1.Instance->ARR = PPM_Timer_Period(&PPM_Signal[0]);
+
+        // start interrupt of this timer
+        HAL_TIM_Base_Start_IT(&htim1);
+    }
+  
   /* USER CODE END TIM1_UP_IRQn 0 */
   HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_UP_IRQn 1 */
@@ -252,6 +271,22 @@ void TIM1_UP_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM2_IRQn 0 */
+
+    if (__HAL_TIM_GET_FLAG(&htim2, TIM_FLAG_UPDATE) != RESET)
+    {
+        // stop interrupt of this timer
+        HAL_TIM_Base_Stop_IT(&htim2);
+
+        uint8_t level = PPM_Signal_Marching(&PPM_Signal[1]);
+        if (level == HIGH)
+            HAL_GPIO_WritePin(PPM_output_2_GPIO_Port, PPM_output_2_Pin, GPIO_PIN_SET);
+        else
+            HAL_GPIO_WritePin(PPM_output_2_GPIO_Port, PPM_output_2_Pin, GPIO_PIN_RESET);
+        htim2.Instance->ARR = PPM_Timer_Period(&PPM_Signal[1]);
+
+        // start interrupt of this timer
+        HAL_TIM_Base_Start_IT(&htim2);
+    }
 
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
@@ -267,6 +302,22 @@ void TIM3_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM3_IRQn 0 */
 
+    if (__HAL_TIM_GET_FLAG(&htim3, TIM_FLAG_UPDATE) != RESET)
+    {
+        // stop interrupt of this timer
+        HAL_TIM_Base_Stop_IT(&htim3);
+
+        uint8_t level = PPM_Signal_Marching(&PPM_Signal[2]);
+        if (level == HIGH)
+            HAL_GPIO_WritePin(PPM_output_3_GPIO_Port, PPM_output_3_Pin, GPIO_PIN_SET);
+        else
+            HAL_GPIO_WritePin(PPM_output_3_GPIO_Port, PPM_output_3_Pin, GPIO_PIN_RESET);
+        htim3.Instance->ARR = PPM_Timer_Period(&PPM_Signal[2]);
+
+        // start interrupt of this timer
+        HAL_TIM_Base_Start_IT(&htim3);
+    }
+
   /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
@@ -280,6 +331,22 @@ void TIM3_IRQHandler(void)
 void TIM4_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM4_IRQn 0 */
+
+    if (__HAL_TIM_GET_FLAG(&htim4, TIM_FLAG_UPDATE) != RESET)
+    {
+        // stop interrupt of this timer
+        HAL_TIM_Base_Stop_IT(&htim4);
+
+        uint8_t level = PPM_Signal_Marching(&PPM_Signal[3]);
+        if (level == HIGH)
+            HAL_GPIO_WritePin(PPM_output_4_GPIO_Port, PPM_output_4_Pin, GPIO_PIN_SET);
+        else
+            HAL_GPIO_WritePin(PPM_output_4_GPIO_Port, PPM_output_4_Pin, GPIO_PIN_RESET);
+        htim4.Instance->ARR = PPM_Timer_Period(&PPM_Signal[3]);
+
+        // start interrupt of this timer
+        HAL_TIM_Base_Start_IT(&htim4);
+    }
 
   /* USER CODE END TIM4_IRQn 0 */
   HAL_TIM_IRQHandler(&htim4);

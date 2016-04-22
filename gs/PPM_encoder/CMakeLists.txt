@@ -38,6 +38,7 @@ include_directories(${STM32HAL_INCLUDE_DIR})
 # source files of this project
 SET(PROJECT_SOURCES
     src/main.c src/stm32f1xx_hal_msp.c src/stm32f1xx_it.c
+    src/ppm.c
 )
 
 # compile

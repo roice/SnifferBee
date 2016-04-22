@@ -10,6 +10,7 @@
 /* STM32F103 chip is used */
 #include "stm32f1xx_hal.h"
 #include "config.h" // RXBUFFER_SIZE
+#include "ppm.h"
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim1;
@@ -29,8 +30,8 @@ uint8_t RxBuffer[RXBUFFERSIZE]; // UART RX DMA
 uint8_t FrameBuffer[RXBUFFERSIZE]; // frame processing buffer
 
 /* PPM */
-// four PPM signals, PPM_CH_NUM channels each signal
-float PPM_Channel_Value[4][PPM_CH_NUM] = {{0},{0},{0},{0}}; // 1000.0 us - 2000.0 us
+// four PPM signals
+PPM_Signal_t PPM_Signal[4];
 
 /* Private function prototypes */
 void SystemClock_Config(void);
@@ -41,6 +42,9 @@ static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
+
+static void PPM_Updating(void);
+static void FrameParsing(uint8_t*, uint16_t);
 
 int main(void)
 {
@@ -59,10 +63,19 @@ int main(void)
     MX_TIM3_Init();
     MX_TIM4_Init();
 
+    /* Init PPM signal states */
+    for (uint8_t i = 0; i < 4; i++)
+        PPM_Signal_Init(&PPM_Signal[i]);
+
+    /* Start producing PPM signals */
+    HAL_TIM_Base_Start_IT(&htim1);
+    HAL_TIM_Base_Start_IT(&htim2);
+    HAL_TIM_Base_Start_IT(&htim3);
+    HAL_TIM_Base_Start_IT(&htim4);
+
     /* enable idle interrupt of UART1 */
     __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
-
-    /* start DMA receiving process */
+    /* start UART DMA receiving process */
     HAL_UART_Receive_DMA(&huart1, RxBuffer, RXBUFFERSIZE); // enable dma receiving
 
     /* Infinite loop */
@@ -72,9 +85,10 @@ int main(void)
         {// process this frame
 
             // parse this frame
+            FrameParsing(FrameBuffer, frame_len);
 
             // update PPM_Channel_Value
-            PPM_updating();
+            PPM_Updating();
 
             // clear flag
             frame_received = FALSE; 
@@ -84,12 +98,12 @@ int main(void)
     return 0;
 }
 
-void FrameParsing(uint8_t* frame, uint16_t len)
+static void FrameParsing(uint8_t* frame, uint16_t len)
 {
 //HAL_UART_Transmit_DMA(&huart1, (uint8_t*)"1234", 4);
 }
 
-void PPM_updating(void)
+static void PPM_Updating(void)
 {}
 
 /* ########################### MCU init functions ########################## */
