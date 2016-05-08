@@ -22,7 +22,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "platform.h"
+#include <platform.h>
 #include "debug.h"
 
 #include "common/maths.h"
@@ -33,8 +33,12 @@
 #include "drivers/serial_uart.h"
 #include "drivers/gpio.h"
 #include "drivers/light_led.h"
+#include "drivers/sensor.h"
+#include "drivers/accgyro.h"
 
 #include "sensors/sensors.h"
+#include "sensors/boardalignment.h"
+#include "sensors/acceleration.h"
 
 #include "io/beeper.h"
 #include "io/serial.h"
@@ -44,6 +48,7 @@
 #include "flight/pid.h"
 #include "flight/navigation.h"
 #include "flight/gps_conversion.h"
+#include "flight/imu.h"
 
 #include "rx/rx.h"
 
@@ -281,26 +286,11 @@ void onGpsNewData(void)
     GPS_filter_index = (GPS_filter_index + 1) % GPS_FILTER_VECTOR_LENGTH;
     for (axis = 0; axis < 2; axis++) {
         GPS_read[axis] = GPS_coord[axis];               // latest unfiltered data is in GPS_latitude and GPS_longitude
-        
-        /* Originally Modified by Roice for v1.9.0, 20150720 
-         * Added by Roice for this version (v1.11.0), 20151223 */
-        /* for LLH, 10^(-7) degree is approx. equal to 1.11 cm
-         * this is not enough for indoor nav (& OptiTrack accuracy is 1 mm)
-         * so 10^(-8) is nesessary for OptiTrack indoor nav*/
-        #if defined(MOCAP)
-        // Note: GPS_FILTER_VECTOR_LENGTH must be limited (say, below 21 if using 'Guineabay~'), as the supreme of int_32_t is 2.1*10^9
-        GPS_degree[axis] = GPS_read[axis] / 100000000;
-        #else
         GPS_degree[axis] = GPS_read[axis] / 10000000;   // get the degree to assure the sum fits to the int32_t
-        #endif
 
         // How close we are to a degree line ? its the first three digits from the fractions of degree
         // later we use it to Check if we are close to a degree line, if yes, disable averaging,
-        #if defined(MOCAP)
-        fraction3[axis] = (GPS_read[axis] - GPS_degree[axis] * 100000000) / 100000;
-        #else
         fraction3[axis] = (GPS_read[axis] - GPS_degree[axis] * 10000000) / 10000;
-        #endif
 
         GPS_filter_sum[axis] -= GPS_filter[axis][GPS_filter_index];
         GPS_filter[axis][GPS_filter_index] = GPS_read[axis] - (GPS_degree[axis] * 10000000);
@@ -327,7 +317,7 @@ void onGpsNewData(void)
     // calculate the current velocity based on gps coordinates continously to get a valid speed at the moment when we start navigating
     GPS_calc_velocity();
 
-    if (FLIGHT_MODE(GPS_HOLD_MODE) || FLIGHT_MODE(GPS_HOME_MODE) || FLIGHT_MODE(MOCAP_MODE)) {
+    if (FLIGHT_MODE(GPS_HOLD_MODE) || FLIGHT_MODE(GPS_HOME_MODE)) {
         // we are navigating
 
         // gps nav calculations, these are common for nav and poshold
@@ -374,7 +364,7 @@ void GPS_reset_home_position(void)
         GPS_home[LAT] = GPS_coord[LAT];
         GPS_home[LON] = GPS_coord[LON];
         GPS_calc_longitude_scaling(GPS_coord[LAT]); // need an initial value for distance and bearing calc
-        nav_takeoff_bearing = heading;              // save takeoff heading
+        nav_takeoff_bearing = DECIDEGREES_TO_DEGREES(attitude.values.yaw);              // save takeoff heading
         // Set ground altitude
         ENABLE_STATE(GPS_FIX_HOME);
     }
@@ -471,7 +461,7 @@ static void GPS_distance_cm_bearing(int32_t *currentLat1, int32_t *currentLon1, 
     float dLon = (float)(*destinationLon2 - *currentLon1) * GPS_scaleLonDown;
     *dist = sqrtf(sq(dLat) + sq(dLon)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR_IN_HUNDREDS_OF_KILOMETERS;
 
-    *bearing = 9000.0f + atan2f(-dLat, dLon) * TAN_89_99_DEGREES;      // Convert the output radians to 100xdeg
+    *bearing = 9000.0f + atan2_approx(-dLat, dLon) * TAN_89_99_DEGREES;      // Convert the output radians to 100xdeg
     if (*bearing < 0)
         *bearing += 36000;
 }
@@ -659,8 +649,8 @@ static int32_t wrap_36000(int32_t angle)
 
 void updateGpsStateForHomeAndHoldMode(void)
 {
-    float sin_yaw_y = sin_approx(heading * 0.0174532925f);
-    float cos_yaw_x = cos_approx(heading * 0.0174532925f);
+    float sin_yaw_y = sin_approx(DECIDEGREES_TO_DEGREES(attitude.values.yaw) * 0.0174532925f);
+    float cos_yaw_x = cos_approx(DECIDEGREES_TO_DEGREES(attitude.values.yaw) * 0.0174532925f);
     if (gpsProfile->nav_slew_rate) {
         nav_rated[LON] += constrain(wrap_18000(nav[LON] - nav_rated[LON]), -gpsProfile->nav_slew_rate, gpsProfile->nav_slew_rate); // TODO check this on uint8
         nav_rated[LAT] += constrain(wrap_18000(nav[LAT] - nav_rated[LAT]), -gpsProfile->nav_slew_rate, gpsProfile->nav_slew_rate);

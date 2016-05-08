@@ -22,8 +22,9 @@
 #include "sensors/barometer.h"
 
 extern int32_t AltHold;
-extern int32_t EstAlt;
 extern int32_t vario;
+
+void calculateEstimatedAltitude(uint32_t currentTime);
 
 void configureAltitudeHold(pidProfile_t *initialPidProfile, barometerConfig_t *intialBarometerConfig, rcControlsConfig_t *initialRcControlsConfig, escAndServoConfig_t *initialEscAndServoConfig);
 void applyAltHold(airplaneConfig_t *airplaneConfig);

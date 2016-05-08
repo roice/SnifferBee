@@ -51,9 +51,6 @@ typedef enum {
     SENSOR_SONAR = 1 << 4,
     SENSOR_GPS = 1 << 5,
     SENSOR_GPSMAG = 1 << 6,
-#if defined(MOCAP)
-    SENSOR_MOCAP = 1 << 7,
-#endif
 } sensors_e;
 
 typedef enum {
@@ -73,5 +70,3 @@ typedef struct sensorAlignmentConfig_s {
     sensor_align_e acc_align;               // acc alignment
     sensor_align_e mag_align;               // mag alignment
 } sensorAlignmentConfig_t;
-
-extern int16_t heading;

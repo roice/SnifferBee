@@ -27,7 +27,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "platform.h"
+#include <platform.h>
 
 #include "system.h"
 #include "gpio.h"
@@ -36,6 +36,8 @@
 #include "serial.h"
 #include "serial_uart.h"
 #include "serial_uart_impl.h"
+#include "serial_uart_stm32f30x.h"
+
 
 // Using RX DMA disables the use of receive callbacks
 //#define USE_USART1_RX_DMA
