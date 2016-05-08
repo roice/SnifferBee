@@ -57,14 +57,18 @@
 
 #define ACC_MPU6000_ALIGN CW270_DEG
 
+/* Microbee does not use barometer
 // External I2C BARO
 #define BARO
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
+*/
 
+/* Microbee does not use mag
 // External I2C MAG
 #define MAG
 #define USE_MAG_HMC5883
+*/
 
 // Microbee, brushed motors
 #define BRUSHED_MOTORS
