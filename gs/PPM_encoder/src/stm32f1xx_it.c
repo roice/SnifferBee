@@ -31,11 +31,12 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
+#include <stdbool.h>
+#include <string.h> // memcpy
 #include "stm32f1xx_hal.h"
 #include "stm32f1xx.h"
 #include "stm32f1xx_it.h"
 #include "config.h" // RXBUFFER_SIZE
-#include <string.h> // memcpy
 #include "ppm.h"
 
 /* USER CODE BEGIN 0 */
@@ -51,7 +52,7 @@ extern DMA_HandleTypeDef hdma_usart1_rx;
 extern DMA_HandleTypeDef hdma_usart1_tx;
 extern UART_HandleTypeDef huart1;
 
-extern uint8_t frame_received;
+extern bool frame_received;
 extern uint16_t frame_len;
 extern uint8_t* FrameBuffer;
 extern uint8_t* RxBuffer;
@@ -225,7 +226,7 @@ void USART1_IRQHandler(void)
         temp  = hdma_usart1_rx.Instance->CNDTR;
         frame_len =  RXBUFFERSIZE - temp; // num of char received
         memcpy(&FrameBuffer, &RxBuffer, frame_len*sizeof(uint8_t)); // copy this frame to the processing buffer
-        frame_received = TRUE; // tell main to process this frame
+        frame_received = true; // tell main to process this frame
         HAL_UART_Receive_DMA(&huart1, RxBuffer, RXBUFFERSIZE); // enable dma receiving
     }
 

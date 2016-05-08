@@ -8,6 +8,7 @@
  */
 
 /* STM32F103 chip is used */
+#include <stdbool.h>
 #include "stm32f1xx_hal.h"
 #include "config.h" // RXBUFFER_SIZE
 #include "ppm.h"
@@ -22,7 +23,7 @@ DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart1_tx;
 
 /* UART SBSP related */
-uint8_t frame_received = FALSE;
+bool frame_received = false;
 uint16_t frame_len;
 
 /* Buffer used for reception */
@@ -81,7 +82,7 @@ int main(void)
     /* Infinite loop */
     while (1)
     {
-        if (frame_received == TRUE) // if received a frame
+        if (frame_received == true) // if received a frame
         {// process this frame
 
             // parse this frame
@@ -91,7 +92,7 @@ int main(void)
             PPM_Updating();
 
             // clear flag
-            frame_received = FALSE; 
+            frame_received = false; 
         }
     }
 
@@ -100,7 +101,7 @@ int main(void)
 
 static void FrameParsing(uint8_t* frame, uint16_t len)
 {
-//HAL_UART_Transmit_DMA(&huart1, (uint8_t*)"1234", 4);
+
 }
 
 static void PPM_Updating(void)
