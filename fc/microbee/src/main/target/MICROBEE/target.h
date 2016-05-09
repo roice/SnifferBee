@@ -50,12 +50,12 @@
 #define GYRO
 #define USE_GYRO_SPI_MPU6000
 
-#define GYRO_MPU6000_ALIGN CW270_DEG
+#define GYRO_MPU6000_ALIGN CW0_DEG_FLIP
 
 #define ACC
 #define USE_ACC_SPI_MPU6000
 
-#define ACC_MPU6000_ALIGN CW270_DEG
+#define ACC_MPU6000_ALIGN CW0_DEG_FLIP
 
 /* Microbee does not use barometer
 // External I2C BARO
