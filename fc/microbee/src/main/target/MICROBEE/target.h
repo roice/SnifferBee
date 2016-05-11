@@ -106,7 +106,17 @@
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_2) // Flex port - SCL/PB10, SDA/PB11
 
-/* MicroBee use ADC to sample gas sensors
+// MicroBee use ADC to sample gas sensors
+#define GAS_SENSOR_FRONT_ADC_GPIO           GPIOA
+#define GAS_SENSOR_FRONT_ADC_GPIO_PIN       GPIO_Pin_0
+#define GAS_SENSOR_FRONT_ADC_CHANNEL        ADC_Channel_0
+#define GAS_SENSOR_REAR_LEFT_ADC_GPIO       GPIOA
+#define GAS_SENSOR_REAR_LEFT_ADC_GPIO_PIN   GPIO_Pin_2
+#define GAS_SENSOR_REAR_LEFT_ADC_CHANNEL    ADC_Channel_2
+#define GAS_SENSOR_REAR_RIGHT_ADC_GPIO      GPIOA
+#define GAS_SENSOR_REAR_RIGHT_ADC_GPIO_PIN  GPIO_Pin_1
+#define GAS_SENSOR_REAR_RIGHT_ADC_CHANNEL   ADC_Channel_1
+/*
 #define USE_ADC
 
 #define CURRENT_METER_ADC_GPIO      GPIOB

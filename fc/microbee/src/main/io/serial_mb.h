@@ -39,5 +39,6 @@ typedef struct mbspPort_s {
 void mbspInit(serialPort_t *serialPort);
 void mbspPrint(const char *str);
 void mbspPrintf(const char *fmt, ...);
+void mbspSendGasMeasurement(void);
 
 #endif

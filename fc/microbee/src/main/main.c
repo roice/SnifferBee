@@ -44,7 +44,13 @@
 #include "drivers/compass.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_rx.h"
+
+#ifdef MICROBEE
+#include "drivers/adc_mb.h"
+#else
 #include "drivers/adc.h"
+#endif
+
 #include "drivers/bus_i2c.h"
 #include "drivers/bus_spi.h"
 #include "drivers/inverter.h"
@@ -447,6 +453,9 @@ void init(void)
 #endif
 #endif
 
+#ifdef MICROBEE
+    mb_adcInit();
+#else
 #ifdef USE_ADC
     drv_adc_config_t adc_params;
 
@@ -464,7 +473,7 @@ void init(void)
 
     adcInit(&adc_params);
 #endif
-
+#endif // MICROBEE
 
     initBoardAlignment(&masterConfig.boardAlignment);
 

@@ -42,6 +42,11 @@
 #include "drivers/pwm_rx.h"
 #include "drivers/gyro_sync.h"
 
+#ifdef MICROBEE
+#include "drivers/adc_mb.h"
+#include "io/serial_mb.h"
+#endif
+
 #include "io/rc_controls.h"
 
 #include "sensors/sensors.h"
@@ -713,6 +718,17 @@ void taskMainPidLoop(void)
 #ifdef BLACKBOX
     if (!cliMode && feature(FEATURE_BLACKBOX)) {
         handleBlackbox();
+    }
+#endif
+
+#ifdef MICROBEE
+    static uint32_t mb_adc_last_sample_time = 0;
+    uint32_t mb_adc_current_time = micros();
+    if (mb_adc_current_time - mb_adc_last_sample_time > 50000) // 100 ms
+    {
+        mb_adc_last_sample_time = mb_adc_current_time;
+
+        mbspSendGasMeasurement();
     }
 #endif
 }

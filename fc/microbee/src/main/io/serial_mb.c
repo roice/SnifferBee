@@ -24,7 +24,7 @@
 STATIC_UNIT_TESTED mbspPort_t mbspPort;
 
 static bufWriter_t *mbspWriter;
-static uint8_t mbspWriteBuffer[sizeof(*mbspWriter) + 16];
+static uint8_t mbspWriteBuffer[sizeof(*mbspWriter) + 20];
 
 void mbspInit(serialPort_t *serialPort)
 {
@@ -60,4 +60,17 @@ void mbspPrintf(const char *fmt, ...)
         tfp_format(mbspWriter, mbspPutp, fmt, va);
         va_end(va);
     }
+}
+
+void mbspSendGasMeasurement(void)
+{
+    // send addr and channel of ground station
+    // 0x00 0x64 0x82 by default
+    bufWriterAppend(mbspWriter, 0x00);
+    bufWriterAppend(mbspWriter, 0x64);
+    bufWriterAppend(mbspWriter, 0x82);
+
+    // data
+    bufWriterAppend(mbspWriter, 0x12);
+    bufWriterFlush(mbspWriter);
 }

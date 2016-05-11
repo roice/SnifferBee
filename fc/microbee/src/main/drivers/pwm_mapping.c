@@ -728,6 +728,19 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
         }
 #endif
 
+// MicroBee use PA0(S5_IN) PA1(S6_IN) PA2(S6_OUT) as 3 ADC channels
+// to measure 3 gas sensor signals
+#ifdef MICROBEE
+        if ( (timerHardwarePtr->gpio == GAS_SENSOR_FRONT_ADC_GPIO 
+                && timerHardwarePtr->pin == GAS_SENSOR_FRONT_ADC_GPIO_PIN)
+            || (timerHardwarePtr->gpio == GAS_SENSOR_REAR_LEFT_ADC_GPIO 
+                && timerHardwarePtr->pin == GAS_SENSOR_REAR_LEFT_ADC_GPIO_PIN)
+            || (timerHardwarePtr->gpio == GAS_SENSOR_REAR_RIGHT_ADC_GPIO 
+                && timerHardwarePtr->pin == GAS_SENSOR_REAR_RIGHT_ADC_GPIO_PIN)
+            )
+            continue;
+#endif
+
 #ifdef SONAR
         if (init->sonarGPIOConfig && timerHardwarePtr->gpio == init->sonarGPIOConfig->gpio &&
             (
