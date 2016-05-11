@@ -824,12 +824,17 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 #ifdef CC3D
         if (init->useParallelPWM) {
             // Skip PWM inputs that conflict with timers used outputs.
+            // Noted by Roice:
+            //   This will skip S5_OUT and S6_OUT
             if ((type == MAP_TO_SERVO_OUTPUT || type == MAP_TO_MOTOR_OUTPUT) && (timerHardwarePtr->tim == TIM2 || timerHardwarePtr->tim == TIM3)) {
                 continue;
             }
+// On MicroBee, S1_IN is not useless, it is used as the first channel
+#ifndef MICROBEE
             if (type == MAP_TO_PWM_INPUT && timerHardwarePtr->tim == TIM4) {
                 continue;
             }
+#endif
 
         }
 #endif

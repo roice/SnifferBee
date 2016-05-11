@@ -480,7 +480,8 @@ CC3D_SRC = \
 		   $(COMMON_SRC) \
 		   $(VCP_SRC)
 
-MICROBEE_SRC = $(CC3D_SRC)
+MICROBEE_SRC = $(CC3D_SRC) \
+			   io/serial_mb.c
 
 STM32F30x_COMMON_SRC = \
 		   startup_stm32f30x_md_gcc.S \

@@ -455,7 +455,11 @@ STATIC_UNIT_TESTED void resetConf(void)
 #endif
 
     // Radio
+#ifdef MICROBEE
+    parseRcChannels("RAET1234", &masterConfig.rxConfig);
+#else
     parseRcChannels("AETR1234", &masterConfig.rxConfig);
+#endif
 
     resetRcControlsConfig(&currentProfile->rcControlsConfig);
 

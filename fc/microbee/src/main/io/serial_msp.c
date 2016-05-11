@@ -93,6 +93,11 @@
 #ifdef USE_SERIAL_1WIRE
 #include "io/serial_1wire.h"
 #endif
+
+#ifdef MICROBEE
+#include "io/serial_mb.h"
+#endif
+
 static serialPort_t *mspSerialPort;
 
 extern uint16_t cycleTime; // FIXME dependency on mw.c
@@ -434,6 +439,12 @@ void mspAllocateSerialPorts(serialConfig_t *serialConfig)
 
         serialPort = openSerialPort(portConfig->identifier, FUNCTION_MSP, NULL, baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
         if (serialPort) {
+// MicroBee use USART1 to control RF
+// USART1 can also be used as MSP port
+#ifdef MICROBEE
+            if (portConfig->identifier == SERIAL_PORT_USART1)
+                mbspInit(serialPort);
+#endif
             resetMspPort(mspPort, serialPort);
             portIndex++;
         }

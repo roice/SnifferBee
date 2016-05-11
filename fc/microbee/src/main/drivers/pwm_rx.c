@@ -36,6 +36,10 @@
 
 #include "pwm_rx.h"
 
+#ifdef MICROBEE
+#include "io/serial_mb.h"
+#endif
+
 #define DEBUG_PPM_ISR
 
 #define PPM_CAPTURE_COUNT 12
@@ -45,6 +49,10 @@
 #define PWM_PORTS_OR_PPM_CAPTURE_COUNT PPM_CAPTURE_COUNT
 #else
 #define PWM_PORTS_OR_PPM_CAPTURE_COUNT PWM_INPUT_PORT_COUNT
+#endif
+
+#ifdef MICROBEE
+#define MB_FILTER_ARRAY_LEN_FOR_FIRST_INPUT_CHANNEL  32
 #endif
 
 // TODO - change to timer clocks ticks
@@ -104,6 +112,14 @@ typedef struct ppmDevice_s {
 
 ppmDevice_t ppmDev;
 
+#ifdef MICROBEE
+typedef struct pwmInAvoidOutputTimerClash_s {
+    uint32_t rise;
+    uint32_t fall;
+    uint32_t largeCounter;
+} pwmInAvoidOutputTimerClash_t;
+static pwmInAvoidOutputTimerClash_t pwmFirstCh = {0};
+#endif
 
 #define PPM_IN_MIN_SYNC_PULSE_US    2700    // microseconds
 #define PPM_IN_MIN_CHANNEL_PULSE_US 750     // microseconds
@@ -308,11 +324,27 @@ static void pwmOverflowCallback(timerOvrHandlerRec_t* cbRec, captureCompare_t ca
 {
     UNUSED(capture);
     pwmInputPort_t *pwmInputPort = container_of(cbRec, pwmInputPort_t, overflowCb);
-
+#ifdef MICROBEE
+    if (pwmInputPort->channel == 0) {
+        pwmFirstCh.largeCounter += capture + 1;
+        /*if (++pwmInputPort->missedEvents > 250) {
+            captures[pwmInputPort->channel] = PPM_RCVR_TIMEOUT;
+            pwmInputPort->missedEvents = 0;
+        }*/
+        pwmInputPort->missedEvents++;
+    }
+    else {
+        if (++pwmInputPort->missedEvents > MAX_MISSED_PWM_EVENTS) {
+            captures[pwmInputPort->channel] = PPM_RCVR_TIMEOUT;
+            pwmInputPort->missedEvents = 0;
+        }
+    }
+#else
     if (++pwmInputPort->missedEvents > MAX_MISSED_PWM_EVENTS) {
         captures[pwmInputPort->channel] = PPM_RCVR_TIMEOUT;
         pwmInputPort->missedEvents = 0;
     }
+#endif
 }
 
 static void pwmEdgeCallback(timerCCHandlerRec_t *cbRec, captureCompare_t capture)
@@ -320,15 +352,63 @@ static void pwmEdgeCallback(timerCCHandlerRec_t *cbRec, captureCompare_t capture
     pwmInputPort_t *pwmInputPort = container_of(cbRec, pwmInputPort_t, edgeCb);
     const timerHardware_t *timerHardwarePtr = pwmInputPort->timerHardware;
 
+// array for filter, see below
+#ifdef MICROBEE
+    static uint16_t captureList[MB_FILTER_ARRAY_LEN_FOR_FIRST_INPUT_CHANNEL] = {0};
+    static uint32_t captureListSum = 0;
+    static uint8_t  captureIndex = 0;
+#endif
+
+#ifdef MICROBEE
+    uint32_t currentTime;
+    if (pwmInputPort->channel == 0) {
+        currentTime = capture;
+        currentTime += pwmFirstCh.largeCounter;
+        pwmFirstCh.largeCounter = currentTime;
+    }
+#endif
+
     if (pwmInputPort->state == 0) {
-        pwmInputPort->rise = capture;
+#ifdef MICROBEE
+        if (pwmInputPort->channel == 0)
+            pwmFirstCh.rise = currentTime;
+        else
+#endif
+            pwmInputPort->rise = capture;
         pwmInputPort->state = 1;
         pwmICConfig(timerHardwarePtr->tim, timerHardwarePtr->channel, TIM_ICPolarity_Falling);
     } else {
-        pwmInputPort->fall = capture;
+#ifdef MICROBEE
+        if (pwmInputPort->channel == 0)
+            pwmFirstCh.fall = currentTime;
+        else
+#endif
+            pwmInputPort->fall = capture;
 
         // compute and store capture
-        pwmInputPort->capture = pwmInputPort->fall - pwmInputPort->rise;
+#ifdef MICROBEE
+        if (pwmInputPort->channel == 0)
+            pwmInputPort->capture = (pwmFirstCh.fall - pwmFirstCh.rise) >> 3;
+        else
+#endif
+            pwmInputPort->capture = pwmInputPort->fall - pwmInputPort->rise;
+
+// Because Channel 0 (S1_IN) shares TIM4 with PWM outputs, the capture
+// fluctuates above the right value, so a low pass filter should fix this
+#ifdef MICROBEE
+        if (pwmInputPort->channel == 0) {
+            // maintain list & sum
+            captureIndex = (captureIndex+1) % MB_FILTER_ARRAY_LEN_FOR_FIRST_INPUT_CHANNEL;
+            captureListSum -= captureList[captureIndex];
+            captureList[captureIndex] = pwmInputPort->capture;
+            captureListSum += captureList[captureIndex];
+            // moving average filter
+            captures[pwmInputPort->channel] = captureListSum >> 5;
+            // ---- cut mean error
+            captures[pwmInputPort->channel] -= 30;
+        }
+        else
+#endif
         captures[pwmInputPort->channel] = pwmInputPort->capture;
 
         // switch state

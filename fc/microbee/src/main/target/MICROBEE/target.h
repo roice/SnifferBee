@@ -27,9 +27,11 @@
 #define INVERTER_PERIPHERAL RCC_APB2Periph_GPIOB
 #define INVERTER_USART USART1
 
+/* PA15 is vacant on CC3D Atom (MicroBee)
 #define BEEP_GPIO GPIOA
 #define BEEP_PIN Pin_15 // PA15 (Beeper)
 #define BEEP_PERIPHERAL RCC_APB2Periph_GPIOA
+*/
 
 #define MPU6000_CS_GPIO       GPIOA
 #define MPU6000_CS_PIN        GPIO_Pin_4
@@ -74,20 +76,22 @@
 #define BRUSHED_MOTORS
 
 #define INVERTER
-#define BEEPER
-#define DISPLAY
+//#define BEEPER
+//#define DISPLAY
 
 #define USB_IO
 
 #define USE_VCP
 #define USE_USART1
 #define USE_USART3
-#define USE_SOFTSERIAL1
-#define SERIAL_PORT_COUNT 4
+//#define USE_SOFTSERIAL1
+#define SERIAL_PORT_COUNT 3 // UART1 UART3 VCP
 
+/* MicroBee does not need soft serial
 #define SOFTSERIAL_1_TIMER TIM3
 #define SOFTSERIAL_1_TIMER_TX_HARDWARE 1 // PWM 2
 #define SOFTSERIAL_1_TIMER_RX_HARDWARE 2 // PWM 3
+*/
 
 #define USART3_RX_PIN Pin_11
 #define USART3_TX_PIN Pin_10
@@ -102,6 +106,7 @@
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_2) // Flex port - SCL/PB10, SDA/PB11
 
+/* MicroBee use ADC to sample gas sensors
 #define USE_ADC
 
 #define CURRENT_METER_ADC_GPIO      GPIOB
@@ -115,22 +120,26 @@
 #define RSSI_ADC_GPIO               GPIOA
 #define RSSI_ADC_GPIO_PIN           GPIO_Pin_1
 #define RSSI_ADC_CHANNEL            ADC_Channel_1
+*/
 
+/* MicroBee does not have LED strip
 #define LED_STRIP
 #define LED_STRIP_TIMER TIM3
+*/
 #define WS2811_DMA_TC_FLAG           DMA1_FLAG_TC6
 #define WS2811_DMA_HANDLER_IDENTIFER DMA1_CH6_HANDLER
 
-#define GPS
+//#define GPS // MicroBee use Opti-Track Motion Capture
 #define BLACKBOX
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define TELEMETRY
-#define SERIAL_RX
+//#define TELEMETRY
+//#define SERIAL_RX
 //#define SONAR
-#define USE_SERVOS
-#define USE_CLI
+//#define USE_SERVOS
+//#define USE_CLI
 
+/* MicroBee use FlexPort as I2C
 #define USE_SERIAL_1WIRE
 
 // FlexPort (pin 21/22, TX/RX respectively):
@@ -146,3 +155,4 @@
 // USART3, PB11 (Flexport)
 #define BIND_PORT  GPIOB
 #define BIND_PIN   Pin_11
+*/
