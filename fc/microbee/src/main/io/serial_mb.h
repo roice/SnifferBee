@@ -40,5 +40,6 @@ void mbspInit(serialPort_t *serialPort);
 void mbspPrint(const char *str);
 void mbspPrintf(const char *fmt, ...);
 void mbspSendGasMeasurement(void);
+void mbspSendHeartBeat(void);
 
 #endif

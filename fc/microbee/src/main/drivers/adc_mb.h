@@ -14,7 +14,7 @@ typedef enum {
     ADC_GAS_SENSOR_REAR_LEFT = 1,
     ADC_GAS_SENSOR_REAR_RIGHT = 2,
     MB_ADC_CHANNEL_MAX = ADC_GAS_SENSOR_REAR_RIGHT
-} AdcChannel;
+} MB_AdcChannel;
 
 #define MB_ADC_CHANNEL_COUNT (MB_ADC_CHANNEL_MAX + 1)
 

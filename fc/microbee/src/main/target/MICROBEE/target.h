@@ -15,6 +15,15 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* ======= Change this line to allocate device address =======*/
+// 0: occupied by Ground station, not available
+// 1: MicroBee No.1, available
+// 2: MicroBee No.2, available
+// 3: MicroBee No.3, available
+// 4: MicroBee No.4, available
+#define MICROBEE_DEVICE_NUMBER    1
+
+/* ======= Don't need to change ======= */
 #define TARGET_BOARD_IDENTIFIER "CC3D" // CopterControl 3D
 
 #define LED0_GPIO   GPIOB
