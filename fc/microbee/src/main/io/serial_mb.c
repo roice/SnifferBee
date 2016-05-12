@@ -18,6 +18,7 @@
 
 #include "drivers/buf_writer.h"
 #include "drivers/adc_mb.h"
+#include "drivers/ext_i2c_device_mb.h"
 
 #include "io/serial_mb.h"
 
@@ -88,6 +89,12 @@ static void serialize16(uint16_t a)
     serialize8((uint8_t)(a >> 8));
 }
 
+static void serialize32(uint32_t a)
+{
+    serialize16((uint16_t)(a >> 0));
+    serialize16((uint16_t)(a >> 16));
+}
+
 void mbspSendGasMeasurement(void)
 {
     mbspPort.checksum = 0;
@@ -149,7 +156,7 @@ void mbspSendHeartBeat(void)
     serialize8(MICROBEE_DEVICE_NUMBER);
 
     // length of data (bytes)
-    serialize8(1); // only one at present, ARM/DISARM info
+    serialize8(sizeof(uint8_t)+sizeof(float)); // ARM/DISARM and Battery Voltage
 
     // command, send gas sensor readings
     serialize8(MBSP_CMD_STATUS);
@@ -159,6 +166,9 @@ void mbspSendHeartBeat(void)
         serialize8(1);
     else
         serialize8(0);
+
+    // Battery Voltage
+    serialize32(mb_GetBatteryVoltage());
     
     // checksum
     bufWriterAppend(mbspWriter, mbspPort.checksum);

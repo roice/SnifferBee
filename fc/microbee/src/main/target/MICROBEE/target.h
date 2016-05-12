@@ -92,9 +92,9 @@
 
 #define USE_VCP
 #define USE_USART1
-#define USE_USART3
+//#define USE_USART3
 //#define USE_SOFTSERIAL1
-#define SERIAL_PORT_COUNT 3 // UART1 UART3 VCP
+#define SERIAL_PORT_COUNT 2 // UART1 VCP
 
 /* MicroBee does not need soft serial
 #define SOFTSERIAL_1_TIMER TIM3
@@ -102,11 +102,13 @@
 #define SOFTSERIAL_1_TIMER_RX_HARDWARE 2 // PWM 3
 */
 
+/* MicroBee use PB10 PB11 as I2C port
 #define USART3_RX_PIN Pin_11
 #define USART3_TX_PIN Pin_10
 #define USART3_GPIO GPIOB
 #define USART3_APB1_PERIPHERALS RCC_APB1Periph_USART3
 #define USART3_APB2_PERIPHERALS RCC_APB2Periph_GPIOB
+*/
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1

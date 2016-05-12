@@ -44,6 +44,7 @@
 
 #ifdef MICROBEE
 #include "drivers/adc_mb.h"
+#include "drivers/ext_i2c_device_mb.h"
 #include "io/serial_mb.h"
 #endif
 
@@ -731,7 +732,7 @@ void taskMainPidLoop(void)
     {
         mb_adc_last_sample_time = mb_current_time;
 
-        mbspSendGasMeasurement();
+        //mbspSendGasMeasurement();
     }
 
     // send status to ground station at 1 Hz
@@ -739,7 +740,13 @@ void taskMainPidLoop(void)
     {
         mb_heart_beat_last_time = mb_current_time;
 
-        mbspSendHeartBeat();
+        // update Battery status
+        mb_BatVoltUpdate();
+        
+mbspPrintf("Bat Volt %d\n", mb_GetBatteryVoltage());
+
+        // send heart beat (include ARM/DISARM and bat volt)
+        //mbspSendHeartBeat();
     }
 #endif
 }
