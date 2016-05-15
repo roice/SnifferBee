@@ -13,7 +13,10 @@ echo "Start cleaning ..."
 sleep 1
 # clear 3rd party software builds
 cd $prjtop/3rdparty
-rm -rf fltk-1.3.x-r11608/build
+rm -rf fltk-1.3.x-r11608
+rm blas/BLAS-3.6.0/*.o
+rm blas/CBLAS/testing/x*cblat*
+rm blas/CBLAS/src/*.o
 
 # clear GSRAO builds
 #cd $prjtop/src
