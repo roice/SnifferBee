@@ -41,7 +41,7 @@
 typedef struct {
     uint8_t state; // PPM frame state
     uint8_t phase; // phase in a state
-    float channel[8]; // channel value, 1000.0~2000.0 us
+    uint16_t channel[8]; // channel value, 1000~2000 us
     int32_t count; // time left for a frame, (1/9 us)
 } PPM_Signal_t;
 

@@ -54,8 +54,8 @@ extern UART_HandleTypeDef huart1;
 
 extern bool frame_received;
 extern uint16_t frame_len;
-extern uint8_t* FrameBuffer;
-extern uint8_t* RxBuffer;
+extern uint8_t FrameBuffer[];
+extern uint8_t RxBuffer[];
 
 extern PPM_Signal_t PPM_Signal[];
 
@@ -225,7 +225,7 @@ void USART1_IRQHandler(void)
         HAL_UART_DMAStop(&huart1);
         temp  = hdma_usart1_rx.Instance->CNDTR;
         frame_len =  RXBUFFERSIZE - temp; // num of char received
-        memcpy(&FrameBuffer, &RxBuffer, frame_len*sizeof(uint8_t)); // copy this frame to the processing buffer
+        memcpy(FrameBuffer, RxBuffer, frame_len*sizeof(uint8_t)); // copy this frame to the processing buffer
         frame_received = true; // tell main to process this frame
         HAL_UART_Receive_DMA(&huart1, RxBuffer, RXBUFFERSIZE); // enable dma receiving
     }

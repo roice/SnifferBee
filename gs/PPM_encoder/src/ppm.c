@@ -17,14 +17,15 @@ void PPM_Signal_Init(PPM_Signal_t* signal)
 {
     signal->state = PPM_FRAME_END;
     signal->phase = PPM_PHASE_PULSE;
-    for (uint8_t i = 0; i < 8; i++)
-        signal->channel[i] = 1000.0f; // 1000.0 us
+    // channel 1-4
+    signal->channel[0] = 1000; // Throttle
+    signal->channel[1] = 1500; // Roll
+    signal->channel[2] = 1500; // Pitch
+    signal->channel[3] = 1500; // Yaw
+    for (uint8_t i = 4; i < 8; i++) // channel 5-8
+        signal->channel[i] = 1000; // 1000 us
     // init time count, the period of a frame is 20 ms
     signal->count = 20 * 1000 * 9; // (1/9) us
-
-    signal->channel[1] = 1200;
-    signal->channel[2] = 1400;
-    signal->channel[3] = 1600;
 }
 
 // update PPM signal state

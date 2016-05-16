@@ -8,20 +8,27 @@
  * Date:   2016-05-04 create this file
  */
 #include <stdbool.h>
+#include "stm32f1xx_hal.h"
 #include "serial.h"
 
 static sppState_e spp_state = IDLE;
-static unsigned char spp_checksum;
-static unsigned char spp_count;
-float spp_data[4][8]; // 4 PPM signal, 8 channels each
+static uint8_t spp_checksum;
+static uint8_t spp_count;
+static uint16_t spp_data[4*SPP_CHANNELS_IN_PPM_SIGNAL];
 
 /*
  * Frame structure:
- * '$P' + XXXX + XXXX + XXXX + XXXX + parity byte
- * 15 bytes total
- * XXXX is binary form of float number, LE
+ * '$P' + XXXXXXXX + XXXXXXXX + XXXXXXXX + XXXXXXXX + parity byte
+ *         1st PPM    2nd PPM    3rd PPM    4th PPM
+ *                  8 channel each PPM signal
+ *                       2 bytes each channel
+ * 2x8x4+2+1 = 67 bytes total for 8 channels each PPM signal
+ * XXX:
+ *     Only 4 channels used at present, so the total bytes for
+ *     a PPM frame is 2x4x4+2+1 = 35 bytes
+ * XX is a 16-bit unsigned short number, LE
  */
-bool sppProcessReceivedData(unsigned char c)
+bool sppProcessReceivedData(uint8_t c)
 {
     if (spp_state == IDLE) {
         if (c == '$')
@@ -31,7 +38,7 @@ bool sppProcessReceivedData(unsigned char c)
         if (c == 'P') {
             spp_state = HEADER_P;
             spp_checksum = 0;
-            spp_count = 4*8*sizeof(float);
+            spp_count = 4*SPP_CHANNELS_IN_PPM_SIGNAL*sizeof(uint16_t);
         }
         else
             spp_state = IDLE;
@@ -51,17 +58,18 @@ bool sppProcessReceivedData(unsigned char c)
     return false;
 }
 
-bool sppFrameParsing(unsigned char* frame, unsigned int len)
+bool sppFrameParsing(uint8_t* frame, uint8_t len)
 {
-    for (unsigned char i = 0; i < len; i++ )
+    for (uint8_t i = 0; i < len; i++ )
     {
         if (sppProcessReceivedData( *(frame+i) ))
         {
             // save data
-            if (i >= 4*8*sizeof(float)) // 32 float numbers, 128 bytes total
+            if (i >= 4*SPP_CHANNELS_IN_PPM_SIGNAL*sizeof(uint16_t))
             {
-                for (unsigned char j = 0; j < 4; j++)
-                    spp_data[j] = *((float*)(frame+i-4*(4-j)));
+                for (uint8_t j = 0; j < 4; j++)
+                    for (uint8_t k = 0; k < SPP_CHANNELS_IN_PPM_SIGNAL; k++)
+                        spp_data[j*SPP_CHANNELS_IN_PPM_SIGNAL+k] = *((uint16_t*)(frame+i-sizeof(uint16_t)*((4-j)*SPP_CHANNELS_IN_PPM_SIGNAL-k)));
                 return true;
             }
             else
@@ -69,4 +77,9 @@ bool sppFrameParsing(unsigned char* frame, unsigned int len)
         }
     }
     return false;
+}
+
+uint16_t* sppGetChannelData(void)
+{
+    return spp_data;
 }

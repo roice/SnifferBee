@@ -100,7 +100,16 @@ int main(void)
 
 static void PPM_Updating(void)
 {
-    memcpy(PPM_Signal);
+    uint16_t temp;
+    uint16_t* data = sppGetChannelData();
+    
+    for (uint8_t i = 0; i < 4; i++)
+        for (uint8_t j = 0; j < SPP_CHANNELS_IN_PPM_SIGNAL; j++)
+        {
+            temp = *(data+i*SPP_CHANNELS_IN_PPM_SIGNAL+j);
+            if ( temp >= 1000 && temp <= 2000 )
+                PPM_Signal[i].channel[j] = temp;
+        }
 }
 
 /* ########################### MCU init functions ########################## */
