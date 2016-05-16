@@ -16,7 +16,7 @@ echo "Start Compiling 3d party soft ..."
 echo "Start Compiling FLTK..."
 sleep 1
 cd $prjtop/3rdparty
-tar xzvf fltk-1.3.x-r11608.tar.bz2
+tar -xjf fltk-1.3.x-r11608.tar.bz2
 cd fltk-1.3.x-r11608
 mkdir -p build/install
 cd build
