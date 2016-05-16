@@ -12,6 +12,7 @@
 #include "stm32f1xx_hal.h"
 #include "config.h" // RXBUFFER_SIZE
 #include "ppm.h"
+#include "serial.h"
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim1;
@@ -45,7 +46,6 @@ static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 
 static void PPM_Updating(void);
-static void FrameParsing(uint8_t*, uint16_t);
 
 int main(void)
 {
@@ -86,10 +86,9 @@ int main(void)
         {// process this frame
 
             // parse this frame
-            FrameParsing(FrameBuffer, frame_len);
-
-            // update PPM_Channel_Value
-            PPM_Updating();
+            if (sppFrameParsing(FrameBuffer, frame_len))
+                // update PPM_Channel_Value
+                PPM_Updating();
 
             // clear flag
             frame_received = false; 
@@ -99,13 +98,10 @@ int main(void)
     return 0;
 }
 
-static void FrameParsing(uint8_t* frame, uint16_t len)
-{
-
-}
-
 static void PPM_Updating(void)
-{}
+{
+    memcpy(PPM_Signal);
+}
 
 /* ########################### MCU init functions ########################## */
 /**

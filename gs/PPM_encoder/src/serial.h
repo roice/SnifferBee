@@ -15,3 +15,5 @@ typedef enum {
     HEADER_P,
     DATA
 } sppState_e;
+
+bool sppFrameParsing(unsigned char* frame, unsigned int len);
