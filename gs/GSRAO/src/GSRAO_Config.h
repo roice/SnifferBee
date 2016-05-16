@@ -23,28 +23,27 @@ typedef struct {
 }GSRAO_Config_Arena_t;
 
 typedef struct {
-    /* source position */
-    float x;
-    float y;
-    float z;
-    int pps;
-    double mpp;
-    /*  */
-}GSRAO_Config_Source_t;
+    int netcard; // netcard number
+    int rigid_body_num_of_robot[4]; // 4 robots max
+}GSRAO_Config_Mocap_t;
 
 typedef struct {
-    /* init pos */
-    float init_x;
-    float init_y;
-    float init_z;
-    std::string type;
+    std::string serial_port_path;
+}GSRAO_Config_ppmCnt_t;
+
+typedef struct {
+    int num_of_robots; // amount of robots
+    std::string ppm_serial_port_path;
+    std::string dnet_serial_port_path;
 }GSRAO_Config_Robot_t;
 
 /* configuration struct */
 typedef struct {
     /* Arena */
     GSRAO_Config_Arena_t arena;
-    GSRAO_Config_Source_t source;
+    /* Mocap */
+    GSRAO_Config_Mocap_t mocap;
+    /* Robot */
     GSRAO_Config_Robot_t robot;
 }GSRAO_Config_t;
 

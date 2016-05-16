@@ -21,6 +21,7 @@
 #include <FL/Fl_Value_Input.H>
 #include <FL/Fl_Value_Slider.H>
 #include <FL/Fl_Choice.H>
+#include <FL/Fl_Input.H>
 /* OpenGL */
 #include <FL/Fl_Gl_Window.H>
 #include <FL/gl.h>
@@ -37,8 +38,16 @@
 
 /*------- Configuration Dialog -------*/
 struct ConfigDlg_widgets { // for parameter saving
+    // number of robots
+    Fl_Choice* scenario_num_of_robots;
     // network interface for receiving multicast info from Motive software (Opti-Track)
-    Fl_Choice *netcard;
+    Fl_Choice* mocap_netcard;
+    // rigid body number of robots
+    Fl_Choice* mocap_rigid_body_num_of_robot[4]; // 4 robots max
+    // serial port transmitting PPM signals (frames)
+    Fl_Input* ppmcnt_serial_port;
+    // serial port receiving data
+    Fl_Input* dnet_serial_port;
 };
 class ConfigDlg : public Fl_Window
 {
@@ -50,6 +59,7 @@ private:
     // callback funcs
     static void cb_dlg(Fl_Widget*, void*);
     static void cb_switch_tabs(Fl_Widget*, void*);
+    static void cb_change_num_of_robots(Fl_Widget*, void*);
     // function to save current value of widgets to runtime configs
     static void save_value_to_configs(ConfigDlg_widgets*);
     // function to get runtime configs to set value of widgets
@@ -72,8 +82,27 @@ void ConfigDlg::cb_switch_tabs(Fl_Widget *w, void *data)
     tabs->selection_color( (tabs->value())->color() );
 }
 
+void ConfigDlg::cb_change_num_of_robots(Fl_Widget* w, void* data)
+{
+    struct ConfigDlg_widgets *ws = (struct ConfigDlg_widgets*)data;
+
+    // deactivate & activate corresponding mocap rigid body selections
+    for (char i = ws->scenario_num_of_robots->value()+1; i < 4; i++) // 4 robots max
+        ws->mocap_rigid_body_num_of_robot[i]->deactivate();
+    for (char i = 0; i <= ws->scenario_num_of_robots->value(); i++)
+        ws->mocap_rigid_body_num_of_robot[i]->activate();
+}
+
 void ConfigDlg::save_value_to_configs(ConfigDlg_widgets* ws) {
     GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
+    // Robot
+    configs->robot.num_of_robots = ws->scenario_num_of_robots->value()+1; // Fl_Choice count from 0
+    configs->robot.ppm_serial_port_path = ws->ppmcnt_serial_port->value(); // serial port path for PPM
+    configs->robot.dnet_serial_port_path = ws->dnet_serial_port->value(); // serial port path for data
+    // Link
+    configs->mocap.netcard = ws->mocap_netcard->value(); // save netcard num
+    for (char i = 0; i < 4; i++) // 4 robots max
+        configs->mocap.rigid_body_num_of_robot[i] = ws->mocap_rigid_body_num_of_robot[i]->value(); // save rigid body index
 }
 
 void ConfigDlg::set_value_from_configs(ConfigDlg_widgets* ws) {
@@ -83,6 +112,8 @@ void ConfigDlg::set_value_from_configs(ConfigDlg_widgets* ws) {
 ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height, 
         const char* title=0):Fl_Window(xpos,ypos,width,height,title)
 {
+    GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
+
     // add event handle to dialog window
     callback(cb_dlg, (void*)&dlg_w);   
     // begin adding children
@@ -92,25 +123,66 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
     Fl_Tabs *tabs = new Fl_Tabs(t_x, t_y, t_w, t_h);
     {
         tabs->callback(cb_switch_tabs); // callback func when switch tabs
+
+        // Tab Scenario
+        Fl_Group *scenario = new Fl_Group(t_x,t_y+25,t_w,t_h-25,"Scenario");
+        {
+            // color of this tab
+            scenario->color(0xe8e8e800); // light milk tea
+            scenario->selection_color(0xe8e8e800); // light milk tea
+
+            // number of robots
+            dlg_w.scenario_num_of_robots = new Fl_Choice(t_x+10+160, t_y+25+10, 100, 25,"Number of robots ");
+            dlg_w.scenario_num_of_robots->add("1");
+            dlg_w.scenario_num_of_robots->add("2");
+            dlg_w.scenario_num_of_robots->add("3");
+            dlg_w.scenario_num_of_robots->add("4");
+            dlg_w.scenario_num_of_robots->value(configs->robot.num_of_robots-1); // Fl_Choice count from 0
+            dlg_w.scenario_num_of_robots->callback(cb_change_num_of_robots, (void*)&dlg_w);
+        }
+        scenario->end();
+
         // Tab Link
         Fl_Group *link = new Fl_Group(t_x,t_y+25,t_w,t_h-25,"Link");
         {
             // color of this tab
             link->color(0xe8e8e800); // light milk tea
             link->selection_color(0xe8e8e800); // light milk tea
+
+            // Control PPM signals
+            Fl_Box *ppmcnt = new Fl_Box(t_x+10, t_y+25+10, 370, 65,"PPM Control Signals");
+            ppmcnt->box(FL_PLASTIC_UP_FRAME);
+            ppmcnt->labelsize(16);
+            ppmcnt->labelfont(FL_COURIER_BOLD_ITALIC);
+            ppmcnt->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
+            //   Set serial port transmitting the ppm control signals(frames)
+            dlg_w.ppmcnt_serial_port = new Fl_Input(t_x+10+100, t_y+25+10+30, 200, 25, "Serial Port ");
+            dlg_w.ppmcnt_serial_port->value(configs->robot.ppm_serial_port_path.c_str());
+
+            // Data network
+            Fl_Box *dnet = new Fl_Box(t_x+10, t_y+25+10+70, 370, 65,"Data Network");
+            dnet->box(FL_PLASTIC_UP_FRAME);
+            dnet->labelsize(16);
+            dnet->labelfont(FL_COURIER_BOLD_ITALIC);
+            dnet->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
+            //   Set serial port receiving the data
+            dlg_w.dnet_serial_port = new Fl_Input(t_x+10+100, t_y+25+10+100, 200, 25, "Serial Port ");
+            dlg_w.dnet_serial_port->value(configs->robot.dnet_serial_port_path.c_str());
+
             // Motion capture settings
-            Fl_Box *mocap = new Fl_Box(t_x+10, t_y+25+10, 180, 130,"Mocap");
+            Fl_Box *mocap = new Fl_Box(t_x+10, t_y+25+10+140, 370, 130,"Motion Capture");
             mocap->box(FL_PLASTIC_UP_FRAME);
             mocap->labelsize(16);
             mocap->labelfont(FL_COURIER_BOLD_ITALIC);
             mocap->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
             //   Select network interface receiving the multicast info of Motion Capture System
-            dlg_w.netcard = new Fl_Choice(t_x+10+60, t_y+25+10+30, 80, 25, "Netcard");
+            dlg_w.mocap_netcard = new Fl_Choice(t_x+10+70, t_y+25+10+30+140, 280, 25, "Netcard");
             //     get all network interfaces for choosing
             struct ifaddrs* ifAddrStruct = NULL;
             struct ifaddrs* ifa = NULL;
             void* tmpAddrPtr = NULL;
             char ncName[100];
+            char netcard_count = 0;
             getifaddrs(&ifAddrStruct);
             for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
                 if (!ifa->ifa_addr) {
@@ -123,7 +195,9 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
                     inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
                     // add this net interface to choice list
                     snprintf(ncName, 100, "%s %s IPv4", ifa->ifa_name, addressBuffer);
-                    dlg_w.netcard->add(ncName);
+                    dlg_w.mocap_netcard->add(ncName);
+                    // count netcard number
+                    netcard_count++;
                 } else if (ifa->ifa_addr->sa_family == AF_INET6) { // check it is IP6
                     // is a valid IP6 Address
                     tmpAddrPtr=&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
@@ -131,17 +205,42 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
                     inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
                     // add this net interface to choice list
                     snprintf(ncName, 100, "%s %s IPv6", ifa->ifa_name, addressBuffer);
-                    dlg_w.netcard->add(ncName);
+                    dlg_w.mocap_netcard->add(ncName);
+                    // count netcard number
+                    netcard_count++;
                 } 
             }
             if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
             //    default choice
-            //dlg_w.netcard->callback(cb);
-            dlg_w.netcard->value(3);
-            dlg_w.netcard->tooltip("Select which network interface receives multicast info from Motive software");
-            
+            if (configs->mocap.netcard < netcard_count)
+                dlg_w.mocap_netcard->value(configs->mocap.netcard);
+            else
+                dlg_w.mocap_netcard->value(0);
+            dlg_w.mocap_netcard->tooltip("Select which network interface receives multicast info from Motive software");
+
+            //   Config rigid body index for microdrones
+            const char* robot_name[] = {"robot 1", "robot 2", "robot 3", "robot 4"};
+            char rbName[20];
+            for (char i = 0; i < 4; i++) // 4 robots max
+            {
+                dlg_w.mocap_rigid_body_num_of_robot[i] = new Fl_Choice(t_x+10+70+175*(i%2), t_y+25+10+60+30*(i<2?0:1)+140, 120, 25, robot_name[i]);
+                for (char j = 0; j < 10; j++) // 10 rigid body candidates
+                {
+                    snprintf(rbName, 20, "rigid body %d", j+1);
+                    dlg_w.mocap_rigid_body_num_of_robot[i]->add(rbName);
+                    dlg_w.mocap_rigid_body_num_of_robot[i]->tooltip("Select corresponding rigid body number of the robot");
+                }
+                // set choice according to configs
+                dlg_w.mocap_rigid_body_num_of_robot[i]->value(configs->mocap.rigid_body_num_of_robot[i]);
+                // activate/deactivate according to number of robots
+                if (i <= dlg_w.scenario_num_of_robots->value())
+                    dlg_w.mocap_rigid_body_num_of_robot[i]->activate();
+                else
+                    dlg_w.mocap_rigid_body_num_of_robot[i]->deactivate();
+            }
         }
         link->end();
+
         // Tab Flow
         Fl_Group *flow = new Fl_Group(t_x,t_y+25,t_w,t_h-25,"Flow");
         {

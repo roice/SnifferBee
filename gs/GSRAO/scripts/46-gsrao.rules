@@ -1,0 +1,11 @@
+# UDEV Rules for the usb-serial adaptors of GSRAO project
+# This file must be placed at:
+#
+# /etc/udev/rules.d/46-gsrao.rules      (preferred location)
+#
+# After this file is copied, physically unplug and reconnect PPM encoder and
+#  RF data link
+
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AI0287R0", GROUP="plugdev", SYMLINK+="ttyUSB_GSRAO_PPM"
+
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{serial}=="0001", GROUP="plugdev", SYMLINK+="ttyUSB_GSRAO_DATA"

@@ -13,10 +13,7 @@
 #ifndef DRAW_ARENA_H
 #define DRAW_ARENA_H
 
-/* arena names */
-#define SIM_ARENA_BASIC 1
-
-void draw_arena(int);
+void draw_arena(void);
 
 #endif
 /* End of draw_arena.h */

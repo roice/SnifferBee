@@ -16,23 +16,7 @@
 #include "ui/draw/materials.h" // use material lists
 #include "GSRAO_Config.h" // get configurations about Arena
 
-/* declarations of local functions */
-// functions to create arenas
-static void draw_arena_basic(void);
-
-void draw_arena(int arena_name)
-{
-    switch(arena_name)
-    {
-        case SIM_ARENA_BASIC:
-            draw_arena_basic();
-        default:
-            draw_arena_basic();
-    }
-}
-
-/* functions to draw arenas */
-static void draw_arena_basic(void)
+void draw_arena()
 {
     /* get configs of arena */
     GSRAO_Config_t *config = GSRAO_Config_get_configs();
@@ -84,25 +68,6 @@ static void draw_arena_basic(void)
     glDisable(GL_BLEND);
     glPopMatrix();
     glPopAttrib();
-
-    /* draw chimney (odor source), a cylinder */
-    GLUquadricObj * chimney_obj = gluNewQuadric();
-    gluQuadricDrawStyle(chimney_obj, GLU_FILL);
-    gluQuadricNormals(chimney_obj, GLU_SMOOTH);
-
-    glPushMatrix();
-    glTranslatef(config->source.x, 0, -config->source.y);
-    glRotatef(-90, 1, 0, 0); // make it upright
-    glPushAttrib(GL_LIGHTING_BIT);
-
-    glCallList(CEMENT_MAT);
-    gluCylinder(chimney_obj, 
-            0.2, // base radius
-            0.1, // top radius
-            config->source.z, // length
-            8, /*slices*/ 3 /*stacks*/);
-    glPopAttrib(); 
-    glPopMatrix();
 }
 
 /* End of draw_arena.cxx */

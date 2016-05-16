@@ -51,7 +51,7 @@ void DrawScene(void)
     glEnable(GL_LIGHTING); // default enable for the rest routines
 
     /* draw arena */
-    draw_arena(SIM_ARENA_BASIC);
+    draw_arena();
 
     /* draw quadrotor */
     //draw_robots(SimModel_get_robots());
