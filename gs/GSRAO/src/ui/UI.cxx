@@ -30,6 +30,7 @@
 #include "ui/UI.h"
 #include "ui/icons/icons.h" // pixmap icons used in Tool bar
 #include "ui/View.h" // 3D RAO view
+#include "ui/widgets/Fl_LED_Button/Fl_LED_Button.H"
 #include "GSRAO_Config.h"
 /* Linux Network */
 #include <ifaddrs.h>
@@ -53,24 +54,25 @@ class ConfigDlg : public Fl_Window
 {
 public:
     ConfigDlg(int xpos, int ypos, int width, int height, const char* title);
-private:
+private: 
     // widgets
     struct ConfigDlg_widgets dlg_w;
     // callback funcs
-    static void cb_dlg(Fl_Widget*, void*);
+    static void cb_close(Fl_Widget*, void*);
     static void cb_switch_tabs(Fl_Widget*, void*);
     static void cb_change_num_of_robots(Fl_Widget*, void*);
     // function to save current value of widgets to runtime configs
     static void save_value_to_configs(ConfigDlg_widgets*);
     // function to get runtime configs to set value of widgets
-    static void set_value_from_configs(ConfigDlg_widgets*);
+    static void get_value_from_configs(ConfigDlg_widgets*);
 };
 
-void ConfigDlg::cb_dlg(Fl_Widget* w, void* data) {
+void ConfigDlg::cb_close(Fl_Widget* w, void* data) {
     if (Fl::event() == FL_CLOSE) {
-        struct ConfigDlg_widgets *ws = (struct ConfigDlg_widgets*)data;
         // save widget values to GSRAO runtime configs when closing the dialog window
+        struct ConfigDlg_widgets *ws = (struct ConfigDlg_widgets*)data;
         save_value_to_configs(ws);
+        // close dialog
         ((Fl_Window*)w)->hide();
     }
 }
@@ -105,7 +107,7 @@ void ConfigDlg::save_value_to_configs(ConfigDlg_widgets* ws) {
         configs->mocap.rigid_body_num_of_robot[i] = ws->mocap_rigid_body_num_of_robot[i]->value(); // save rigid body index
 }
 
-void ConfigDlg::set_value_from_configs(ConfigDlg_widgets* ws) {
+void ConfigDlg::get_value_from_configs(ConfigDlg_widgets* ws) {
     GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
 }
 
@@ -115,7 +117,7 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
     GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
 
     // add event handle to dialog window
-    callback(cb_dlg, (void*)&dlg_w);   
+    callback(cb_close, (void*)&dlg_w);   
     // begin adding children
     begin();
     // Tabs
@@ -128,8 +130,8 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
         Fl_Group *scenario = new Fl_Group(t_x,t_y+25,t_w,t_h-25,"Scenario");
         {
             // color of this tab
-            scenario->color(0xe8e8e800); // light milk tea
-            scenario->selection_color(0xe8e8e800); // light milk tea
+            scenario->color(0xebf4fa00); // water
+            scenario->selection_color(0xebf4fa00); // water
 
             // number of robots
             dlg_w.scenario_num_of_robots = new Fl_Choice(t_x+10+160, t_y+25+10, 100, 25,"Number of robots ");
@@ -297,8 +299,186 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
     tabs->end();
     
     end();
-    // set value according to runtime configs
-    set_value_from_configs(&dlg_w);
+    // set widget value according to runtime configs
+    get_value_from_configs(&dlg_w);
+    show();
+}
+
+/*------- Remote controller panel -------*/
+struct RemoterPanel_widgets {
+    Fl_Choice*      robot_to_control;
+    Fl_Value_Slider*      rc_throttle;
+    Fl_Value_Slider*      rc_roll;
+    Fl_Value_Slider*      rc_pitch;
+    Fl_Value_Slider*      rc_yaw;
+};
+class RemoterPanel : public Fl_Window
+{
+public:
+    RemoterPanel(int xpos, int ypos, int width, int height, const char* title);
+private:
+    // widgets
+    struct RemoterPanel_widgets panel_w;
+    // callback funcs
+    static void cb_close(Fl_Widget*, void*);
+    static void cb_change_robot_choice(Fl_Widget*, void*);
+    static void cb_change_rc_throttle(Fl_Widget*, void*);
+    static void cb_change_rc_roll(Fl_Widget*, void*);
+    static void cb_change_rc_pitch(Fl_Widget*, void*);
+    static void cb_change_rc_yaw(Fl_Widget*, void*);
+};
+void RemoterPanel::cb_close(Fl_Widget* w, void* data) {
+    if (Fl::event() == FL_CLOSE) {
+        ((Fl_Window*)w)->hide();
+    }
+}
+void RemoterPanel::cb_change_robot_choice(Fl_Widget* w, void* data) {
+}
+void RemoterPanel::cb_change_rc_throttle(Fl_Widget* w, void* data) {
+
+}
+void RemoterPanel::cb_change_rc_roll(Fl_Widget* w, void* data) {
+}
+void RemoterPanel::cb_change_rc_pitch(Fl_Widget* w, void* data) {
+}
+void RemoterPanel::cb_change_rc_yaw(Fl_Widget* w, void* data) {
+}
+RemoterPanel::RemoterPanel(int xpos, int ypos, int width, int height, 
+        const char* title=0):Fl_Window(xpos,ypos,width,height,title)
+{
+    begin();
+    int t_x = 5, t_y = 5, t_w = w()-10, t_h = h()-10;
+    // choose robot
+    panel_w.robot_to_control = new Fl_Choice(t_x+140, t_y, 60, 25, "Robot to control");
+    const char* robot_name[] = {"#1", "#2", "#3", "#4"};
+    for (char i; i < 4; i++) // 4 robots max
+        panel_w.robot_to_control->add(robot_name[i]);
+    panel_w.robot_to_control->value(0); // the first robot by default
+    panel_w.robot_to_control->callback(cb_change_robot_choice, &panel_w);
+    // RC control
+    panel_w.rc_throttle = new Fl_Value_Slider(t_x+60, t_y+30, 220, 25, "Throttle");
+    panel_w.rc_roll = new Fl_Value_Slider(t_x+60, t_y+60, 220, 25, "Roll");
+    panel_w.rc_pitch = new Fl_Value_Slider(t_x+60, t_y+90, 220, 25, "Pitch");
+    panel_w.rc_yaw = new Fl_Value_Slider(t_x+60, t_y+120, 220, 25, "Yaw");
+    panel_w.rc_throttle->type(FL_HOR_FILL_SLIDER);
+    panel_w.rc_roll->type(FL_HOR_FILL_SLIDER);
+    panel_w.rc_pitch->type(FL_HOR_FILL_SLIDER);
+    panel_w.rc_yaw->type(FL_HOR_FILL_SLIDER);
+    panel_w.rc_throttle->selection_color(FL_DARK_GREEN);
+    panel_w.rc_roll->selection_color(FL_DARK_RED);
+    panel_w.rc_pitch->selection_color(FL_DARK_CYAN);
+    panel_w.rc_yaw->selection_color(FL_DARK_MAGENTA);
+    panel_w.rc_throttle->align(Fl_Align(FL_ALIGN_LEFT));
+    panel_w.rc_roll->align(Fl_Align(FL_ALIGN_LEFT));
+    panel_w.rc_pitch->align(Fl_Align(FL_ALIGN_LEFT));
+    panel_w.rc_yaw->align(Fl_Align(FL_ALIGN_LEFT));
+    panel_w.rc_throttle->range(1000, 2000);
+    panel_w.rc_roll->range(1000, 2000);
+    panel_w.rc_pitch->range(1000, 2000);
+    panel_w.rc_yaw->range(1000, 2000);
+    panel_w.rc_throttle->step(1);
+    panel_w.rc_roll->step(1);
+    panel_w.rc_pitch->step(1);
+    panel_w.rc_yaw->step(1);
+    panel_w.rc_throttle->callback(cb_change_rc_throttle);
+    panel_w.rc_roll->callback(cb_change_rc_roll);
+    panel_w.rc_pitch->callback(cb_change_rc_pitch);
+    panel_w.rc_yaw->callback(cb_change_rc_yaw);
+    end();
+    show();
+}
+
+/*------- Robot panel (state viewer & controller) -------*/
+struct RobotPanel_widgets { // for parameter saving
+    Fl_LED_Button*  robot_link_state[4]; // 4 robots max
+    Fl_Box*         robot_arm_state[4]; // 4 robots max
+    Fl_Button*      robot_rc_button;
+};
+struct RobotPanel_handles {
+    RemoterPanel*   remoter;
+};
+class RobotPanel : public Fl_Window
+{
+public:
+    RobotPanel(int xpos, int ypos, int width, int height, const char* title);
+private:
+    // widgets
+    struct RobotPanel_widgets panel_w;
+    static struct RobotPanel_handles panel_h;
+    // callback funcs
+    static void cb_close(Fl_Widget*, void*);
+    static void cb_robot_rc_button(Fl_Widget*, void*);
+    // function to save current value of widgets to runtime configs
+    static void save_value_to_configs(RobotPanel_widgets*);
+    // function to get runtime configs to set value of widgets
+    static void get_value_from_configs(RobotPanel_widgets*);
+};
+struct RobotPanel_handles RobotPanel::panel_h = {NULL};
+void RobotPanel::cb_close(Fl_Widget* w, void* data) {
+    if (Fl::event() == FL_CLOSE) {
+        ((Fl_Window*)w)->hide();
+    }
+}
+void RobotPanel::cb_robot_rc_button(Fl_Widget* w, void* data)
+{
+    if (panel_h.remoter != NULL)
+    {
+        if (panel_h.remoter->shown()) // if shown, do not open again
+        {}
+        else
+            panel_h.remoter->show();
+    }
+    else // first press this button
+    {// create config dialog
+        Fl_Window* window = w->window(); // find the nearest parent window of this button, i.e., RobotPanel
+        panel_h.remoter = new RemoterPanel(window->x()+window->w(), window->y(), 
+            300, window->h(), "RC Control");
+    }
+}
+RobotPanel::RobotPanel(int xpos, int ypos, int width, int height, 
+        const char* title=0):Fl_Window(xpos,ypos,width,height,title)
+{
+    GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
+
+    // add event handle to dialog window
+    callback(cb_close, (void*)&panel_w);   
+    // begin adding children
+    begin();
+    int t_x = 5, t_y = 5, t_w = w()-10, t_h = h()-10;
+    //  robot link state, Note: only check data network (data receiving)
+    Fl_Box *link = new Fl_Box(t_x, t_y, 160, 160, "Robot State");
+        link->box(FL_PLASTIC_UP_FRAME);
+        link->labelsize(15);
+        link->labelfont(FL_COURIER_BOLD_ITALIC);
+        link->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
+    {
+        // LED indicating data link state
+        new Fl_Box(t_x, t_y+20, 80, 25, "Data Link");
+        const char* robot_name[] = {"#1", "#2", "#3", "#4"};
+        for (char i = 0; i < 4; i++) // 4 robots max
+        {
+            panel_w.robot_link_state[i] = new Fl_LED_Button(t_x+30, t_y+40+30*i, 30, 30, robot_name[i]);
+            panel_w.robot_link_state[i]->selection_color(FL_DARK_GREEN);
+            panel_w.robot_link_state[i]->labelsize(13);
+            panel_w.robot_link_state[i]->align(Fl_Align(FL_ALIGN_LEFT)); 
+        }
+        // ARM/DISARM info
+        new Fl_Box(t_x+90, t_y+20, 60, 25, "ARMING");
+        for (char i = 0; i < 4; i++) // 4 robots max
+        {
+            panel_w.robot_arm_state[i] = new Fl_Box(t_x+90, t_y+40+30*i, 60, 25, "DISARM");
+            panel_w.robot_arm_state[i]->labelcolor(FL_RED);
+        }
+    }
+    //  robot remote control
+    panel_w.robot_rc_button = new Fl_Button(t_x, t_y+40+30*4, 34, 34);
+    Fl_Pixmap *icon_rc = new Fl_Pixmap(pixmap_icon_rc);
+    panel_w.robot_rc_button->image(icon_rc);
+    panel_w.robot_rc_button->tooltip("Robot remote controller, please use with care.");
+    panel_w.robot_rc_button->callback(cb_robot_rc_button);
+    new Fl_Box(t_x+40, t_y+40+30*4, 120, 30, "Remote Control");
+    end();
+
     show();
 }
 
@@ -310,17 +490,28 @@ struct ToolBar_Widgets
     Fl_Button* stop; // stop button
     Fl_Button* config; // config button
     Fl_Light_Button* record; // record button
+    Fl_Button* robot; // robot state&control button
+    Fl_Button* result; // result display button
+};
+struct ToolBar_Handles // handles of dialogs/panels opened by corresponding buttons
+{
+    ConfigDlg* config_dlg; // handle of config dialog opened by config button
+    RobotPanel* robot_panel; // handle of robot panel opened by robot button
 };
 class ToolBar : public Fl_Group
 {
 public:
     ToolBar(int Xpos, int Ypos, int Width, int Height, void *win);
     struct ToolBar_Widgets tb_widgets;
+    static struct ToolBar_Handles tb_handles;
     static void cb_button_start(Fl_Widget*, void*);
     static void cb_button_pause(Fl_Widget*, void*);
     static void cb_button_stop(Fl_Widget*, void*);
     static void cb_button_config(Fl_Widget*, void*);
+    static void cb_button_robot(Fl_Widget*, void*);
+    static void cb_button_result(Fl_Widget*, void*); 
 };
+struct ToolBar_Handles ToolBar::tb_handles = {NULL, NULL};
 
 void ToolBar::cb_button_start(Fl_Widget *w, void *data)
 {
@@ -341,10 +532,43 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
 
 void ToolBar::cb_button_config(Fl_Widget *w, void *data)
 {
+    
+    if (tb_handles.config_dlg != NULL)
+    {
+        if (tb_handles.config_dlg->shown()) // if shown, do not open again
+        {}
+        else
+            tb_handles.config_dlg->show();
+    }
+    else // first press this button
+    {// create config dialog
+        Fl_Window* window=(Fl_Window*)data;
+        tb_handles.config_dlg = new ConfigDlg(window->x()+20, window->y()+20, 
+            400, 400, "Settings");
+    }
+}
+
+void ToolBar::cb_button_robot(Fl_Widget *w, void *data)
+{ 
+    if (tb_handles.robot_panel != NULL)
+    {
+        if (tb_handles.robot_panel->shown()) // if shown, do not open again
+        {}
+        else
+            tb_handles.robot_panel->show();
+    }
+    else // first press this button
+    {// create config dialog
+        Fl_Window* window=(Fl_Window*)data;
+        tb_handles.robot_panel = new RobotPanel(window->x(), window->y()+window->h()+40, 
+            window->w(), 200, "Robot Panel");
+    }
+}
+
+void ToolBar::cb_button_result(Fl_Widget *w, void *data)
+{
     // Open Configuration dialog
     Fl_Window* window=(Fl_Window*)data;
-    ConfigDlg *config = new ConfigDlg(window->x()+20, window->y()+20, 
-            400, 400, "Settings");
 }
 
 ToolBar::ToolBar(int Xpos, int Ypos, int Width, int Height, void *win) :
@@ -361,6 +585,8 @@ Fl_Group(Xpos, Ypos, Width, Height)
     tb_widgets.stop = new Fl_Button(Xpos, Ypos, Width, Height); Xpos += Width + 5;
     tb_widgets.config = new Fl_Button(Xpos, Ypos, Width, Height); Xpos += Width + 5;
     tb_widgets.record = new Fl_Light_Button(Xpos, Ypos, Width+22, Height); Xpos += Width+22+5;
+    tb_widgets.robot = new Fl_Button(Xpos, Ypos, Width, Height); Xpos += Width + 5;
+    tb_widgets.result = new Fl_Button(Xpos, Ypos, Width, Height); Xpos += Width + 5;
     Fl_Box *bar_rest = new Fl_Box(FL_DOWN_BOX, Xpos, Ypos, bar->w()-Xpos, Height, "");
     resizable(bar_rest); // protect buttons from resizing
     // icons
@@ -369,18 +595,24 @@ Fl_Group(Xpos, Ypos, Width, Height)
     Fl_Pixmap *icon_stop = new Fl_Pixmap(pixmap_icon_stop);
     Fl_Pixmap *icon_config = new Fl_Pixmap(pixmap_icon_config);
     Fl_Pixmap *icon_record = new Fl_Pixmap(pixmap_icon_record);
+    Fl_Pixmap *icon_robot = new Fl_Pixmap(pixmap_icon_helicopter);
+    Fl_Pixmap *icon_result = new Fl_Pixmap(pixmap_icon_result);
     // link icons to buttons
     tb_widgets.start->image(icon_start);
     tb_widgets.pause->image(icon_pause);
     tb_widgets.stop->image(icon_stop);
     tb_widgets.config->image(icon_config);
     tb_widgets.record->image(icon_record);
+    tb_widgets.robot->image(icon_robot);
+    tb_widgets.result->image(icon_result);
     // tips for buttons
-    tb_widgets.start->tooltip("Start Simulation");
-    tb_widgets.pause->tooltip("Pause Simulation");
-    tb_widgets.stop->tooltip("Stop Simulation");
+    tb_widgets.start->tooltip("Start Searching");
+    tb_widgets.pause->tooltip("Pause Searching");
+    tb_widgets.stop->tooltip("Stop Searching");
     tb_widgets.config->tooltip("Settings");
     tb_widgets.record->tooltip("Recording");
+    tb_widgets.robot->tooltip("Robot viewer & controller");
+    tb_widgets.result->tooltip("Result viewer");
     // types of buttons
     tb_widgets.start->type(FL_RADIO_BUTTON); // start & pause are mutually exclusive
     tb_widgets.pause->type(FL_RADIO_BUTTON);
@@ -391,7 +623,12 @@ Fl_Group(Xpos, Ypos, Width, Height)
     tb_widgets.pause->callback(cb_button_pause);
     //  start & pause buttons will be released when stop button is pressed
     tb_widgets.stop->callback(cb_button_stop, (void*)&tb_widgets);
+    //  config dialog will pop up when config button pressed
     tb_widgets.config->callback(cb_button_config, (void*)win);
+    //  robot window will pop up when robot button pressed
+    tb_widgets.robot->callback(cb_button_robot, (void*)win);
+    //  result window will pop up when result button pressed
+    tb_widgets.result->callback(cb_button_result, (void*)win);
     end();
 }
 
@@ -400,7 +637,7 @@ Fl_Group(Xpos, Ypos, Width, Height)
 UI::UI(int width, int height, const char* title=0)
 {
     /* Main Window, control panel */
-    Fl_Double_Window *panel = new Fl_Double_Window(width, height, title);
+    Fl_Double_Window *panel = new Fl_Double_Window(0, 0, width, height, title);
     panel->resizable(panel);
    
     // Add tool bar, it's width is equal to panel's

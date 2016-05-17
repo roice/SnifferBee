@@ -91,7 +91,9 @@ set(LIB_UI_NAME ui)
 # make a library from ui files
 add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/draw/DrawScene.cxx src/ui/draw/materials.cxx
-    src/ui/draw/draw_arena.cxx)
+    src/ui/draw/draw_arena.cxx
+    # 3rdparty fltk widgets
+    src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 # compile main file
 add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})

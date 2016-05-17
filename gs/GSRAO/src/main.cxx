@@ -30,8 +30,8 @@ int main(int argc, char **argv)
     /* initialize GS settings */
     GSRAO_Config_restore();
     
-    // Create a window for simulation
-    UI ui(800, 600, "Ground Station of Robot Active Olfaction System");
+    // Create a window for the display of the experiment data
+    UI ui(700, 500, "Ground Station of Robot Active Olfaction System");
     
     // Run
     Fl::run();
