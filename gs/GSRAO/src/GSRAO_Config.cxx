@@ -49,6 +49,10 @@ void GSRAO_Config_restore(void)
         settings.robot.num_of_robots = pt.get<int>("Robot.num_of_robots");
         settings.robot.ppm_serial_port_path = pt.get<std::string>("Robot.ppm_serial_port_path");
         settings.robot.dnet_serial_port_path = pt.get<std::string>("Robot.dnet_serial_port_path");
+        // System
+        settings.system.robot_panel_opened = pt.get<bool>("System.robot_panel_opened");
+        settings.system.result_panel_opened = pt.get<bool>("System.result_panel_opened");
+        settings.system.remoter_panel_opened = pt.get<bool>("System.remoter_panel_opened");
     }
 }
 
@@ -71,6 +75,10 @@ void GSRAO_Config_save(void)
     pt.put("Robot.num_of_robots", settings.robot.num_of_robots);
     pt.put("Robot.ppm_serial_port_path", settings.robot.ppm_serial_port_path);
     pt.put("Robot.dnet_serial_port_path", settings.robot.dnet_serial_port_path);
+    // System
+    pt.put("System.robot_panel_opened", settings.system.robot_panel_opened);
+    pt.put("System.result_panel_opened", settings.system.result_panel_opened);
+    pt.put("System.remoter_panel_opened", settings.system.remoter_panel_opened);
     /* write */
     boost::property_tree::ini_parser::write_ini("settings.cfg", pt);
 }
@@ -91,6 +99,10 @@ void GSRAO_Config_init(void)
     settings.robot.num_of_robots = 1;
     settings.robot.ppm_serial_port_path = "/dev/ttyUSB_GSRAO_PPM";
     settings.robot.dnet_serial_port_path = "/dev/ttyUSB_GSRAO_DATA";
+    // system
+    settings.system.robot_panel_opened = false;
+    settings.system.result_panel_opened = false;
+    settings.system.remoter_panel_opened = false;
 }
 
 /* get pointer of config data */

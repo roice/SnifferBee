@@ -37,6 +37,12 @@ typedef struct {
     std::string dnet_serial_port_path;
 }GSRAO_Config_Robot_t;
 
+typedef struct {
+    bool result_panel_opened;
+    bool robot_panel_opened;
+    bool remoter_panel_opened;
+}GSRAO_Config_System_t;
+
 /* configuration struct */
 typedef struct {
     /* Arena */
@@ -45,6 +51,8 @@ typedef struct {
     GSRAO_Config_Mocap_t mocap;
     /* Robot */
     GSRAO_Config_Robot_t robot;
+    /* Miscellaneous */
+    GSRAO_Config_System_t system;
 }GSRAO_Config_t;
 
 void GSRAO_Config_restore(void);
