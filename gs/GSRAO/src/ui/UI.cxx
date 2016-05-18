@@ -31,6 +31,7 @@
 #include "ui/icons/icons.h" // pixmap icons used in Tool bar
 #include "ui/View.h" // 3D RAO view
 #include "ui/widgets/Fl_LED_Button/Fl_LED_Button.H"
+#include "io/serial.h"
 #include "GSRAO_Config.h"
 /* Linux Network */
 #include <ifaddrs.h>
@@ -577,13 +578,14 @@ ResultPanel::ResultPanel(int xpos, int ypos, int width, int height,
 /*------- ToolBar -------*/
 struct ToolBar_Widgets
 {
-    Fl_Button* start; // start button
-    Fl_Button* pause; // pause button
-    Fl_Button* stop; // stop button
-    Fl_Button* config; // config button
+    Fl_Button*  start;  // start button
+    Fl_Button*  pause;  // pause button
+    Fl_Button*  stop;   // stop button
+    Fl_Button*  config; // config button
     Fl_Light_Button* record; // record button
-    Fl_Button* robot; // robot state&control button
-    Fl_Button* result; // result display button
+    Fl_Button*  robot;  // robot state&control button
+    Fl_Button*  result; // result display button
+    Fl_Box*     msg_zone; // message zone
 };
 struct ToolBar_Handles // handles of dialogs/panels opened by corresponding buttons
 {
@@ -610,19 +612,54 @@ struct ToolBar_Handles ToolBar::hs = {NULL, NULL, NULL};
 
 void ToolBar::cb_button_start(Fl_Widget *w, void *data)
 {
-    fl_alert("Start Button pressed!");
+    ToolBar_Widgets* widgets = (ToolBar_Widgets*)data;
+
+    // if pause button is pressed, meaning that the initialization has been carried out, so just restore and continue
+    if (widgets->pause->value()) {
+        // release pause button
+        widgets->pause->value(0);
+        // continue running
+        
+    }
+    else {
+    // if pause button is not pressed, then need init
+    
+        // Init link with robots and Motion Capture System
+        if (!spp_init("/dev/ttyUSB0")) // link with PPM encoder
+        {
+            widgets->msg_zone->label("PPM Serial Port Failed!");
+            widgets->msg_zone->labelcolor(FL_RED);
+            ((Fl_Button*)w)->value(0);
+            return;
+        }
+    } 
 }
 
 void ToolBar::cb_button_pause(Fl_Widget *w, void *data)
 {
-    fl_alert("Pause Button pressed!");
+    ToolBar_Widgets* widgets = (ToolBar_Widgets*)data;
+    // if start button pressed, release it
+    if (widgets->start->value()) {
+        widgets->start->value(0);
+    }
+    else {
+    // if start button not pressed, pause button will not toggle and no code action will be took
+        widgets->pause->value(0);
+    }
 }
 
 void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
 {
+    // release start and pause buttons
     struct ToolBar_Widgets *widgets = (struct ToolBar_Widgets*)data;
     widgets->start->clear();
     widgets->pause->clear();
+
+    // close Link with robots and Motion Capture System
+    spp_close(); // close serial link with PPM encoder
+
+    // clear message zone
+    widgets->msg_zone->label("");
 }
 
 void ToolBar::cb_button_config(Fl_Widget *w, void *data)
@@ -731,8 +768,9 @@ Fl_Group(Xpos, Ypos, Width, Height)
     ws.record = new Fl_Light_Button(Xpos, Ypos, Width+22, Height); Xpos += Width+22+5;
     ws.robot = new Fl_Button(Xpos, Ypos, Width, Height); Xpos += Width + 5;
     ws.result = new Fl_Button(Xpos, Ypos, Width, Height); Xpos += Width + 5;
-    Fl_Box *bar_rest = new Fl_Box(FL_DOWN_BOX, Xpos, Ypos, bar->w()-Xpos, Height, "");
-    resizable(bar_rest); // protect buttons from resizing
+    ws.msg_zone = new Fl_Box(FL_DOWN_BOX, Xpos, Ypos, bar->w()-Xpos, Height, "");
+    ws.msg_zone->align(Fl_Align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE));
+    resizable(ws.msg_zone); // protect buttons from resizing
     // icons
     Fl_Pixmap *icon_start = new Fl_Pixmap(pixmap_icon_play);
     Fl_Pixmap *icon_pause = new Fl_Pixmap(pixmap_icon_pause);
@@ -758,15 +796,15 @@ Fl_Group(Xpos, Ypos, Width, Height)
     ws.robot->tooltip("Robot viewer & controller");
     ws.result->tooltip("Result viewer");
     // types of buttons
-    ws.start->type(FL_RADIO_BUTTON); // start & pause are mutually exclusive
-    ws.pause->type(FL_RADIO_BUTTON);
+    ws.start->type(FL_TOGGLE_BUTTON); // start & pause are mutually exclusive
+    ws.pause->type(FL_TOGGLE_BUTTON);
     ws.robot->type(FL_TOGGLE_BUTTON);
     ws.result->type(FL_TOGGLE_BUTTON);
     // colors
     ws.record->selection_color(FL_RED);
     // link call backs to buttons
-    ws.start->callback(cb_button_start);
-    ws.pause->callback(cb_button_pause);
+    ws.start->callback(cb_button_start, (void*)&ws);
+    ws.pause->callback(cb_button_pause, (void*)&ws);
     //  start & pause buttons will be released when stop button is pressed
     ws.stop->callback(cb_button_stop, (void*)&ws);
     //  config dialog will pop up when config button pressed
@@ -783,6 +821,9 @@ Fl_Group(Xpos, Ypos, Width, Height)
 void UI::cb_close(Fl_Widget* w, void* data) { 
     // close GSRAO
     if (Fl::event() == FL_CLOSE) {
+        // close Link with robots and Motion Capture System
+        spp_close(); // close serial link with PPM encoder
+
         // save open/close states of other sub-panels to configs
         GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
         UI_Widgets* ws = (UI_Widgets*)data;

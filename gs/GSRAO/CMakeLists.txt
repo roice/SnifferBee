@@ -95,7 +95,8 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     # 3rdparty fltk widgets
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 # compile main file
-add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx)
+add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
+    src/io/serial.cxx src/io/serial_spp.cxx src/io/serial_mbsp.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})
 
 #---- start linking ----
@@ -112,6 +113,7 @@ target_link_libraries(${PRJ_NAME} fltk_images)
 target_link_libraries(${PRJ_NAME} cblas)
 target_link_libraries(${PRJ_NAME} blas)
 target_link_libraries(${PRJ_NAME} gfortran)
+target_link_libraries(${PRJ_NAME} pthread)
 # link extern hdf5 library
 #target_link_libraries(${PRJ_NAME} ${HDF5_LIBRARIES})
 
