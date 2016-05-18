@@ -780,30 +780,39 @@ Fl_Group(Xpos, Ypos, Width, Height)
 
 
 /*------- Creation function of User Interface  -------*/
-void UI::cb_close(Fl_Widget* w, void* data) {
-    // save open/close states of other sub-panels to configs
-    GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
-    UI_Widgets* ws = (UI_Widgets*)data;
-    if (((ToolBar*)ws->toolbar)->hs.robot_panel != NULL) { // robot panel
-        if (((ToolBar*)ws->toolbar)->hs.robot_panel->shown())
-            configs->system.robot_panel_opened = true;
-        else
-            configs->system.robot_panel_opened = false;
-        if (((ToolBar*)ws->toolbar)->hs.robot_panel->hs.remoter_panel != NULL) { // robot panel -> remoter control panel
-            if (((ToolBar*)ws->toolbar)->hs.robot_panel->hs.remoter_panel->shown())
-                configs->system.remoter_panel_opened = true;
-            else
-                configs->system.remoter_panel_opened = false;
-        }
-    }
-    if (((ToolBar*)ws->toolbar)->hs.result_panel != NULL) { // result panel
-        if (((ToolBar*)ws->toolbar)->hs.result_panel->shown())
-            configs->system.result_panel_opened = true;
-        else
-            configs->system.result_panel_opened = false;
-    }
+void UI::cb_close(Fl_Widget* w, void* data) { 
     // close GSRAO
     if (Fl::event() == FL_CLOSE) {
+        // save open/close states of other sub-panels to configs
+        GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
+        UI_Widgets* ws = (UI_Widgets*)data;
+        if (((ToolBar*)ws->toolbar)->hs.robot_panel != NULL) { // robot panel
+            if (((ToolBar*)ws->toolbar)->hs.robot_panel->shown())
+                configs->system.robot_panel_opened = true;
+            else
+                configs->system.robot_panel_opened = false;
+            if (((ToolBar*)ws->toolbar)->hs.robot_panel->hs.remoter_panel != NULL) { // robot panel -> remoter control panel
+                if (((ToolBar*)ws->toolbar)->hs.robot_panel->hs.remoter_panel->shown())
+                    configs->system.remoter_panel_opened = true;
+                else
+                    configs->system.remoter_panel_opened = false;
+            }
+        }
+        if (((ToolBar*)ws->toolbar)->hs.result_panel != NULL) { // result panel
+            if (((ToolBar*)ws->toolbar)->hs.result_panel->shown())
+                configs->system.result_panel_opened = true;
+            else
+                configs->system.result_panel_opened = false;
+        }
+        // close other panels
+        if (((ToolBar*)ws->toolbar)->hs.robot_panel->hs.remoter_panel != NULL && ((ToolBar*)ws->toolbar)->hs.robot_panel->hs.remoter_panel->shown()) // close remoter panel
+            ((ToolBar*)ws->toolbar)->hs.robot_panel->hs.remoter_panel->hide();
+        if (((ToolBar*)ws->toolbar)->hs.robot_panel != NULL && ((ToolBar*)ws->toolbar)->hs.robot_panel->shown()) // close robot panel
+            ((ToolBar*)ws->toolbar)->hs.robot_panel->hide();
+        if (((ToolBar*)ws->toolbar)->hs.result_panel != NULL && ((ToolBar*)ws->toolbar)->hs.result_panel->shown()) // close result panel
+            ((ToolBar*)ws->toolbar)->hs.result_panel->hide();
+
+        // close main window
         ((Fl_Window*)w)->hide();
     }
 }
