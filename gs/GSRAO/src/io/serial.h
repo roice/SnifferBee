@@ -17,6 +17,7 @@ typedef struct {
 } SPP_RC_DATA_t;
 bool spp_init(const char*);
 void spp_close(void);
+SPP_RC_DATA_t* spp_get_rc_data(void);
 /* serial_mbsp.cxx */
 
 #endif

@@ -23,8 +23,8 @@ typedef struct {
 }GSRAO_Config_Arena_t;
 
 typedef struct {
-    int netcard; // netcard number
-    int rigid_body_num_of_robot[4]; // 4 robots max
+    std::string netcard; // netcard number
+    std::string model_name_of_robot[4]; // 4 robots max
 }GSRAO_Config_Mocap_t;
 
 typedef struct {

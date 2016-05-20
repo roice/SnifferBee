@@ -60,13 +60,14 @@ static void* spp_loop(void* exit)
     while (!*((bool*)exit))
     {
         // prepare PPM frame, 35 bytes
+        // RAET (yaw roll pitch throttle)
         spp_frame[0] = '$';
         spp_frame[1] = 'P';
         for (char i = 0; i < 4; i++) // 4 robots max
         {
-            // throttle
-            if (spp_rc_data[i].throttle >= 1000 && spp_rc_data[i].throttle <= 2000)
-                temp = spp_rc_data[i].throttle;
+            // yaw
+            if (spp_rc_data[i].yaw >= 1000 && spp_rc_data[i].yaw <= 2000)
+                temp = spp_rc_data[i].yaw;
             else
                 temp = 1000;
             spp_frame[2+i*4*2+0] = (char)temp;
@@ -85,9 +86,9 @@ static void* spp_loop(void* exit)
                 temp = 1500;
             spp_frame[2+i*4*2+4] = (char)temp;
             spp_frame[2+i*4*2+5] = (char)(temp >> 8);
-            // yaw
-            if (spp_rc_data[i].yaw >= 1000 && spp_rc_data[i].yaw <= 2000)
-                temp = spp_rc_data[i].yaw;
+            // throttle
+            if (spp_rc_data[i].throttle >= 1000 && spp_rc_data[i].throttle <= 2000)
+                temp = spp_rc_data[i].throttle;
             else
                 temp = 1500;
             spp_frame[2+i*4*2+6] = (char)temp;
@@ -114,4 +115,9 @@ void spp_close(void)
 
     // close serial port
     serial_close(fd);
+}
+
+SPP_RC_DATA_t* spp_get_rc_data(void)
+{
+    return spp_rc_data;
 }

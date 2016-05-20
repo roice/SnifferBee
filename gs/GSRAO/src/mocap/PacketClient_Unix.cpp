@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
         printf("bind error");
     }
     mreq.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDRESS);         
-    mreq.imr_interface.s_addr = inet_addr("192.168.20.101");         
+    mreq.imr_interface.s_addr = inet_addr("192.168.20.103");         
     if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
 		     &mreq, sizeof(mreq)) < 0) {
         printf("sssss");

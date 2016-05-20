@@ -40,11 +40,11 @@ void GSRAO_Config_restore(void)
         settings.arena.l = pt.get<float>("Arena.length");
         settings.arena.h = pt.get<float>("Arena.height");
         // Motion capture network
-        settings.mocap.netcard = pt.get<int>("Mocap.netcard");
-        settings.mocap.rigid_body_num_of_robot[0] = pt.get<int>("Mocap.rigid_body_num_of_robot_1") -1; // Fl_Choice count from 0
-        settings.mocap.rigid_body_num_of_robot[1] = pt.get<int>("Mocap.rigid_body_num_of_robot_2") -1;
-        settings.mocap.rigid_body_num_of_robot[2] = pt.get<int>("Mocap.rigid_body_num_of_robot_3") -1;
-        settings.mocap.rigid_body_num_of_robot[3] = pt.get<int>("Mocap.rigid_body_num_of_robot_4") -1;
+        settings.mocap.netcard = pt.get<std::string>("Mocap.netcard");
+        settings.mocap.model_name_of_robot[0] = pt.get<std::string>("Mocap.model_name_of_robot_1");
+        settings.mocap.model_name_of_robot[1] = pt.get<std::string>("Mocap.model_name_of_robot_2");
+        settings.mocap.model_name_of_robot[2] = pt.get<std::string>("Mocap.model_name_of_robot_3");
+        settings.mocap.model_name_of_robot[3] = pt.get<std::string>("Mocap.model_name_of_robot_4");
         // Robot
         settings.robot.num_of_robots = pt.get<int>("Robot.num_of_robots");
         settings.robot.ppm_serial_port_path = pt.get<std::string>("Robot.ppm_serial_port_path");
@@ -67,10 +67,10 @@ void GSRAO_Config_save(void)
     pt.put("Arena.height", settings.arena.h);
     // Mocap network
     pt.put("Mocap.netcard", settings.mocap.netcard);
-    pt.put("Mocap.rigid_body_num_of_robot_1", settings.mocap.rigid_body_num_of_robot[0]+1);
-    pt.put("Mocap.rigid_body_num_of_robot_2", settings.mocap.rigid_body_num_of_robot[1]+1);
-    pt.put("Mocap.rigid_body_num_of_robot_3", settings.mocap.rigid_body_num_of_robot[2]+1);
-    pt.put("Mocap.rigid_body_num_of_robot_4", settings.mocap.rigid_body_num_of_robot[3]+1);
+    pt.put("Mocap.model_name_of_robot_1", settings.mocap.model_name_of_robot[0]);
+    pt.put("Mocap.model_name_of_robot_2", settings.mocap.model_name_of_robot[1]);
+    pt.put("Mocap.model_name_of_robot_3", settings.mocap.model_name_of_robot[2]);
+    pt.put("Mocap.model_name_of_robot_4", settings.mocap.model_name_of_robot[3]);
     // Robot
     pt.put("Robot.num_of_robots", settings.robot.num_of_robots);
     pt.put("Robot.ppm_serial_port_path", settings.robot.ppm_serial_port_path);
@@ -92,9 +92,12 @@ void GSRAO_Config_init(void)
     settings.arena.l = 10; // y
     settings.arena.h = 10; // z
     // mocap
-    settings.mocap.netcard = 0; // number in the choice list
-    for (char i = 0; i < 4; i++) // 4 robots max
-        settings.mocap.rigid_body_num_of_robot[i] = i;
+    settings.mocap.netcard = "lo IPv4 127.0.0.1"; // netcard name
+    // 4 robots max
+    settings.mocap.model_name_of_robot[0] = "Rigid Body 1";
+    settings.mocap.model_name_of_robot[1] = "Rigid Body 2";
+    settings.mocap.model_name_of_robot[2] = "Rigid Body 3";
+    settings.mocap.model_name_of_robot[3] = "Rigid Body 4";
     // robot
     settings.robot.num_of_robots = 1;
     settings.robot.ppm_serial_port_path = "/dev/ttyUSB_GSRAO_PPM";

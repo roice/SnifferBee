@@ -547,6 +547,10 @@ STATIC_UNIT_TESTED void resetConf(void)
     featureSet(FEATURE_TELEMETRY);
 #endif
 
+#ifdef MICROBEE
+    featureSet(FEATURE_MOTOR_STOP);
+#endif
+
     // alternative defaults settings for ALIENWIIF1 and ALIENWIIF3 targets
 #ifdef ALIENWII32
     featureSet(FEATURE_RX_SERIAL);

@@ -96,7 +96,8 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 # compile main file
 add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
-    src/io/serial.cxx src/io/serial_spp.cxx src/io/serial_mbsp.cxx)
+    src/io/serial.cxx src/io/serial_spp.cxx src/io/serial_mbsp.cxx
+    src/mocap/packet_client.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})
 
 #---- start linking ----

@@ -32,6 +32,7 @@
 #include "ui/View.h" // 3D RAO view
 #include "ui/widgets/Fl_LED_Button/Fl_LED_Button.H"
 #include "io/serial.h"
+#include "mocap/packet_client.h"
 #include "GSRAO_Config.h"
 /* Linux Network */
 #include <ifaddrs.h>
@@ -45,7 +46,7 @@ struct ConfigDlg_Widgets { // for parameter saving
     // network interface for receiving multicast info from Motive software (Opti-Track)
     Fl_Choice* mocap_netcard;
     // rigid body number of robots
-    Fl_Choice* mocap_rigid_body_num_of_robot[4]; // 4 robots max
+    Fl_Choice* mocap_model_name_of_robot[4]; // 4 robots max
     // serial port transmitting PPM signals (frames)
     Fl_Input* ppmcnt_serial_port;
     // serial port receiving data
@@ -91,31 +92,54 @@ void ConfigDlg::cb_change_num_of_robots(Fl_Widget* w, void* data)
 
     // deactivate & activate corresponding mocap rigid body selections
     for (char i = ws->scenario_num_of_robots->value()+1; i < 4; i++) // 4 robots max
-        ws->mocap_rigid_body_num_of_robot[i]->deactivate();
+        ws->mocap_model_name_of_robot[i]->deactivate();
     for (char i = 0; i <= ws->scenario_num_of_robots->value(); i++)
-        ws->mocap_rigid_body_num_of_robot[i]->activate();
+        ws->mocap_model_name_of_robot[i]->activate();
 }
 
 void ConfigDlg::save_value_to_configs(ConfigDlg_Widgets* ws) {
     GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
+
     // Robot
     configs->robot.num_of_robots = ws->scenario_num_of_robots->value()+1; // Fl_Choice count from 0
     configs->robot.ppm_serial_port_path = ws->ppmcnt_serial_port->value(); // serial port path for PPM
     configs->robot.dnet_serial_port_path = ws->dnet_serial_port->value(); // serial port path for data
     // Link
-    configs->mocap.netcard = ws->mocap_netcard->value(); // save netcard num
+    configs->mocap.netcard = ws->mocap_netcard->menu()[ws->mocap_netcard->value()].label();
+    //configs->mocap.netcard = ws->mocap_netcard->value(); // save netcard num
     for (char i = 0; i < 4; i++) // 4 robots max
-        configs->mocap.rigid_body_num_of_robot[i] = ws->mocap_rigid_body_num_of_robot[i]->value(); // save rigid body index
+        configs->mocap.model_name_of_robot[i] = ws->mocap_model_name_of_robot[i]->menu()[ws->mocap_model_name_of_robot[i]->value()].label(); // save rigid body index
 }
 
 void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
     GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
+
+    // Robot
+    ws->scenario_num_of_robots->value(configs->robot.num_of_robots-1); // Fl_Choice count from 0
+    ws->ppmcnt_serial_port->value(configs->robot.ppm_serial_port_path.c_str()); // serial port path for PPM
+    ws->dnet_serial_port->value(configs->robot.dnet_serial_port_path.c_str()); // serial port path for data
+
+    // Link mocap
+    char netcard_index = ((Fl_Menu_*)ws->mocap_netcard)->find_index(configs->mocap.netcard.c_str());
+    if (netcard_index < 0) netcard_index = 0;
+    ws->mocap_netcard->value(netcard_index); // netcard
+    
+    char model_name_index;
+    for (char i = 0; i < 4; i++) { // 4 robots max
+        model_name_index = ((Fl_Menu_*)ws->mocap_model_name_of_robot[i])->find_index(configs->mocap.model_name_of_robot[i].c_str());
+        if (model_name_index < 0) model_name_index = 0;
+        ws->mocap_model_name_of_robot[i]->value(model_name_index); // rigid body index
+        // activate/deactivate according to number of robots
+        if (i <= ws->scenario_num_of_robots->value())
+            ws->mocap_model_name_of_robot[i]->activate();
+        else
+            ws->mocap_model_name_of_robot[i]->deactivate();
+    }
 }
 
 ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height, 
         const char* title=0):Fl_Window(xpos,ypos,width,height,title)
 {
-    GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
 
     // add event handle to dialog window
     callback(cb_close, (void*)&ws);   
@@ -139,8 +163,7 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             ws.scenario_num_of_robots->add("1");
             ws.scenario_num_of_robots->add("2");
             ws.scenario_num_of_robots->add("3");
-            ws.scenario_num_of_robots->add("4");
-            ws.scenario_num_of_robots->value(configs->robot.num_of_robots-1); // Fl_Choice count from 0
+            ws.scenario_num_of_robots->add("4"); 
             ws.scenario_num_of_robots->callback(cb_change_num_of_robots, (void*)&ws);
         }
         scenario->end();
@@ -159,8 +182,7 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             ppmcnt->labelfont(FL_COURIER_BOLD_ITALIC);
             ppmcnt->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
             //   Set serial port transmitting the ppm control signals(frames)
-            ws.ppmcnt_serial_port = new Fl_Input(t_x+10+100, t_y+25+10+30, 200, 25, "Serial Port ");
-            ws.ppmcnt_serial_port->value(configs->robot.ppm_serial_port_path.c_str());
+            ws.ppmcnt_serial_port = new Fl_Input(t_x+10+100, t_y+25+10+30, 200, 25, "Serial Port "); 
 
             // Data network
             Fl_Box *dnet = new Fl_Box(t_x+10, t_y+25+10+70, 370, 65,"Data Network");
@@ -169,8 +191,7 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             dnet->labelfont(FL_COURIER_BOLD_ITALIC);
             dnet->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
             //   Set serial port receiving the data
-            ws.dnet_serial_port = new Fl_Input(t_x+10+100, t_y+25+10+100, 200, 25, "Serial Port ");
-            ws.dnet_serial_port->value(configs->robot.dnet_serial_port_path.c_str());
+            ws.dnet_serial_port = new Fl_Input(t_x+10+100, t_y+25+10+100, 200, 25, "Serial Port "); 
 
             // Motion capture settings
             Fl_Box *mocap = new Fl_Box(t_x+10, t_y+25+10+140, 370, 130,"Motion Capture");
@@ -185,7 +206,6 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             struct ifaddrs* ifa = NULL;
             void* tmpAddrPtr = NULL;
             char ncName[100];
-            char netcard_count = 0;
             getifaddrs(&ifAddrStruct);
             for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
                 if (!ifa->ifa_addr) {
@@ -197,11 +217,12 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
                     char addressBuffer[INET_ADDRSTRLEN];
                     inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
                     // add this net interface to choice list
-                    snprintf(ncName, 100, "%s %s IPv4", ifa->ifa_name, addressBuffer);
+                    snprintf(ncName, 100, "%s IPv4 %s", ifa->ifa_name, addressBuffer);
                     ws.mocap_netcard->add(ncName);
-                    // count netcard number
-                    netcard_count++;
-                } else if (ifa->ifa_addr->sa_family == AF_INET6) { // check it is IP6
+                }
+#if 0
+                /* IPv6 is not supported yet. The routers and motion capture system use IPv4 */
+                else if (ifa->ifa_addr->sa_family == AF_INET6) { // check it is IP6
                     // is a valid IP6 Address
                     tmpAddrPtr=&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
                     char addressBuffer[INET6_ADDRSTRLEN];
@@ -209,16 +230,10 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
                     // add this net interface to choice list
                     snprintf(ncName, 100, "%s %s IPv6", ifa->ifa_name, addressBuffer);
                     ws.mocap_netcard->add(ncName);
-                    // count netcard number
-                    netcard_count++;
-                } 
+                }
+#endif
             }
-            if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
-            //    default choice
-            if (configs->mocap.netcard < netcard_count)
-                ws.mocap_netcard->value(configs->mocap.netcard);
-            else
-                ws.mocap_netcard->value(0);
+            if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct); 
             ws.mocap_netcard->tooltip("Select which network interface receives multicast info from Motive software");
 
             //   Config rigid body index for microdrones
@@ -226,20 +241,13 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             char rbName[20];
             for (char i = 0; i < 4; i++) // 4 robots max
             {
-                ws.mocap_rigid_body_num_of_robot[i] = new Fl_Choice(t_x+10+70+175*(i%2), t_y+25+10+60+30*(i<2?0:1)+140, 120, 25, robot_name[i]);
+                ws.mocap_model_name_of_robot[i] = new Fl_Choice(t_x+10+70+175*(i%2), t_y+25+10+60+30*(i<2?0:1)+140, 120, 25, robot_name[i]);
                 for (char j = 0; j < 10; j++) // 10 rigid body candidates
                 {
-                    snprintf(rbName, 20, "rigid body %d", j+1);
-                    ws.mocap_rigid_body_num_of_robot[i]->add(rbName);
-                    ws.mocap_rigid_body_num_of_robot[i]->tooltip("Select corresponding rigid body number of the robot");
-                }
-                // set choice according to configs
-                ws.mocap_rigid_body_num_of_robot[i]->value(configs->mocap.rigid_body_num_of_robot[i]);
-                // activate/deactivate according to number of robots
-                if (i <= ws.scenario_num_of_robots->value())
-                    ws.mocap_rigid_body_num_of_robot[i]->activate();
-                else
-                    ws.mocap_rigid_body_num_of_robot[i]->deactivate();
+                    snprintf(rbName, 20, "Rigid Body %d", j+1);
+                    ws.mocap_model_name_of_robot[i]->add(rbName);
+                    ws.mocap_model_name_of_robot[i]->tooltip("Select corresponding rigid body number of the robot");
+                } 
             }
         }
         link->end();
@@ -312,6 +320,7 @@ struct RemoterPanel_Widgets {
     Fl_Value_Slider*    rc_roll;
     Fl_Value_Slider*    rc_pitch;
     Fl_Value_Slider*    rc_yaw;
+    Fl_Light_Button*    manual_control;
 };
 class RemoterPanel : public Fl_Window
 {
@@ -328,6 +337,7 @@ private:
     static void cb_change_rc_roll(Fl_Widget*, void*);
     static void cb_change_rc_pitch(Fl_Widget*, void*);
     static void cb_change_rc_yaw(Fl_Widget*, void*);
+    static void cb_manual_auto_switch(Fl_Widget*, void*);
     static void save_value_to_configs(RemoterPanel_Widgets*);
 };
 Fl_Button* RemoterPanel::remoter_button = NULL;
@@ -342,13 +352,51 @@ void RemoterPanel::cb_close(Fl_Widget* w, void* data) {
 void RemoterPanel::cb_change_robot_choice(Fl_Widget* w, void* data) {
 }
 void RemoterPanel::cb_change_rc_throttle(Fl_Widget* w, void* data) {
-
+    RemoterPanel_Widgets* widgets = (RemoterPanel_Widgets*)data;
+    if (widgets->manual_control->value()) // if at manual control state
+    {
+        // update new throttle data to PPM RC Channels DATA pool
+        SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+        rc_data[widgets->robot_to_control->value()].throttle = ((Fl_Value_Slider*)w)->value();
+    }
 }
 void RemoterPanel::cb_change_rc_roll(Fl_Widget* w, void* data) {
+    RemoterPanel_Widgets* widgets = (RemoterPanel_Widgets*)data;
+    if (widgets->manual_control->value()) // if at manual control state
+    {
+        // update new roll data to PPM RC Channels DATA pool
+        SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+        rc_data[widgets->robot_to_control->value()].roll = ((Fl_Value_Slider*)w)->value();
+    }
 }
 void RemoterPanel::cb_change_rc_pitch(Fl_Widget* w, void* data) {
+    RemoterPanel_Widgets* widgets = (RemoterPanel_Widgets*)data;
+    if (widgets->manual_control->value()) // if at manual control state
+    {
+        // update new pitch data to PPM RC Channels DATA pool
+        SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+        rc_data[widgets->robot_to_control->value()].pitch = ((Fl_Value_Slider*)w)->value();
+    }
 }
 void RemoterPanel::cb_change_rc_yaw(Fl_Widget* w, void* data) {
+    RemoterPanel_Widgets* widgets = (RemoterPanel_Widgets*)data;
+    if (widgets->manual_control->value()) // if at manual control state
+    {
+        // update new yaw data to PPM RC Channels DATA pool
+        SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+        rc_data[widgets->robot_to_control->value()].yaw = ((Fl_Value_Slider*)w)->value();
+    }
+}
+void RemoterPanel::cb_manual_auto_switch(Fl_Widget* w, void* data) {
+    if (((Fl_Button*)w)->value()) // manual control
+    {// set throttle/roll/pitch/yaw sliders according to latest spp_rc_data
+        RemoterPanel_Widgets* widgets = (RemoterPanel_Widgets*)data;
+        SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+        widgets->rc_throttle->value(rc_data[widgets->robot_to_control->value()].throttle);
+        widgets->rc_roll->value(rc_data[widgets->robot_to_control->value()].roll);
+        widgets->rc_pitch->value(rc_data[widgets->robot_to_control->value()].pitch);
+        widgets->rc_yaw->value(rc_data[widgets->robot_to_control->value()].yaw);
+    }
 }
 void save_value_to_configs(RemoterPanel_Widgets* ws) {
 }
@@ -390,10 +438,15 @@ RemoterPanel::RemoterPanel(int xpos, int ypos, int width, int height,
     ws.rc_roll->step(1);
     ws.rc_pitch->step(1);
     ws.rc_yaw->step(1);
-    ws.rc_throttle->callback(cb_change_rc_throttle);
-    ws.rc_roll->callback(cb_change_rc_roll);
-    ws.rc_pitch->callback(cb_change_rc_pitch);
-    ws.rc_yaw->callback(cb_change_rc_yaw);
+    ws.rc_throttle->callback(cb_change_rc_throttle, &ws);
+    ws.rc_roll->callback(cb_change_rc_roll, &ws);
+    ws.rc_pitch->callback(cb_change_rc_pitch, &ws);
+    ws.rc_yaw->callback(cb_change_rc_yaw, &ws);
+    // manual/auto switch button
+    ws.manual_control = new Fl_Light_Button(t_x+60, t_y+155, 220, 35, "Manual Control (Be careful)");
+    ws.manual_control->selection_color(FL_RED);
+    ws.manual_control->tooltip("Change to MANUAL control. I understand the risks.");
+    ws.manual_control->callback(cb_manual_auto_switch, &ws);
     end();
     show();
 }
@@ -612,6 +665,8 @@ struct ToolBar_Handles ToolBar::hs = {NULL, NULL, NULL};
 
 void ToolBar::cb_button_start(Fl_Widget *w, void *data)
 {
+    GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
+
     ToolBar_Widgets* widgets = (ToolBar_Widgets*)data;
 
     // if pause button is pressed, meaning that the initialization has been carried out, so just restore and continue
@@ -624,10 +679,35 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
     else {
     // if pause button is not pressed, then need init
     
-        // Init link with robots and Motion Capture System
-        if (!spp_init("/dev/ttyUSB0")) // link with PPM encoder
+        // Init link with robots
+        if (!spp_init(configs->robot.ppm_serial_port_path.c_str())) // link with PPM encoder
         {
             widgets->msg_zone->label("PPM Serial Port Failed!");
+            widgets->msg_zone->labelcolor(FL_RED);
+            ((Fl_Button*)w)->value(0);
+            return;
+        }
+        // Init link with Motion Capture System
+        mocap_set_request(configs->mocap.model_name_of_robot);
+        std::size_t find_ip = configs->mocap.netcard.rfind("IPv4 ");
+        if (find_ip == std::string::npos)
+        {
+            widgets->msg_zone->label("Netcard not a IPv4 address");
+            widgets->msg_zone->labelcolor(FL_RED);
+            ((Fl_Button*)w)->value(0);
+            return;
+        }
+        if (configs->mocap.netcard.size() < find_ip + 4+1+1) // "IPv4"+" "+"X", X is whatever
+        {
+            widgets->msg_zone->label("Cannot find valid IP address");
+            widgets->msg_zone->labelcolor(FL_RED);
+            ((Fl_Button*)w)->value(0);
+            return;
+        }
+        std::string ip_addr = configs->mocap.netcard.substr(find_ip+5, configs->mocap.netcard.size()-5-find_ip);
+        if (!mocap_client_init(ip_addr.c_str()))
+        {
+            widgets->msg_zone->label("Mocap client init failed!");
             widgets->msg_zone->labelcolor(FL_RED);
             ((Fl_Button*)w)->value(0);
             return;
@@ -657,6 +737,7 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
 
     // close Link with robots and Motion Capture System
     spp_close(); // close serial link with PPM encoder
+    mocap_client_close(); // close udp net link with motion capture system
 
     // clear message zone
     widgets->msg_zone->label("");
@@ -822,7 +903,8 @@ void UI::cb_close(Fl_Widget* w, void* data) {
     // close GSRAO
     if (Fl::event() == FL_CLOSE) {
         // close Link with robots and Motion Capture System
-        spp_close(); // close serial link with PPM encoder
+        spp_close(); // close serial link with PPM encoder 
+        mocap_client_close(); // close udp net link with motion capture system
 
         // save open/close states of other sub-panels to configs
         GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
@@ -846,6 +928,8 @@ void UI::cb_close(Fl_Widget* w, void* data) {
                 configs->system.result_panel_opened = false;
         }
         // close other panels
+        if (((ToolBar*)ws->toolbar)->hs.config_dlg != NULL && ((ToolBar*)ws->toolbar)->hs.config_dlg->shown()) // close config dialog
+            ((ToolBar*)ws->toolbar)->hs.config_dlg->hide();
         if (((ToolBar*)ws->toolbar)->hs.robot_panel->hs.remoter_panel != NULL && ((ToolBar*)ws->toolbar)->hs.robot_panel->hs.remoter_panel->shown()) // close remoter panel
             ((ToolBar*)ws->toolbar)->hs.robot_panel->hs.remoter_panel->hide();
         if (((ToolBar*)ws->toolbar)->hs.robot_panel != NULL && ((ToolBar*)ws->toolbar)->hs.robot_panel->shown()) // close robot panel
