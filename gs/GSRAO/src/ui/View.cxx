@@ -19,6 +19,7 @@
 #include <time.h> // for srand seeding and FPS calculation
 #include "ui/agv.h" // eye movement
 #include "ui/draw/DrawScene.h" // draw experiment scene
+#include "mocap/packet_client.h" // draw mocap fps
 #include "GSRAO_Config.h"
 
 // width and height of current window, for redraw function
@@ -35,7 +36,7 @@ static void View_reshape(int w, int h)
 }
 
 static void draw_axes(void);// draw axes
-static void draw_fps_note(void);//draw FPS note
+static void draw_notes(void);//draw notes
 static void View_redraw(void)
 {
     /* change eye moving */
@@ -53,8 +54,8 @@ static void View_redraw(void)
     /* draw axes on the ground */
     draw_axes();
 
-    /* draw FPS note */
-    draw_fps_note();
+    /* draw notes */
+    draw_notes();
     
     glutSwapBuffers(); // using two buffers mode
 
@@ -110,7 +111,7 @@ static void draw_axes(void)
     }glEnable(GL_LIGHTING);
 }
 
-static void draw_fps_note(void)
+static void draw_ui_fps_note(void)
 {
     time_t curtime; // current time
     char buf[255];
@@ -123,7 +124,7 @@ static void draw_fps_note(void)
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         gluOrtho2D(0.0, win_width, 0.0, win_height);
-        sprintf(buf, "FPS=%d", fps);
+        sprintf(buf, "UI FPS=%d", fps);
         glColor3f(1.0f, 1.0f, 1.0f);
         gl_font(FL_HELVETICA, 12);
         gl_draw(buf, 10, 10);
@@ -138,6 +139,30 @@ static void draw_fps_note(void)
         fpstime  = curtime;
         fpscount = 0;
     }
+}
+
+static void draw_mocap_fps_note(void)
+{
+    char buf[255];
+    MocapData_t* data = mocap_get_data();
+
+    int fps = data->dlatency>0? 1.0f/(data->dlatency):0;
+
+    glDisable(GL_LIGHTING);
+    {
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        gluOrtho2D(0.0, win_width, 0.0, win_height);
+        sprintf(buf, "Mocap FPS=%d", fps);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        gl_font(FL_HELVETICA, 12);
+        gl_draw(buf, 120, 10);
+    }glEnable(GL_LIGHTING);
+}
+
+static void draw_notes(void) {
+    draw_ui_fps_note();
+    draw_mocap_fps_note();
 }
 
 static void View_idle(void) {

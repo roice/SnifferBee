@@ -33,6 +33,7 @@
 #include "ui/widgets/Fl_LED_Button/Fl_LED_Button.H"
 #include "io/serial.h"
 #include "mocap/packet_client.h"
+#include "robot/robot_control.h"
 #include "GSRAO_Config.h"
 /* Linux Network */
 #include <ifaddrs.h>
@@ -712,6 +713,14 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             ((Fl_Button*)w)->value(0);
             return;
         }
+        // Init robot control
+        if (!robot_control_init())
+        {
+            widgets->msg_zone->label("Robot control init failed!");
+            widgets->msg_zone->labelcolor(FL_RED);
+            ((Fl_Button*)w)->value(0);
+            return;
+        }
     } 
 }
 
@@ -736,6 +745,7 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     widgets->pause->clear();
 
     // close Link with robots and Motion Capture System
+    robot_control_close(); // close robot control loop
     spp_close(); // close serial link with PPM encoder
     mocap_client_close(); // close udp net link with motion capture system
 
@@ -903,6 +913,7 @@ void UI::cb_close(Fl_Widget* w, void* data) {
     // close GSRAO
     if (Fl::event() == FL_CLOSE) {
         // close Link with robots and Motion Capture System
+        robot_control_close(); // close robot control loop
         spp_close(); // close serial link with PPM encoder 
         mocap_client_close(); // close udp net link with motion capture system
 

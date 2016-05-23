@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <math.h>
 /* socket */
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -37,6 +38,9 @@ static MocapData_t   mocap_data;
 
 static void* mocap_client_loop(void* exit);
 static void mocap_unpack(char*, MocapData_t*);
+void mocap_xyz_to_enu(MocapData_t*);
+void mocap_quaternion_to_attitude(MocapData_t*);
+
 
 /* local address is the address of the net interface
  * which communicates with mocap server*/
@@ -81,6 +85,9 @@ bool mocap_client_init(const char* local_address) {
     for (char i = 0; i < 4; i++)
         printf("rigid body request is %d.\n", mocap_req.rigid_body_id[i]);
 */
+    /* clear mocap_data */
+    memset(&mocap_data, 0, sizeof(mocap_data));
+
     /* create thread to receive packets */
     exit_mocap_client_thread = false;
     if (pthread_create(&mocap_client_thread_handle, NULL, &mocap_client_loop, (void*)&exit_mocap_client_thread) != 0)
@@ -100,22 +107,32 @@ static void* mocap_client_loop(void* exit)
         if (cnt > 0) // normal receiving
         {
             mocap_unpack(message, &mocap_data);
-/*
+            mocap_xyz_to_enu(&mocap_data); // convert mocap xyz to ENU coordinate
+            mocap_quaternion_to_attitude(&mocap_data); // convert mocap qx qy qz qw to roll pitch yaw
+
             for (char i = 0; i < 4; i++) {
-                printf("Robot: %d, ID: %d\n", i, mocap_data.RobotState[i].rbID);
-                printf("pos: [%3.2f,%3.2f,%3.2f]\n", mocap_data.RobotState[i].pos[0], mocap_data.RobotState[i].pos[1], mocap_data.RobotState[i].pos[2]);
-                printf("ori: [%3.2f,%3.2f,%3.2f,%3.2f]\n", mocap_data.RobotState[i].ori[0], mocap_data.RobotState[i].ori[1], mocap_data.RobotState[i].ori[2], mocap_data.RobotState[i].ori[3]);
+                printf("Robot: %d, ID: %d\n", i, mocap_data.robot[i].rbID);
+                //printf("pos: [%3.2f,%3.2f,%3.2f]\n", mocap_data.robot[i].pos[0], mocap_data.robot[i].pos[1], mocap_data.robot[i].pos[2]);
+                //printf("ori: [%3.2f,%3.2f,%3.2f,%3.2f]\n", mocap_data.robot[i].ori[0], mocap_data.robot[i].ori[1], mocap_data.robot[i].ori[2], mocap_data.robot[i].ori[3]);
+                printf("enu: [%3.2f,%3.2f,%3.2f]\n", mocap_data.robot[i].enu[0], mocap_data.robot[i].enu[1], mocap_data.robot[i].enu[2]);
+                printf("att: [%3.2f,%3.2f,%3.2f,%3.2f]\n", mocap_data.robot[i].att[0], mocap_data.robot[i].att[1], mocap_data.robot[i].att[2], mocap_data.robot[i].att[3]);
             }
-*/
+
 
         }
         else if (cnt == 0) { // link is terminated
             break;
         }
-        else    // error
-            {}
+        else    // timeout error
+            {
+                // clear delta time of frames
+                mocap_data.dlatency = 0;
 
+                //printf("timeout\n");
+            }
     }
+    // clear delta time of frames
+    mocap_data.dlatency = 0;
 }
 
 void mocap_client_close(void)
@@ -147,6 +164,47 @@ void mocap_set_request(std::string* model_name)
                     mocap_req.rigid_body_id[i] = id;
             }
         }
+    }
+}
+
+// Convert Motion Capture (OpenGL) xyz to ENU
+void mocap_xyz_to_enu(MocapData_t* data)
+{
+    for (char i = 0; i < 4; i++) // 4 robots max
+    {
+        data->robot[i].enu[0] = data->robot[i].pos[0]; // east  x
+        data->robot[i].enu[1] = -data->robot[i].pos[2]; // north -z
+        data->robot[i].enu[2] = data->robot[i].pos[1]; // up    y
+    }
+}
+// Convert Motion Capture (OpenGL) quaternion to Euler angles
+void mocap_quaternion_to_attitude(MocapData_t* data)
+{
+    float qx, qy, qz, qw;
+    float phi, theta, psi;
+
+    for (char i = 0; i < 4; i++) // 4 robots max
+    { 
+        // Motion Capture (OpenGL) coord to enu coord
+        qx = data->robot[i].ori[0];
+        qy = -data->robot[i].ori[2];
+        qz = data->robot[i].ori[1];
+        qw = data->robot[i].ori[3];
+
+        // check if this quaternion is valid
+        if (qx*qx + qy*qy + qz*qz + qw*qw < 0.9) // considering truncation, actually < 1.0
+            continue;
+
+        // phi, range -pi~pi
+        phi = atan2( 2*(qw*qx+qy*qz), 1-2*(qx*qx+qy*qy) );
+        // theta, range -pi/2~pi/2
+        theta = asin( 2*(qw*qy-qz*qx) );
+        // psi, range -pi~pi
+        psi = atan2( 2*(qw*qz+qx*qy), 1-2*(qy*qy+qz*qz) );
+
+        data->robot[i].att[0] = phi; // roll
+        data->robot[i].att[1] = theta; // pitch
+        data->robot[i].att[2] = psi; // yaw
     }
 }
 
@@ -262,14 +320,14 @@ static void mocap_unpack(char* frame, MocapData_t* data)
             for (char index = 0; index < 4; index++) // 4 robots max
             {
                 if (ID == mocap_req.rigid_body_id[index]) {// match request
-                    data->RobotState[index].rbID = ID;
-                    data->RobotState[index].pos[0] = x;
-                    data->RobotState[index].pos[1] = y;
-                    data->RobotState[index].pos[2] = z;
-                    data->RobotState[index].ori[0] = qx;
-                    data->RobotState[index].ori[1] = qy;
-                    data->RobotState[index].ori[2] = qz;
-                    data->RobotState[index].ori[3] = qw;
+                    data->robot[index].rbID = ID;
+                    data->robot[index].pos[0] = x;
+                    data->robot[index].pos[1] = y;
+                    data->robot[index].pos[2] = z;
+                    data->robot[index].ori[0] = qx;
+                    data->robot[index].ori[1] = qy;
+                    data->robot[index].ori[2] = qz;
+                    data->robot[index].ori[3] = qw;
                 }
             }
 
@@ -484,6 +542,7 @@ static void mocap_unpack(char* frame, MocapData_t* data)
 		// latency
         float latency = 0.0f; memcpy(&latency, ptr, 4);	ptr += 4;
         //printf("latency : %3.3f\n", latency);
+        data->dlatency = latency - data->latency;
         data->latency = latency;
 
 		// timecode

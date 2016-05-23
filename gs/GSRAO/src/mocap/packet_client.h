@@ -16,6 +16,8 @@ typedef struct {
     int rbID; // rigid body ID
     float pos[3]; // x,y,z
     float ori[4]; // qx,qy,qz,qw
+    float enu[3]; // east, north, up
+    float att[3]; // roll, pitch, yaw
 } MocapRigidBody_t;
 
 typedef struct {
@@ -23,8 +25,9 @@ typedef struct {
     int nBytes;
     int frameNumber;
     int nMarkerSets;
-    MocapRigidBody_t RobotState[4]; // 4 robots max
+    MocapRigidBody_t robot[4]; // 4 robots max
     float latency;
+    float dlatency;
 } MocapData_t;
 
 /* robot[i] contains "Rigid Body X" */
