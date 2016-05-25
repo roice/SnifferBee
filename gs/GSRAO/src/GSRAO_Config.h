@@ -14,7 +14,7 @@
 #define CONFIG_H
 
 #include <string>
-#include "robot/robot_control.h"
+#include "robot/robot.h"
 
 typedef struct {
     /* width, length and height */

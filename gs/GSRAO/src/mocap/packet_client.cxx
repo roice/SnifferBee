@@ -138,12 +138,15 @@ static void* mocap_client_loop(void* exit)
 
 void mocap_client_close(void)
 {
-    // exit mocap client thread
-    exit_mocap_client_thread = true;
-    pthread_join(mocap_client_thread_handle, NULL);
-
-    // close socket
-    close(fd_sock);
+    if (!exit_mocap_client_thread) // if still running
+    {
+        // exit mocap client thread
+        exit_mocap_client_thread = true;
+        pthread_join(mocap_client_thread_handle, NULL);
+        // close socket
+        close(fd_sock);
+        printf("Motion Capture thread terminated\n");
+    }
 }
 
 MocapData_t* mocap_get_data(void)

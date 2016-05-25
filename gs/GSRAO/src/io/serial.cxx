@@ -25,7 +25,7 @@ int serial_open(const char* port)
 	// Open serial port
 	// O_RDWR - Read and write
 	// O_NOCTTY - Ignore special chars like CTRL-C
-    // O_NDELAY - not care DCD state
+    // O_NDELAY - Ignore DCD signal state
 	fd = open(port, O_RDWR | O_NOCTTY | O_NDELAY);
 	if (fd == -1)
 		/* Could not open the port. */
@@ -138,6 +138,10 @@ bool serial_setup(int fd, int baud)
     // Disable software flow control
     options.c_iflag &= ~(IXON | IXOFF | IXANY);
 
+    // Setup least bytes and timeout
+    options.c_cc[VMIN] = 0; // pure timeout
+    options.c_cc[VTIME] = 10; // timeout is 1.0 s
+
 	// Apply the configuration
 	if(tcsetattr(fd, TCSAFLUSH, &options) < 0) {
 		//fprintf(stderr, "\nERROR: could not set configuration of fd %d\n", fd);
@@ -155,8 +159,9 @@ bool serial_write(int fd, char* buf, int len)
     return false;
 }
 
-bool serial_read(int fd, char* buf, int len)
+int serial_read(int fd, char* buf, int len)
 {
+    return read(fd, buf, len);
 }
 
 void serial_close(int fd)

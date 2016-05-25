@@ -1,9 +1,10 @@
 /*
- * Robot control
+ * MicroBee Robot
  *         
  *
  * Author: Roice (LUO Bing)
- * Date: 2016-05-23 create this file
+ * Date: 2016-05-23 create this file (robot_control.cxx)
+ *       2016-05-25 change this file to microbee.cxx
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,44 +16,113 @@
 #include <pthread.h>
 /* GSRAO */
 #include "mocap/packet_client.h"
-#include "robot/robot_control.h"
+#include "robot/microbee.h"
+#include "robot/robot.h"
 #include "io/serial.h"
 #include "GSRAO_Config.h"
 
-static pthread_t robot_control_thread_handle;
-static bool exit_robot_control_thread = false;
-static RobotState_t robot_state_ref[4]; // reference state, 4 robots max
+static pthread_t microbee_control_thread_handle;
+static pthread_t microbee_state_thread_handle;
+static bool exit_microbee_control_thread = false;
+static bool exit_microbee_state_thread = false;
+static MicroBee_t microbee[4]; // 4 robots max
 
-static void* robot_control_loop(void* exit);
-static void robot_pos_control(float dt, char robot_index);
+static void* microbee_control_loop(void*);
+static void* microbee_state_loop(void*);
+static void microbee_pos_control(float, char);
 
-/* robot control init */
-bool robot_control_init(void)
+/*-------- MicroBee State Refresh --------*/
+
+/* microbee state refresh init */
+bool microbee_state_init(void)
 {
-    /* create trajectory control loop */
-    exit_robot_control_thread = false;
-    if (pthread_create(&robot_control_thread_handle, NULL, &robot_control_loop, (void*)&exit_robot_control_thread) != 0)
+    // clear microbee states
+    for (int i = 0; i < 4; i++) // 4 robots max
+        memset(&(microbee[i].state), 0, sizeof(microbee[i].state));
+
+    /* create state refresh loop */
+    exit_microbee_state_thread = false;
+    if (pthread_create(&microbee_state_thread_handle, NULL, &microbee_state_loop, (void*)&exit_microbee_state_thread) != 0)
         return false;
 
     return true;
 }
 
-/* close robot control loop */
-void robot_control_close(void)
+/* close microbee state refresh loop */
+void microbee_state_close(void)
 {
-    // exit robot control thread
-    exit_robot_control_thread = true;
-    pthread_join(robot_control_thread_handle, NULL);
+    if (!exit_microbee_state_thread) // to avoid close twice
+    {
+        // exit microbee state refresh thread
+        exit_microbee_state_thread = true;
+        pthread_join(microbee_state_thread_handle, NULL);
+        printf("microbee state thread terminated\n");
+    }
 }
 
-RobotState_t* robot_get_ref_state(void)
+MicroBee_t* microbee_get_states(void)
 {
-    return robot_state_ref;
+    return microbee;
 }
 
-static void robot_pos_control(float);
+static void* microbee_state_loop(void* exit)
+{
+    struct timespec req, rem, time;
+    double current_time;
+    int link_check_count = 0; // counter for link state check
 
-static void* robot_control_loop(void* exit)
+    // loop interval
+    req.tv_sec = 0;
+    req.tv_nsec = 100000000L; // 100 ms
+
+    while (!*((bool*)exit))
+    {
+        // check link state
+        if (++link_check_count >= 5) // 0.5 sec check once
+        {
+            clock_gettime(CLOCK_REALTIME, &time);
+            current_time = time.tv_sec + time.tv_nsec/1.0e9;
+            for (int i = 0; i < 4; i++) // 4 robots max
+            {
+                if (current_time - microbee[i].time > 0.5)
+                    microbee[i].state.linked = false;
+                else
+                    microbee[i].state.linked = true;
+            }
+            link_check_count = 0;
+        }
+
+        // 10 Hz
+        nanosleep(&req, &rem); // 100 ms
+    }
+}
+
+/*-------- MicroBee Control ---------*/
+
+/* microbee control init */
+bool microbee_control_init(void)
+{
+    /* create trajectory control loop */
+    exit_microbee_control_thread = false;
+    if (pthread_create(&microbee_control_thread_handle, NULL, &microbee_control_loop, (void*)&exit_microbee_control_thread) != 0)
+        return false;
+
+    return true;
+}
+
+/* close microbee control loop */
+void microbee_control_close(void)
+{
+    if (!exit_microbee_control_thread) // to avoid close twice
+    {
+        // exit microbee control thread
+        exit_microbee_control_thread = true;
+        pthread_join(microbee_control_thread_handle, NULL);
+        printf("microbee control thread terminated\n");
+    }
+}
+
+static void* microbee_control_loop(void* exit)
 {
     struct timespec req, rem, time;
     double previous_time, current_time;
@@ -69,9 +139,10 @@ static void* robot_control_loop(void* exit)
     previous_time = current_time;
     dtime = 0;
 
-robot_state_ref[0].pos[0] = 1.8;
-robot_state_ref[0].pos[1] = -1.2;
-robot_state_ref[0].pos[2] = 1.0;
+    Robot_Ref_State_t* robot_ref = robot_get_ref_state();
+robot_ref[0].enu[0] = 1.8;
+robot_ref[0].enu[1] = -1.2;
+robot_ref[0].enu[2] = 1.0;
 
     while (!*((bool*)exit))
     {
@@ -81,7 +152,7 @@ robot_state_ref[0].pos[2] = 1.0;
         previous_time = current_time;
 
         // position control, PID
-        robot_pos_control(dtime, 0);
+        microbee_pos_control(dtime, 0);
 
         // 50 Hz
         nanosleep(&req, &rem); // 20 ms
@@ -110,7 +181,7 @@ static float applyDeadband(float value, float deadband)
     return value;
 }
 
-static void robot_throttle_control(float dt, char robot_index)
+static void microbee_throttle_control(float dt, char robot_index)
 {
     static float errorVelocityI[4] = {0}; // 4 robots max
 
@@ -120,8 +191,9 @@ static void robot_throttle_control(float dt, char robot_index)
 
     // get alt
     MocapData_t* data = mocap_get_data(); // get mocap data
+    Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref state
     float EstAlt = data->robot[robot_index].enu[2]; // z axis, robot's real-time z axis pos
-    float AltHold = robot_state_ref[robot_index].pos[2]; // reference z axis pos
+    float AltHold = robot_ref[robot_index].enu[2]; // reference z axis pos
     float vel_temp = data->robot[robot_index].vel[2]; // current alt velocity
     float accZ_temp = data->robot[robot_index].acc[2]; // current alt acc
 
@@ -144,14 +216,14 @@ static void robot_throttle_control(float dt, char robot_index)
     // D
     result -= constrain(pidProfile[robot_index].D[PIDVEL]*accZ_temp, -0.5, 0.5); // limit
 
-    printf("Alt adj = %f\n", result);
+    //printf("Alt adj = %f\n", result);
 
     // update throttle value
     SPP_RC_DATA_t* rc_data = spp_get_rc_data();
     rc_data[robot_index].throttle = constrain(1250 + result, 1000, 2000);
 }
 
-static void robot_roll_pitch_control(float dt, char robot_index)
+static void microbee_roll_pitch_control(float dt, char robot_index)
 {
     static float errorPositionI[4][2] = {0};
     float error, result;
@@ -163,10 +235,11 @@ static void robot_roll_pitch_control(float dt, char robot_index)
     // get east/north
     float pos[2], pos_ref[2], vel[2]; // e/n
     MocapData_t* data = mocap_get_data(); // get mocap data
+    Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref states
     for (char i = 0; i < 2; i++) // e/n
     {
         pos[i] = data->robot[robot_index].enu[i]; // e/n axis, robot's real-time x y axis pos
-        pos_ref[i] = robot_state_ref[robot_index].pos[i]; // reference x y axis pos
+        pos_ref[i] = robot_ref[robot_index].enu[i]; // reference x y axis pos
         vel[i] = data->robot[robot_index].vel[i]; // current e/n velocity
     }
 
@@ -194,7 +267,7 @@ static void robot_roll_pitch_control(float dt, char robot_index)
     }
 }
 
-static void robot_yaw_control(float dt, char robot_index)
+static void microbee_yaw_control(float dt, char robot_index)
 {
     // get configs
     GSRAO_Config_t* configs = GSRAO_Config_get_configs();
@@ -202,15 +275,16 @@ static void robot_yaw_control(float dt, char robot_index)
 
     // get yaw
     MocapData_t* data = mocap_get_data(); // get mocap data
+    Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref state
     float yaw = data->robot[robot_index].att[2]; // real-time yaw angle
-    float yaw_ref = robot_state_ref[robot_index].att[2]; // reference yaw angle
+    float yaw_ref = robot_ref[robot_index].heading; // reference yaw angle
 
     //error
 }
 
-static void robot_pos_control(float dt, char robot_index)
+static void microbee_pos_control(float dt, char robot_index)
 {
-    robot_throttle_control(dt, robot_index);
-    robot_roll_pitch_control(dt, robot_index);
-    robot_yaw_control(dt, robot_index);
+    microbee_throttle_control(dt, robot_index);
+    microbee_roll_pitch_control(dt, robot_index);
+    microbee_yaw_control(dt, robot_index);
 }

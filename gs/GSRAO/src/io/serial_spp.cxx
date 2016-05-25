@@ -109,12 +109,15 @@ static void* spp_loop(void* exit)
 
 void spp_close(void)
 {
-    // exit spp thread
-    exit_spp_thread = true;
-    pthread_join(spp_thread_handle, NULL);
-
-    // close serial port
-    serial_close(fd);
+    if (!exit_spp_thread) // if still running
+    {
+        // exit spp thread
+        exit_spp_thread = true;
+        pthread_join(spp_thread_handle, NULL);
+        // close serial port
+        serial_close(fd);
+        printf("PPM encoder thread terminated\n");
+    }
 }
 
 SPP_RC_DATA_t* spp_get_rc_data(void)

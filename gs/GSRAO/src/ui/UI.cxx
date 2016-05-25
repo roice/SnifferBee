@@ -33,7 +33,8 @@
 #include "ui/widgets/Fl_LED_Button/Fl_LED_Button.H"
 #include "io/serial.h"
 #include "mocap/packet_client.h"
-#include "robot/robot_control.h"
+#include "robot/robot.h"
+#include "robot/microbee.h"
 #include "GSRAO_Config.h"
 /* Linux Network */
 #include <ifaddrs.h>
@@ -664,6 +665,39 @@ private:
 };
 struct ToolBar_Handles ToolBar::hs = {NULL, NULL, NULL};
 
+/*------- Repeated Tasks -------*/
+static void cb_repeated_tasks_2hz(void* data)
+{
+    ToolBar_Handles* hs = (ToolBar_Handles*)data;
+    // refresh robots' states in robot panel
+    if (hs->robot_panel != NULL)
+    {
+        if (hs->robot_panel->shown())
+        {
+            MicroBee_t* mb = microbee_get_states();
+            for (int i = 0; i < 4; i++)
+            {
+                if (mb[i].state.linked)
+                    hs->robot_panel->ws.robot_link_state[i]->value(1);
+                else
+                    hs->robot_panel->ws.robot_link_state[i]->value(0);
+                if (mb[i].state.armed)
+                {
+                    hs->robot_panel->ws.robot_arm_state[i]->label("ARM"); // arm/disarm
+                    hs->robot_panel->ws.robot_arm_state[i]->labelcolor(FL_GREEN);
+                }
+                else
+                {
+                    hs->robot_panel->ws.robot_arm_state[i]->label("DISARM"); // arm/disarm
+                    hs->robot_panel->ws.robot_arm_state[i]->labelcolor(FL_RED);
+                }
+            }
+        }
+    }
+    // reload
+    Fl::repeat_timeout(0.5, cb_repeated_tasks_2hz, data);
+}
+
 void ToolBar::cb_button_start(Fl_Widget *w, void *data)
 {
     GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
@@ -689,6 +723,15 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             ((Fl_Button*)w)->value(0);
             return;
         }
+        if (!mbsp_init(configs->robot.dnet_serial_port_path.c_str())) // link with DATA receiver
+        {
+            widgets->msg_zone->label("DNET Serial Port Failed!");
+            widgets->msg_zone->labelcolor(FL_RED);
+            ((Fl_Button*)w)->value(0);
+            // close spp
+            spp_close();
+            return;
+        }
         // Init link with Motion Capture System
         mocap_set_request(configs->mocap.model_name_of_robot);
         std::size_t find_ip = configs->mocap.netcard.rfind("IPv4 ");
@@ -697,6 +740,9 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             widgets->msg_zone->label("Netcard not a IPv4 address");
             widgets->msg_zone->labelcolor(FL_RED);
             ((Fl_Button*)w)->value(0);
+            // close spp, mbsp
+            spp_close();
+            mbsp_close();
             return;
         }
         if (configs->mocap.netcard.size() < find_ip + 4+1+1) // "IPv4"+" "+"X", X is whatever
@@ -704,6 +750,9 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             widgets->msg_zone->label("Cannot find valid IP address");
             widgets->msg_zone->labelcolor(FL_RED);
             ((Fl_Button*)w)->value(0);
+            // close spp, mbsp
+            spp_close();
+            mbsp_close();
             return;
         }
         std::string ip_addr = configs->mocap.netcard.substr(find_ip+5, configs->mocap.netcard.size()-5-find_ip);
@@ -712,16 +761,25 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             widgets->msg_zone->label("Mocap client init failed!");
             widgets->msg_zone->labelcolor(FL_RED);
             ((Fl_Button*)w)->value(0);
+            // close spp, mbsp
+            spp_close();
+            mbsp_close();
             return;
         }
-        // Init robot control
-        if (!robot_control_init())
+        // Init robots
+        if (!robot_init())
         {
-            widgets->msg_zone->label("Robot control init failed!");
+            widgets->msg_zone->label("Robot init failed!");
             widgets->msg_zone->labelcolor(FL_RED);
             ((Fl_Button*)w)->value(0);
+            // close spp, mbsp, mocap
+            spp_close();
+            mbsp_close();
+            mocap_client_close();
             return;
         }
+        // add timers for repeated tasks (such as data display)
+        Fl::add_timeout(0.5, cb_repeated_tasks_2hz, (void*)&hs);
     } 
 }
 
@@ -746,9 +804,17 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     widgets->pause->clear();
 
     // close Link with robots and Motion Capture System
-    robot_control_close(); // close robot control loop
+    robot_shutdown(); // shutdown robots
     spp_close(); // close serial link with PPM encoder
+    mbsp_close(); // close serial link with DATA receiver
     mocap_client_close(); // close udp net link with motion capture system
+    Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
+    for (int i = 0; i < 4; i++) // clear robot states in robot panel
+    {
+        hs.robot_panel->ws.robot_link_state[i]->value(0); // linked leds
+        hs.robot_panel->ws.robot_arm_state[i]->label("DISARM"); // arm/disarm
+        hs.robot_panel->ws.robot_arm_state[i]->labelcolor(FL_RED);
+    }
 
     // clear message zone
     widgets->msg_zone->label("");
@@ -914,9 +980,11 @@ void UI::cb_close(Fl_Widget* w, void* data) {
     // close GSRAO
     if (Fl::event() == FL_CLOSE) {
         // close Link with robots and Motion Capture System
-        robot_control_close(); // close robot control loop
-        spp_close(); // close serial link with PPM encoder 
+        robot_shutdown(); // shutdown robots
+        spp_close(); // close serial link with PPM encoder
+        mbsp_close(); // close serial link with DATA receiver
         mocap_client_close(); // close udp net link with motion capture system
+        Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
 
         // save open/close states of other sub-panels to configs
         GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
