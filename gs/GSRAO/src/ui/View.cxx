@@ -148,16 +148,30 @@ static void draw_mocap_fps_note(void)
 
     int fps = data->dlatency>0? 1.0f/(data->dlatency):0;
 
-    glDisable(GL_LIGHTING);
-    {
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        gluOrtho2D(0.0, win_width, 0.0, win_height);
-        sprintf(buf, "Mocap FPS=%d", fps);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        gl_font(FL_HELVETICA, 12);
-        gl_draw(buf, 120, 10);
-    }glEnable(GL_LIGHTING);
+    if (fps) {
+        glDisable(GL_LIGHTING);
+        {
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            gluOrtho2D(0.0, win_width, 0.0, win_height);
+            sprintf(buf, "Mocap FPS=%d", fps);
+            glColor3f(1.0f, 1.0f, 1.0f);
+            gl_font(FL_HELVETICA, 12);
+            gl_draw(buf, 120, 10);
+        }glEnable(GL_LIGHTING);
+    }
+    else {
+        glDisable(GL_LIGHTING);
+        {
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            gluOrtho2D(0.0, win_width, 0.0, win_height);
+            sprintf(buf, "No Mocap Data");
+            glColor3f(1.0f, 0.0f, 0.0f);
+            gl_font(FL_HELVETICA, 12);
+            gl_draw(buf, 120, 10);
+        }glEnable(GL_LIGHTING);
+    }
 }
 
 static void draw_notes(void) {

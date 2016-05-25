@@ -110,14 +110,15 @@ static void* mocap_client_loop(void* exit)
             mocap_xyz_to_enu(&mocap_data); // convert mocap xyz to ENU coordinate
             mocap_quaternion_to_attitude(&mocap_data); // convert mocap qx qy qz qw to roll pitch yaw
 
+#if 0
             for (char i = 0; i < 4; i++) {
                 printf("Robot: %d, ID: %d\n", i, mocap_data.robot[i].rbID);
                 //printf("pos: [%3.2f,%3.2f,%3.2f]\n", mocap_data.robot[i].pos[0], mocap_data.robot[i].pos[1], mocap_data.robot[i].pos[2]);
                 //printf("ori: [%3.2f,%3.2f,%3.2f,%3.2f]\n", mocap_data.robot[i].ori[0], mocap_data.robot[i].ori[1], mocap_data.robot[i].ori[2], mocap_data.robot[i].ori[3]);
                 printf("enu: [%3.2f,%3.2f,%3.2f]\n", mocap_data.robot[i].enu[0], mocap_data.robot[i].enu[1], mocap_data.robot[i].enu[2]);
-                printf("att: [%3.2f,%3.2f,%3.2f,%3.2f]\n", mocap_data.robot[i].att[0], mocap_data.robot[i].att[1], mocap_data.robot[i].att[2], mocap_data.robot[i].att[3]);
+                printf("att: [%3.2f,%3.2f,%3.2f]\n", mocap_data.robot[i].att[0], mocap_data.robot[i].att[1], mocap_data.robot[i].att[2]);
             }
-
+#endif
 
         }
         else if (cnt == 0) { // link is terminated
@@ -170,11 +171,25 @@ void mocap_set_request(std::string* model_name)
 // Convert Motion Capture (OpenGL) xyz to ENU
 void mocap_xyz_to_enu(MocapData_t* data)
 {
+    float enu[3], vel[3], acc[3]; // temp
+
     for (char i = 0; i < 4; i++) // 4 robots max
     {
-        data->robot[i].enu[0] = data->robot[i].pos[0]; // east  x
-        data->robot[i].enu[1] = -data->robot[i].pos[2]; // north -z
-        data->robot[i].enu[2] = data->robot[i].pos[1]; // up    y
+        // get current position, velocity, and acc
+        enu[0] = data->robot[i].pos[0]; // east  x
+        enu[1] = -data->robot[i].pos[2]; // north -z
+        enu[2] = data->robot[i].pos[1]; // up    y
+        vel[0] = (enu[0] - data->robot[i].enu[0])/data->dlatency; // m/s
+        vel[1] = (enu[1] - data->robot[i].enu[1])/data->dlatency;
+        vel[2] = (enu[2] - data->robot[i].enu[2])/data->dlatency;
+        acc[0] = (vel[0] - data->robot[i].vel[0])/data->dlatency; // m/s^2
+        acc[1] = (vel[1] - data->robot[i].vel[1])/data->dlatency;
+        acc[2] = (vel[2] - data->robot[i].vel[2])/data->dlatency;
+
+        // update
+        memcpy(data->robot[i].enu, enu, sizeof(enu));
+        memcpy(data->robot[i].vel, vel, sizeof(vel));
+        memcpy(data->robot[i].acc, acc, sizeof(acc));
     }
 }
 // Convert Motion Capture (OpenGL) quaternion to Euler angles

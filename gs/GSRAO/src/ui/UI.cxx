@@ -679,7 +679,8 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
     }
     else {
     // if pause button is not pressed, then need init
-    
+   
+        widgets->msg_zone->label(""); // clear message zone
         // Init link with robots
         if (!spp_init(configs->robot.ppm_serial_port_path.c_str())) // link with PPM encoder
         {

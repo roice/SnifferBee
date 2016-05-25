@@ -14,10 +14,12 @@
 
 typedef struct {
     int rbID; // rigid body ID
-    float pos[3]; // x,y,z
+    float pos[3]; // x,y,z 
     float ori[4]; // qx,qy,qz,qw
     float enu[3]; // east, north, up
     float att[3]; // roll, pitch, yaw
+    float vel[3]; // velocity enu
+    float acc[3]; // acc enu
 } MocapRigidBody_t;
 
 typedef struct {

@@ -14,6 +14,7 @@
 #define CONFIG_H
 
 #include <string>
+#include "robot/robot_control.h"
 
 typedef struct {
     /* width, length and height */
@@ -28,13 +29,10 @@ typedef struct {
 }GSRAO_Config_Mocap_t;
 
 typedef struct {
-    std::string serial_port_path;
-}GSRAO_Config_ppmCnt_t;
-
-typedef struct {
     int num_of_robots; // amount of robots
     std::string ppm_serial_port_path;
     std::string dnet_serial_port_path;
+    pidProfile_t    pidProfile[4]; // 4 robots max
 }GSRAO_Config_Robot_t;
 
 typedef struct {
