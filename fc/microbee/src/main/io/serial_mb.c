@@ -168,7 +168,8 @@ void mbspSendHeartBeat(void)
         serialize8(0);
 
     // Battery Voltage
-    serialize32(mb_GetBatteryVoltage());
+    float bat_volt = mb_GetBatteryVoltage();
+    serialize32(*(uint32_t*)(&bat_volt));
     
     // checksum
     bufWriterAppend(mbspWriter, mbspPort.checksum);

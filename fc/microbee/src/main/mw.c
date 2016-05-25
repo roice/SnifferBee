@@ -732,7 +732,7 @@ void taskMainPidLoop(void)
     {
         mb_adc_last_sample_time = mb_current_time;
 
-        //mbspSendGasMeasurement();
+        mbspSendGasMeasurement();
     }
 
     // send status to ground station at 0.5 Hz
