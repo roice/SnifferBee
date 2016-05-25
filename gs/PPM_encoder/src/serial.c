@@ -50,10 +50,10 @@ bool sppProcessReceivedData(uint8_t c)
             spp_state = DATA; // received data, need checksum
     }
     else if (spp_state == DATA) {
-        if (spp_checksum == c) { // data OK
-            spp_state = IDLE;
+        spp_state = IDLE;
+        if (spp_checksum == c) { // data OK 
             return true;
-        }
+        } 
     }
     return false;
 }
