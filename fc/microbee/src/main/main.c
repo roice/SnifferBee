@@ -64,6 +64,9 @@
 #include "rx/rx.h"
 
 #include "io/serial.h"
+#ifdef MICROBEE
+#include "io/serial_mb.h"
+#endif
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/escservo.h"
@@ -507,6 +510,9 @@ void init(void)
     imuInit();
 
     mspInit(&masterConfig.serialConfig);
+#ifdef MICROBEE
+    mbspInit();
+#endif
 
 #ifdef USE_CLI
     cliInit(&masterConfig.serialConfig);

@@ -44,7 +44,6 @@
 
 #ifdef MICROBEE
 #include "drivers/adc_mb.h"
-#include "drivers/ext_i2c_device_mb.h"
 #include "io/serial_mb.h"
 #endif
 
@@ -739,9 +738,6 @@ void taskMainPidLoop(void)
     if (mb_current_time - mb_heart_beat_last_time > 500000)
     {
         mb_heart_beat_last_time = mb_current_time;
-
-        // update Battery status
-        mb_BatVoltUpdate();
 
         // send heart beat (include ARM/DISARM and bat volt)
         mbspSendHeartBeat();

@@ -92,9 +92,9 @@
 
 #define USE_VCP
 #define USE_USART1
-//#define USE_USART3
+#define USE_USART3
 //#define USE_SOFTSERIAL1
-#define SERIAL_PORT_COUNT 2 // UART1 VCP
+#define SERIAL_PORT_COUNT 3 // VCP UART1 UART3
 
 /* MicroBee does not need soft serial
 #define SOFTSERIAL_1_TIMER TIM3
@@ -102,19 +102,21 @@
 #define SOFTSERIAL_1_TIMER_RX_HARDWARE 2 // PWM 3
 */
 
-/* MicroBee use PB10 PB11 as I2C port
+/* MicroBee use PB10 PB11 as UART3 to receive battery info
+ * from a ATTINY85 mcu
+ */
 #define USART3_RX_PIN Pin_11
 #define USART3_TX_PIN Pin_10
 #define USART3_GPIO GPIOB
 #define USART3_APB1_PERIPHERALS RCC_APB1Periph_USART3
 #define USART3_APB2_PERIPHERALS RCC_APB2Periph_GPIOB
-*/
+
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 #define USE_SPI_DEVICE_2
 
-#define USE_I2C
+//#define USE_I2C
 #define I2C_DEVICE (I2CDEV_2) // Flex port - SCL/PB10, SDA/PB11
 
 // MicroBee use ADC to sample gas sensors
@@ -160,7 +162,7 @@
 //#define USE_SERVOS
 //#define USE_CLI
 
-/* MicroBee use FlexPort as I2C
+/* MicroBee use FlexPort as UART3
 #define USE_SERIAL_1WIRE
 
 // FlexPort (pin 21/22, TX/RX respectively):

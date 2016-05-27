@@ -1,6 +1,8 @@
 /*
  * MicroBee Serial Protocol
  *      for transmitting sensor values to ground station
+ *      
+ *      MicroBee use USART1 to control RF
  *
  * Author:
  *      Roice Luo (Bing Luo)
@@ -18,8 +20,9 @@
 
 #include "drivers/buf_writer.h"
 #include "drivers/adc_mb.h"
-#include "drivers/ext_i2c_device_mb.h"
+#include "drivers/serial.h"
 
+#include "io/serial.h"
 #include "io/serial_mb.h"
 
 #include "common/printf.h"
@@ -41,8 +44,16 @@ STATIC_UNIT_TESTED mbspPort_t mbspPort;
 static bufWriter_t *mbspWriter;
 static uint8_t mbspWriteBuffer[sizeof(*mbspWriter) + 20];
 
-void mbspInit(serialPort_t *serialPort)
+static float battery_volt = 0;
+
+void mbspInit(void)
 {
+    // FUNCTION_TELEMETRY_FRSKY is used to distinguish with MSP,
+    // telemetry is not used
+    serialPort_t* serialPort = openSerialPort(SERIAL_PORT_USART1, FUNCTION_TELEMETRY_FRSKY, NULL, 115200, MODE_RXTX, SERIAL_NOT_INVERTED);
+    if (!serialPort)
+        return;
+
     memset(&mbspPort, 0x00, sizeof(mbspPort));
     mbspPort.port = serialPort;
 
@@ -168,12 +179,18 @@ void mbspSendHeartBeat(void)
         serialize8(0);
 
     // Battery Voltage
-    float bat_volt = mb_GetBatteryVoltage();
-    serialize32(*(uint32_t*)(&bat_volt));
+    float* bat_volt = mb_GetBatteryVoltage();
+    serialize32(*(uint32_t*)bat_volt);
     
     // checksum
     bufWriterAppend(mbspWriter, mbspPort.checksum);
 
     // send message
     bufWriterFlush(mbspWriter);
+}
+
+// get battery voltage
+float* mb_GetBatteryVoltage(void)
+{
+    return &battery_volt;
 }

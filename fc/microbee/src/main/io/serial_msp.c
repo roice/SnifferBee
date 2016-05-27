@@ -436,15 +436,12 @@ void mspAllocateSerialPorts(serialConfig_t *serialConfig)
             portIndex++;
             continue;
         }
-
+#ifdef MICROBEE
+        if (portConfig->identifier == SERIAL_PORT_USART3)
+            portConfig->msp_baudrateIndex = 1; // 9600
+#endif
         serialPort = openSerialPort(portConfig->identifier, FUNCTION_MSP, NULL, baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
         if (serialPort) {
-// MicroBee use USART1 to control RF
-// USART1 can also be used as MSP port
-#ifdef MICROBEE
-            if (portConfig->identifier == SERIAL_PORT_USART1)
-                mbspInit(serialPort);
-#endif
             resetMspPort(mspPort, serialPort);
             portIndex++;
         }
@@ -1223,6 +1220,15 @@ static bool processInCommand(void)
 #endif
 
     switch (currentPort->cmdMSP) {
+#ifdef MICROBEE
+    case MSP_BAT_STATUS:
+    {
+        uint16_t adc_value = read16();
+        float* bat_volt = mb_GetBatteryVoltage();
+        *bat_volt = ((float)(adc_value & 0x03FF))*5.0f/1024.0f;
+    }
+        break;
+#endif
     case MSP_SELECT_SETTING:
         if (!ARMING_FLAG(ARMED)) {
             masterConfig.current_profile_index = read8();

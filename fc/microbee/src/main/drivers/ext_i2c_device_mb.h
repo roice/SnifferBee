@@ -9,4 +9,3 @@
 #pragma once
 
 void mb_BatVoltUpdate(void);
-float mb_GetBatteryVoltage(void);

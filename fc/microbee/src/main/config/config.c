@@ -281,7 +281,12 @@ void resetSerialConfig(serialConfig_t *serialConfig)
 
 #if defined(USE_VCP)
     // This allows MSP connection via USART & VCP so the board can be reconfigured.
+    // MicroBee use USART1 to communicate with RF, and USART3 as MSP
+#ifdef MICROBEE
+    serialConfig->portConfigs[2].functionMask = FUNCTION_MSP;
+#else
     serialConfig->portConfigs[1].functionMask = FUNCTION_MSP;
+#endif
 #endif
 
     serialConfig->reboot_character = 'R';

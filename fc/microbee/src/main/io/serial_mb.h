@@ -36,10 +36,12 @@ typedef struct mbspPort_s {
     uint8_t cmdMBSP;
 } mbspPort_t;
 
-void mbspInit(serialPort_t *serialPort);
+void mbspInit(void);
 void mbspPrint(const char *str);
 void mbspPrintf(const char *fmt, ...);
 void mbspSendGasMeasurement(void);
 void mbspSendHeartBeat(void);
+
+float* mb_GetBatteryVoltage(void);
 
 #endif
