@@ -698,6 +698,27 @@ static void cb_repeated_tasks_2hz(void* data)
     Fl::repeat_timeout(0.5, cb_repeated_tasks_2hz, data);
 }
 
+static void cb_repeated_tasks_10hz(void* data)
+{
+    ToolBar_Handles* hs = (ToolBar_Handles*)data;
+    // refresh RC sticks in rc panel
+    if (hs->robot_panel != NULL && hs->robot_panel->hs.remoter_panel != NULL)
+    {
+        if (hs->robot_panel->hs.remoter_panel->shown()
+                && !hs->robot_panel->hs.remoter_panel->ws.manual_control->value())
+        {
+            SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+            RemoterPanel_Widgets* remoter_ws = &(hs->robot_panel->hs.remoter_panel->ws);
+            remoter_ws->rc_throttle->value(rc_data[remoter_ws->robot_to_control->value()].throttle);
+            remoter_ws->rc_roll->value(rc_data[remoter_ws->robot_to_control->value()].roll);
+            remoter_ws->rc_pitch->value(rc_data[remoter_ws->robot_to_control->value()].pitch);
+            remoter_ws->rc_yaw->value(rc_data[remoter_ws->robot_to_control->value()].yaw);
+        }
+    }
+    // reload
+    Fl::repeat_timeout(0.1, cb_repeated_tasks_10hz, data);
+}
+
 void ToolBar::cb_button_start(Fl_Widget *w, void *data)
 {
     GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
@@ -707,92 +728,102 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
     // if pause button is pressed, meaning that the initialization has been carried out, so just restore and continue
     if (widgets->pause->value()) {
         // release pause button
-        widgets->pause->value(0);
+        widgets->pause->activate(); widgets->pause->clear();
         // continue running
         
     }
     else {
-    // if pause button is not pressed, then need init
-   
-        widgets->msg_zone->label(""); // clear message zone
-        // Init link with robots
-        if (!spp_init(configs->robot.ppm_serial_port_path.c_str())) // link with PPM encoder
+    // if pause button is not pressed, then need check start button state
+        if (((Fl_Button*)w)->value()) // if start button is pressed down
         {
-            widgets->msg_zone->label("PPM Serial Port Failed!");
-            widgets->msg_zone->labelcolor(FL_RED);
-            ((Fl_Button*)w)->value(0);
-            return;
+            widgets->msg_zone->label(""); // clear message zone
+            // Init link with robots
+            if (!spp_init(configs->robot.ppm_serial_port_path.c_str())) // link with PPM encoder
+            {
+                widgets->msg_zone->label("PPM Serial Port Failed!");
+                widgets->msg_zone->labelcolor(FL_RED);
+                ((Fl_Button*)w)->value(0);
+                return;
+            }
+            if (!mbsp_init(configs->robot.dnet_serial_port_path.c_str())) // link with DATA receiver
+            {
+                widgets->msg_zone->label("DNET Serial Port Failed!");
+                widgets->msg_zone->labelcolor(FL_RED);
+                ((Fl_Button*)w)->value(0);
+                // close spp
+                spp_close();
+                return;
+            }
+            // Init link with Motion Capture System
+            mocap_set_request(configs->mocap.model_name_of_robot);
+            std::size_t find_ip = configs->mocap.netcard.rfind("IPv4 ");
+            if (find_ip == std::string::npos)
+            {
+                widgets->msg_zone->label("Netcard not a IPv4 address");
+                widgets->msg_zone->labelcolor(FL_RED);
+                ((Fl_Button*)w)->value(0);
+                // close spp, mbsp
+                spp_close();
+                mbsp_close();
+                return;
+            }
+            if (configs->mocap.netcard.size() < find_ip + 4+1+1) // "IPv4"+" "+"X", X is whatever
+            {
+                widgets->msg_zone->label("Cannot find valid IP address");
+                widgets->msg_zone->labelcolor(FL_RED);
+                ((Fl_Button*)w)->value(0);
+                // close spp, mbsp
+                spp_close();
+                mbsp_close();
+                return;
+            }
+            std::string ip_addr = configs->mocap.netcard.substr(find_ip+5, configs->mocap.netcard.size()-5-find_ip);
+            if (!mocap_client_init(ip_addr.c_str()))
+            {
+                widgets->msg_zone->label("Mocap client init failed!");
+                widgets->msg_zone->labelcolor(FL_RED);
+                ((Fl_Button*)w)->value(0);
+                // close spp, mbsp
+                spp_close();
+                mbsp_close();
+                return;
+            }
+            // Init robots
+            if (!robot_init())
+            {
+                widgets->msg_zone->label("Robot init failed!");
+                widgets->msg_zone->labelcolor(FL_RED);
+                ((Fl_Button*)w)->value(0);
+                // close spp, mbsp, mocap
+                spp_close();
+                mbsp_close();
+                mocap_client_close();
+                return;
+            }
+            // add timers for repeated tasks (such as data display)
+            Fl::add_timeout(0.5, cb_repeated_tasks_2hz, (void*)&hs);
+            Fl::add_timeout(0.1, cb_repeated_tasks_10hz, (void*)&hs);
         }
-        if (!mbsp_init(configs->robot.dnet_serial_port_path.c_str())) // link with DATA receiver
-        {
-            widgets->msg_zone->label("DNET Serial Port Failed!");
-            widgets->msg_zone->labelcolor(FL_RED);
-            ((Fl_Button*)w)->value(0);
-            // close spp
-            spp_close();
-            return;
+        else {
+            // user is trying to release start button when pause is not pressed
+            ((Fl_Button*)w)->value(1);
         }
-        // Init link with Motion Capture System
-        mocap_set_request(configs->mocap.model_name_of_robot);
-        std::size_t find_ip = configs->mocap.netcard.rfind("IPv4 ");
-        if (find_ip == std::string::npos)
-        {
-            widgets->msg_zone->label("Netcard not a IPv4 address");
-            widgets->msg_zone->labelcolor(FL_RED);
-            ((Fl_Button*)w)->value(0);
-            // close spp, mbsp
-            spp_close();
-            mbsp_close();
-            return;
-        }
-        if (configs->mocap.netcard.size() < find_ip + 4+1+1) // "IPv4"+" "+"X", X is whatever
-        {
-            widgets->msg_zone->label("Cannot find valid IP address");
-            widgets->msg_zone->labelcolor(FL_RED);
-            ((Fl_Button*)w)->value(0);
-            // close spp, mbsp
-            spp_close();
-            mbsp_close();
-            return;
-        }
-        std::string ip_addr = configs->mocap.netcard.substr(find_ip+5, configs->mocap.netcard.size()-5-find_ip);
-        if (!mocap_client_init(ip_addr.c_str()))
-        {
-            widgets->msg_zone->label("Mocap client init failed!");
-            widgets->msg_zone->labelcolor(FL_RED);
-            ((Fl_Button*)w)->value(0);
-            // close spp, mbsp
-            spp_close();
-            mbsp_close();
-            return;
-        }
-        // Init robots
-        if (!robot_init())
-        {
-            widgets->msg_zone->label("Robot init failed!");
-            widgets->msg_zone->labelcolor(FL_RED);
-            ((Fl_Button*)w)->value(0);
-            // close spp, mbsp, mocap
-            spp_close();
-            mbsp_close();
-            mocap_client_close();
-            return;
-        }
-        // add timers for repeated tasks (such as data display)
-        Fl::add_timeout(0.5, cb_repeated_tasks_2hz, (void*)&hs);
-    } 
+    }
 }
 
 void ToolBar::cb_button_pause(Fl_Widget *w, void *data)
 {
     ToolBar_Widgets* widgets = (ToolBar_Widgets*)data;
-    // if start button pressed, release it
+    // if start button pressed, release it, and pause experiment
     if (widgets->start->value()) {
-        widgets->start->value(0);
+        widgets->start->value(0); // release start button
+        widgets->pause->deactivate(); // make pause button unclickable
+        // pause experiment...
+
     }
     else {
     // if start button not pressed, pause button will not toggle and no code action will be took
-        widgets->pause->value(0);
+        widgets->pause->clear();
     }
 }
 
@@ -801,7 +832,7 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     // release start and pause buttons
     struct ToolBar_Widgets *widgets = (struct ToolBar_Widgets*)data;
     widgets->start->clear();
-    widgets->pause->clear();
+    widgets->pause->activate(); widgets->pause->clear();
 
     // close Link with robots and Motion Capture System
     robot_shutdown(); // shutdown robots
@@ -809,11 +840,13 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     mbsp_close(); // close serial link with DATA receiver
     mocap_client_close(); // close udp net link with motion capture system
     Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
-    for (int i = 0; i < 4; i++) // clear robot states in robot panel
-    {
-        hs.robot_panel->ws.robot_link_state[i]->value(0); // linked leds
-        hs.robot_panel->ws.robot_arm_state[i]->label("DISARM"); // arm/disarm
-        hs.robot_panel->ws.robot_arm_state[i]->labelcolor(FL_RED);
+    if (hs.robot_panel != NULL) {
+        for (int i = 0; i < 4; i++) // clear robot states in robot panel
+        {
+            hs.robot_panel->ws.robot_link_state[i]->value(0); // linked leds
+            hs.robot_panel->ws.robot_arm_state[i]->label("DISARM"); // arm/disarm
+            hs.robot_panel->ws.robot_arm_state[i]->labelcolor(FL_RED);
+        }
     }
 
     // clear message zone
@@ -1024,7 +1057,7 @@ void UI::cb_close(Fl_Widget* w, void* data) {
 UI::UI(int width, int height, const char* title=0)
 {
     /* Main Window, control panel */
-    Fl_Double_Window *ui = new Fl_Double_Window(0, 0, width, height, title);
+    Fl_Double_Window *ui = new Fl_Double_Window(1600, 0, width, height, title);
     ui->resizable(ui); 
  
     ui->show(); // glut will die unless parent window visible
@@ -1040,7 +1073,7 @@ UI::UI(int width, int height, const char* title=0)
     ui->resizable(r);
     /* Add RAO view */    
     glutInitWindowSize(width-10, height-tool->h()-10);// be consistent with View_init
-    glutInitWindowPosition(ui->x()+5, tool->h()+5); // place it inside parent window
+    glutInitWindowPosition(5, tool->h()+5); // place it inside parent window
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
     glutCreateWindow("Experiment view");
     /* end adding children */

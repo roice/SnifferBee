@@ -17,16 +17,16 @@ bool robot_init(void)
 {
     if (!microbee_state_init())
         return false;
-/*
+
     if (!microbee_control_init())
         return false;
-*/
+
     return true;
 }
 
 void robot_shutdown(void)
 {
-    //microbee_control_close();
+    microbee_control_close();
     microbee_state_close();
 }
 

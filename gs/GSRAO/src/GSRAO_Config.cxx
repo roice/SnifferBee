@@ -50,46 +50,52 @@ void GSRAO_Config_restore(void)
         settings.robot.ppm_serial_port_path = pt.get<std::string>("Robot.ppm_serial_port_path");
         settings.robot.dnet_serial_port_path = pt.get<std::string>("Robot.dnet_serial_port_path");
         settings.robot.pidProfile[0].P[PIDALT] = pt.get<float>("Robot.pidProfile_P_ALT_of_robot_1");
-        settings.robot.pidProfile[0].P[PIDPOS] = pt.get<float>("Robot.pidProfile_P_POS_of_robot_1");
-        settings.robot.pidProfile[0].P[PIDMAG] = pt.get<float>("Robot.pidProfile_P_MAG_of_robot_1");
         settings.robot.pidProfile[0].P[PIDVEL] = pt.get<float>("Robot.pidProfile_P_VEL_of_robot_1");
-        settings.robot.pidProfile[0].I[PIDPOS] = pt.get<float>("Robot.pidProfile_I_POS_of_robot_1");
-        settings.robot.pidProfile[0].I[PIDMAG] = pt.get<float>("Robot.pidProfile_I_MAG_of_robot_1");
         settings.robot.pidProfile[0].I[PIDVEL] = pt.get<float>("Robot.pidProfile_I_VEL_of_robot_1");
-        settings.robot.pidProfile[0].D[PIDPOS] = pt.get<float>("Robot.pidProfile_D_POS_of_robot_1");
-        settings.robot.pidProfile[0].D[PIDMAG] = pt.get<float>("Robot.pidProfile_D_MAG_of_robot_1");       
         settings.robot.pidProfile[0].D[PIDVEL] = pt.get<float>("Robot.pidProfile_D_VEL_of_robot_1");
-
+        settings.robot.pidProfile[0].P[PIDPOS] = pt.get<float>("Robot.pidProfile_P_POS_of_robot_1");
+        settings.robot.pidProfile[0].P[PIDPOSR] = pt.get<float>("Robot.pidProfile_P_POSR_of_robot_1");
+        settings.robot.pidProfile[0].I[PIDPOSR] = pt.get<float>("Robot.pidProfile_I_POSR_of_robot_1");
+        settings.robot.pidProfile[0].D[PIDPOSR] = pt.get<float>("Robot.pidProfile_D_POSR_of_robot_1");
+        settings.robot.pidProfile[0].P[PIDMAG] = pt.get<float>("Robot.pidProfile_P_MAG_of_robot_1");
+        settings.robot.pidProfile[0].I[PIDMAG] = pt.get<float>("Robot.pidProfile_I_MAG_of_robot_1");
+        settings.robot.pidProfile[0].D[PIDMAG] = pt.get<float>("Robot.pidProfile_D_MAG_of_robot_1");
+ 
         settings.robot.pidProfile[1].P[PIDALT] = pt.get<float>("Robot.pidProfile_P_ALT_of_robot_2");
-        settings.robot.pidProfile[1].P[PIDPOS] = pt.get<float>("Robot.pidProfile_P_POS_of_robot_2");
-        settings.robot.pidProfile[1].P[PIDMAG] = pt.get<float>("Robot.pidProfile_P_MAG_of_robot_2");
         settings.robot.pidProfile[1].P[PIDVEL] = pt.get<float>("Robot.pidProfile_P_VEL_of_robot_2");
-        settings.robot.pidProfile[1].I[PIDPOS] = pt.get<float>("Robot.pidProfile_I_POS_of_robot_2");
-        settings.robot.pidProfile[1].I[PIDMAG] = pt.get<float>("Robot.pidProfile_I_MAG_of_robot_2");
-        settings.robot.pidProfile[1].D[PIDPOS] = pt.get<float>("Robot.pidProfile_D_POS_of_robot_2");
-        settings.robot.pidProfile[1].D[PIDMAG] = pt.get<float>("Robot.pidProfile_D_MAG_of_robot_2");
+        settings.robot.pidProfile[1].I[PIDVEL] = pt.get<float>("Robot.pidProfile_I_VEL_of_robot_2");
         settings.robot.pidProfile[1].D[PIDVEL] = pt.get<float>("Robot.pidProfile_D_VEL_of_robot_2");
+        settings.robot.pidProfile[1].P[PIDPOS] = pt.get<float>("Robot.pidProfile_P_POS_of_robot_2");
+        settings.robot.pidProfile[1].P[PIDPOSR] = pt.get<float>("Robot.pidProfile_P_POSR_of_robot_2");
+        settings.robot.pidProfile[1].I[PIDPOSR] = pt.get<float>("Robot.pidProfile_I_POSR_of_robot_2");
+        settings.robot.pidProfile[1].D[PIDPOSR] = pt.get<float>("Robot.pidProfile_D_POSR_of_robot_2");
+        settings.robot.pidProfile[1].P[PIDMAG] = pt.get<float>("Robot.pidProfile_P_MAG_of_robot_2");
+        settings.robot.pidProfile[1].I[PIDMAG] = pt.get<float>("Robot.pidProfile_I_MAG_of_robot_2");
+        settings.robot.pidProfile[1].D[PIDMAG] = pt.get<float>("Robot.pidProfile_D_MAG_of_robot_2");
 
         settings.robot.pidProfile[2].P[PIDALT] = pt.get<float>("Robot.pidProfile_P_ALT_of_robot_3");
-        settings.robot.pidProfile[2].P[PIDPOS] = pt.get<float>("Robot.pidProfile_P_POS_of_robot_3");
-        settings.robot.pidProfile[2].P[PIDMAG] = pt.get<float>("Robot.pidProfile_P_MAG_of_robot_3");
         settings.robot.pidProfile[2].P[PIDVEL] = pt.get<float>("Robot.pidProfile_P_VEL_of_robot_3");
-        settings.robot.pidProfile[2].I[PIDPOS] = pt.get<float>("Robot.pidProfile_I_POS_of_robot_3");
-        settings.robot.pidProfile[2].I[PIDMAG] = pt.get<float>("Robot.pidProfile_I_MAG_of_robot_3");
-        settings.robot.pidProfile[2].D[PIDPOS] = pt.get<float>("Robot.pidProfile_D_POS_of_robot_3");
-        settings.robot.pidProfile[2].D[PIDMAG] = pt.get<float>("Robot.pidProfile_D_MAG_of_robot_3");
+        settings.robot.pidProfile[2].I[PIDVEL] = pt.get<float>("Robot.pidProfile_I_VEL_of_robot_3");
         settings.robot.pidProfile[2].D[PIDVEL] = pt.get<float>("Robot.pidProfile_D_VEL_of_robot_3");
-
+        settings.robot.pidProfile[2].P[PIDPOS] = pt.get<float>("Robot.pidProfile_P_POS_of_robot_3");
+        settings.robot.pidProfile[2].P[PIDPOSR] = pt.get<float>("Robot.pidProfile_P_POSR_of_robot_3");
+        settings.robot.pidProfile[2].I[PIDPOSR] = pt.get<float>("Robot.pidProfile_I_POSR_of_robot_3");
+        settings.robot.pidProfile[2].D[PIDPOSR] = pt.get<float>("Robot.pidProfile_D_POSR_of_robot_3");
+        settings.robot.pidProfile[2].P[PIDMAG] = pt.get<float>("Robot.pidProfile_P_MAG_of_robot_3");
+        settings.robot.pidProfile[2].I[PIDMAG] = pt.get<float>("Robot.pidProfile_I_MAG_of_robot_3");
+        settings.robot.pidProfile[2].D[PIDMAG] = pt.get<float>("Robot.pidProfile_D_MAG_of_robot_3");
+       
         settings.robot.pidProfile[3].P[PIDALT] = pt.get<float>("Robot.pidProfile_P_ALT_of_robot_4");
-        settings.robot.pidProfile[3].P[PIDPOS] = pt.get<float>("Robot.pidProfile_P_POS_of_robot_4");
-        settings.robot.pidProfile[3].P[PIDMAG] = pt.get<float>("Robot.pidProfile_P_MAG_of_robot_4");
         settings.robot.pidProfile[3].P[PIDVEL] = pt.get<float>("Robot.pidProfile_P_VEL_of_robot_4");
-        settings.robot.pidProfile[3].I[PIDPOS] = pt.get<float>("Robot.pidProfile_I_POS_of_robot_4");
-        settings.robot.pidProfile[3].I[PIDMAG] = pt.get<float>("Robot.pidProfile_I_MAG_of_robot_4");
-        settings.robot.pidProfile[3].D[PIDPOS] = pt.get<float>("Robot.pidProfile_D_POS_of_robot_4");
-        settings.robot.pidProfile[3].D[PIDMAG] = pt.get<float>("Robot.pidProfile_D_MAG_of_robot_4");
+        settings.robot.pidProfile[3].I[PIDVEL] = pt.get<float>("Robot.pidProfile_I_VEL_of_robot_4");
         settings.robot.pidProfile[3].D[PIDVEL] = pt.get<float>("Robot.pidProfile_D_VEL_of_robot_4");
-
+        settings.robot.pidProfile[3].P[PIDPOS] = pt.get<float>("Robot.pidProfile_P_POS_of_robot_4");
+        settings.robot.pidProfile[3].P[PIDPOSR] = pt.get<float>("Robot.pidProfile_P_POSR_of_robot_4");
+        settings.robot.pidProfile[3].I[PIDPOSR] = pt.get<float>("Robot.pidProfile_I_POSR_of_robot_4");
+        settings.robot.pidProfile[3].D[PIDPOSR] = pt.get<float>("Robot.pidProfile_D_POSR_of_robot_4");
+        settings.robot.pidProfile[3].P[PIDMAG] = pt.get<float>("Robot.pidProfile_P_MAG_of_robot_4");
+        settings.robot.pidProfile[3].I[PIDMAG] = pt.get<float>("Robot.pidProfile_I_MAG_of_robot_4");
+        settings.robot.pidProfile[3].D[PIDMAG] = pt.get<float>("Robot.pidProfile_D_MAG_of_robot_4");
         // System
         settings.system.robot_panel_opened = pt.get<bool>("System.robot_panel_opened");
         settings.system.result_panel_opened = pt.get<bool>("System.result_panel_opened");
@@ -117,48 +123,52 @@ void GSRAO_Config_save(void)
     pt.put("Robot.ppm_serial_port_path", settings.robot.ppm_serial_port_path);
     pt.put("Robot.dnet_serial_port_path", settings.robot.dnet_serial_port_path);
     pt.put("Robot.pidProfile_P_ALT_of_robot_1", settings.robot.pidProfile[0].P[PIDALT]);
-    pt.put("Robot.pidProfile_P_POS_of_robot_1", settings.robot.pidProfile[0].P[PIDPOS]);
-    pt.put("Robot.pidProfile_P_MAG_of_robot_1", settings.robot.pidProfile[0].P[PIDMAG]);
     pt.put("Robot.pidProfile_P_VEL_of_robot_1", settings.robot.pidProfile[0].P[PIDVEL]);
-    pt.put("Robot.pidProfile_I_POS_of_robot_1", settings.robot.pidProfile[0].I[PIDPOS]);
-    pt.put("Robot.pidProfile_I_MAG_of_robot_1", settings.robot.pidProfile[0].I[PIDMAG]);
     pt.put("Robot.pidProfile_I_VEL_of_robot_1", settings.robot.pidProfile[0].I[PIDVEL]);
-    pt.put("Robot.pidProfile_D_POS_of_robot_1", settings.robot.pidProfile[0].D[PIDPOS]);
-    pt.put("Robot.pidProfile_D_MAG_of_robot_1", settings.robot.pidProfile[0].D[PIDMAG]);
     pt.put("Robot.pidProfile_D_VEL_of_robot_1", settings.robot.pidProfile[0].D[PIDVEL]);
-
+    pt.put("Robot.pidProfile_P_POS_of_robot_1", settings.robot.pidProfile[0].P[PIDPOS]);
+    pt.put("Robot.pidProfile_P_POSR_of_robot_1", settings.robot.pidProfile[0].P[PIDPOSR]);
+    pt.put("Robot.pidProfile_I_POSR_of_robot_1", settings.robot.pidProfile[0].I[PIDPOSR]);
+    pt.put("Robot.pidProfile_D_POSR_of_robot_1", settings.robot.pidProfile[0].D[PIDPOSR]);
+    pt.put("Robot.pidProfile_P_MAG_of_robot_1", settings.robot.pidProfile[0].P[PIDMAG]);
+    pt.put("Robot.pidProfile_I_MAG_of_robot_1", settings.robot.pidProfile[0].I[PIDMAG]);
+    pt.put("Robot.pidProfile_D_MAG_of_robot_1", settings.robot.pidProfile[0].D[PIDMAG]);
+    
     pt.put("Robot.pidProfile_P_ALT_of_robot_2", settings.robot.pidProfile[1].P[PIDALT]);
-    pt.put("Robot.pidProfile_P_POS_of_robot_2", settings.robot.pidProfile[1].P[PIDPOS]);
-    pt.put("Robot.pidProfile_P_MAG_of_robot_2", settings.robot.pidProfile[1].P[PIDMAG]);
     pt.put("Robot.pidProfile_P_VEL_of_robot_2", settings.robot.pidProfile[1].P[PIDVEL]);
-    pt.put("Robot.pidProfile_I_POS_of_robot_2", settings.robot.pidProfile[1].I[PIDPOS]);
-    pt.put("Robot.pidProfile_I_MAG_of_robot_2", settings.robot.pidProfile[1].I[PIDMAG]);
     pt.put("Robot.pidProfile_I_VEL_of_robot_2", settings.robot.pidProfile[1].I[PIDVEL]);
-    pt.put("Robot.pidProfile_D_POS_of_robot_2", settings.robot.pidProfile[1].D[PIDPOS]);
-    pt.put("Robot.pidProfile_D_MAG_of_robot_2", settings.robot.pidProfile[1].D[PIDMAG]);
     pt.put("Robot.pidProfile_D_VEL_of_robot_2", settings.robot.pidProfile[1].D[PIDVEL]);
+    pt.put("Robot.pidProfile_P_POS_of_robot_2", settings.robot.pidProfile[1].P[PIDPOS]);
+    pt.put("Robot.pidProfile_P_POSR_of_robot_2", settings.robot.pidProfile[1].P[PIDPOSR]);
+    pt.put("Robot.pidProfile_I_POSR_of_robot_2", settings.robot.pidProfile[1].I[PIDPOSR]);
+    pt.put("Robot.pidProfile_D_POSR_of_robot_2", settings.robot.pidProfile[1].D[PIDPOSR]);
+    pt.put("Robot.pidProfile_P_MAG_of_robot_2", settings.robot.pidProfile[1].P[PIDMAG]);
+    pt.put("Robot.pidProfile_I_MAG_of_robot_2", settings.robot.pidProfile[1].I[PIDMAG]);
+    pt.put("Robot.pidProfile_D_MAG_of_robot_2", settings.robot.pidProfile[1].D[PIDMAG]);
 
     pt.put("Robot.pidProfile_P_ALT_of_robot_3", settings.robot.pidProfile[2].P[PIDALT]);
-    pt.put("Robot.pidProfile_P_POS_of_robot_3", settings.robot.pidProfile[2].P[PIDPOS]);
-    pt.put("Robot.pidProfile_P_MAG_of_robot_3", settings.robot.pidProfile[2].P[PIDMAG]);
     pt.put("Robot.pidProfile_P_VEL_of_robot_3", settings.robot.pidProfile[2].P[PIDVEL]);
-    pt.put("Robot.pidProfile_I_POS_of_robot_3", settings.robot.pidProfile[2].I[PIDPOS]);
-    pt.put("Robot.pidProfile_I_MAG_of_robot_3", settings.robot.pidProfile[2].I[PIDMAG]);
     pt.put("Robot.pidProfile_I_VEL_of_robot_3", settings.robot.pidProfile[2].I[PIDVEL]);
-    pt.put("Robot.pidProfile_D_POS_of_robot_3", settings.robot.pidProfile[2].D[PIDPOS]);
-    pt.put("Robot.pidProfile_D_MAG_of_robot_3", settings.robot.pidProfile[2].D[PIDMAG]);  
     pt.put("Robot.pidProfile_D_VEL_of_robot_3", settings.robot.pidProfile[2].D[PIDVEL]);
+    pt.put("Robot.pidProfile_P_POS_of_robot_3", settings.robot.pidProfile[2].P[PIDPOS]);
+    pt.put("Robot.pidProfile_P_POSR_of_robot_3", settings.robot.pidProfile[2].P[PIDPOSR]);
+    pt.put("Robot.pidProfile_I_POSR_of_robot_3", settings.robot.pidProfile[2].I[PIDPOSR]);
+    pt.put("Robot.pidProfile_D_POSR_of_robot_3", settings.robot.pidProfile[2].D[PIDPOSR]);
+    pt.put("Robot.pidProfile_P_MAG_of_robot_3", settings.robot.pidProfile[2].P[PIDMAG]);
+    pt.put("Robot.pidProfile_I_MAG_of_robot_3", settings.robot.pidProfile[2].I[PIDMAG]);
+    pt.put("Robot.pidProfile_D_MAG_of_robot_3", settings.robot.pidProfile[2].D[PIDMAG]);
 
     pt.put("Robot.pidProfile_P_ALT_of_robot_4", settings.robot.pidProfile[3].P[PIDALT]);
-    pt.put("Robot.pidProfile_P_POS_of_robot_4", settings.robot.pidProfile[3].P[PIDPOS]);
-    pt.put("Robot.pidProfile_P_MAG_of_robot_4", settings.robot.pidProfile[3].P[PIDMAG]);
     pt.put("Robot.pidProfile_P_VEL_of_robot_4", settings.robot.pidProfile[3].P[PIDVEL]);
-    pt.put("Robot.pidProfile_I_POS_of_robot_4", settings.robot.pidProfile[3].I[PIDPOS]);
-    pt.put("Robot.pidProfile_I_MAG_of_robot_4", settings.robot.pidProfile[3].I[PIDMAG]);
     pt.put("Robot.pidProfile_I_VEL_of_robot_4", settings.robot.pidProfile[3].I[PIDVEL]);
-    pt.put("Robot.pidProfile_D_POS_of_robot_4", settings.robot.pidProfile[3].D[PIDPOS]);
-    pt.put("Robot.pidProfile_D_MAG_of_robot_4", settings.robot.pidProfile[3].D[PIDMAG]);
     pt.put("Robot.pidProfile_D_VEL_of_robot_4", settings.robot.pidProfile[3].D[PIDVEL]);
+    pt.put("Robot.pidProfile_P_POS_of_robot_4", settings.robot.pidProfile[3].P[PIDPOS]);
+    pt.put("Robot.pidProfile_P_POSR_of_robot_4", settings.robot.pidProfile[3].P[PIDPOSR]);
+    pt.put("Robot.pidProfile_I_POSR_of_robot_4", settings.robot.pidProfile[3].I[PIDPOSR]);
+    pt.put("Robot.pidProfile_D_POSR_of_robot_4", settings.robot.pidProfile[3].D[PIDPOSR]);
+    pt.put("Robot.pidProfile_P_MAG_of_robot_4", settings.robot.pidProfile[3].P[PIDMAG]);
+    pt.put("Robot.pidProfile_I_MAG_of_robot_4", settings.robot.pidProfile[3].I[PIDMAG]);
+    pt.put("Robot.pidProfile_D_MAG_of_robot_4", settings.robot.pidProfile[3].D[PIDMAG]);
 
     // System
     pt.put("System.robot_panel_opened", settings.system.robot_panel_opened);
@@ -189,16 +199,18 @@ void GSRAO_Config_init(void)
     settings.robot.dnet_serial_port_path = "/dev/ttyUSB_GSRAO_DATA";
     for (char i = 0; i < 4; i++)
     {
-        settings.robot.pidProfile[i].P[PIDALT] = 2.0;
-        settings.robot.pidProfile[i].P[PIDPOS] = 0;
-        settings.robot.pidProfile[i].P[PIDMAG] = 0;
-        settings.robot.pidProfile[i].P[PIDVEL] = 500; 
-        settings.robot.pidProfile[i].I[PIDPOS] = 0;
-        settings.robot.pidProfile[i].I[PIDMAG] = 0;
-        settings.robot.pidProfile[i].I[PIDVEL] = 0;
-        settings.robot.pidProfile[i].D[PIDPOS] = 0;
-        settings.robot.pidProfile[i].D[PIDMAG] = 0;
+        settings.robot.pidProfile[i].P[PIDALT] = 1.0;
+        settings.robot.pidProfile[i].P[PIDVEL] = 500;
+        settings.robot.pidProfile[i].I[PIDVEL] = 4;
         settings.robot.pidProfile[i].D[PIDVEL] = 0;
+        settings.robot.pidProfile[i].P[PIDPOS] = 1.0;
+        settings.robot.pidProfile[i].P[PIDPOSR] = 100;
+        settings.robot.pidProfile[i].I[PIDPOSR] = 0.1;
+        settings.robot.pidProfile[i].D[PIDPOSR] = 0;
+        settings.robot.pidProfile[i].P[PIDMAG] = 0;
+        settings.robot.pidProfile[i].I[PIDMAG] = 0;
+        settings.robot.pidProfile[i].D[PIDMAG] = 0;
+        
     }
     // system
     settings.system.robot_panel_opened = false;

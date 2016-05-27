@@ -20,6 +20,8 @@
 #include "robot/robot.h"
 #include "io/serial.h"
 #include "GSRAO_Config.h"
+/* CBLAS */
+#include "cblas.h"
 
 static pthread_t microbee_control_thread_handle;
 static pthread_t microbee_state_thread_handle;
@@ -129,9 +131,7 @@ static void* microbee_control_loop(void* exit)
     float dtime;
     MocapData_t* data; // motion capture data
 
-    // loop interval
-    req.tv_sec = 0;
-    req.tv_nsec = 20000000L; // 20 ms
+    
 
     // init previous_time, current_time, dtime
     clock_gettime(CLOCK_REALTIME, &time);
@@ -141,10 +141,27 @@ static void* microbee_control_loop(void* exit)
 
     Robot_Ref_State_t* robot_ref = robot_get_ref_state();
 robot_ref[0].enu[0] = 1.8;
-robot_ref[0].enu[1] = -1.2;
-robot_ref[0].enu[2] = 1.0;
+robot_ref[0].enu[1] = -0.6;
+robot_ref[0].enu[2] = 1.3;
 
-    while (!*((bool*)exit))
+/* Step 1: Take off */ 
+    // arm, throttle min, yaw max
+    SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+    rc_data[0].throttle = 1000;
+    rc_data[0].roll = 1500;
+    rc_data[0].pitch = 1500;
+    rc_data[0].yaw = 2000;
+    req.tv_sec = 0;
+    req.tv_nsec = 200000000L; // 200 ms
+    while (!*((bool*)exit) && !microbee[0].state.armed)
+        nanosleep(&req, &rem); // 1 s
+    // recover yaw to middle
+    rc_data[0].yaw = 1500;
+
+    // loop interval
+    req.tv_sec = 0;
+    req.tv_nsec = 20000000L; // 20 ms
+    while (!*((bool*)exit) && microbee[0].state.armed)
     {
         clock_gettime(CLOCK_REALTIME, &time);
         current_time = time.tv_sec + time.tv_nsec/1.0e9;
@@ -157,6 +174,9 @@ robot_ref[0].enu[2] = 1.0;
         // 50 Hz
         nanosleep(&req, &rem); // 20 ms
     }
+
+/* Step 3: Descend */
+
 }
 
 static float constrain(float amt, float low, float high)
@@ -197,36 +217,48 @@ static void microbee_throttle_control(float dt, char robot_index)
     float vel_temp = data->robot[robot_index].vel[2]; // current alt velocity
     float accZ_temp = data->robot[robot_index].acc[2]; // current alt acc
 
-    //printf("EstAlt %f, AltHold %f, vel_temp %f, accZ_temp %f\n", EstAlt, AltHold, vel_temp, accZ_temp);
-
     /* altitude control, throttle */
     // Altitude P-Controller
     float error = constrain(AltHold - EstAlt, -0.5, 0.5); // -0.5 - 0.5 m boundary
     error = applyDeadband(error, 0.01); // 1 cm deadband, remove small P parameter to reduce noise near zero position
-    float setVel = constrain((pidProfile[robot_index].P[PIDALT]*error), -1.0, 1.0); // limit velocity to +/- 1.0 m/s
+    float setVel = constrain((pidProfile[robot_index].P[PIDALT]*error), -2.0, 2.0); // limit velocity to +/- 2.0 m/s
+
+    //printf("Alt error is %f m, setVel is %f\n", error, setVel);
 
     // Velocity PID-Controller
     // P
     error = setVel - vel_temp;
-    float result = constrain((pidProfile[robot_index].P[PIDVEL]*error), -250, 250); // limit
+    float result = constrain((pidProfile[robot_index].P[PIDVEL]*error), -300, 300); // limit to +/- 300
+
+    //printf("Alt vel P is %f\n", result);
+
     // I
     errorVelocityI[robot_index] += (pidProfile[robot_index].I[PIDVEL]*error);
-    errorVelocityI[robot_index] = constrain(errorVelocityI[robot_index], -200.0, 200.0); // limit
+    errorVelocityI[robot_index] = constrain(errorVelocityI[robot_index], -700.0, 700.0); // limit to +/- 700
     result += errorVelocityI[robot_index];
+
+    //printf("Alt vel I is %f\n", errorVelocityI[robot_index]);
+
     // D
-    result -= constrain(pidProfile[robot_index].D[PIDVEL]*accZ_temp, -0.5, 0.5); // limit
+    result -= constrain(pidProfile[robot_index].D[PIDVEL]*accZ_temp, -100, 100); // limit
 
     //printf("Alt adj = %f\n", result);
 
     // update throttle value
     SPP_RC_DATA_t* rc_data = spp_get_rc_data();
-    rc_data[robot_index].throttle = constrain(1250 + result, 1000, 2000);
+    rc_data[robot_index].throttle = constrain(1050 + result, 1050, 1950);
 }
 
 static void microbee_roll_pitch_control(float dt, char robot_index)
 {
     static float errorPositionI[4][2] = {0};
-    float error, result;
+    float error_enu[2]; // error vector in earth coordinate
+    float error_p[2];// error vector in robot's coordinate
+    float heading_e_front[2]; // heading unit vector, indicating front direction
+    float heading_e_right[2]; // perpendicular vector of heading, indicating right
+    float target_vel[2];
+    float error;
+    float result;
 
     // get configs
     GSRAO_Config_t* configs = GSRAO_Config_get_configs();
@@ -243,20 +275,52 @@ static void microbee_roll_pitch_control(float dt, char robot_index)
         vel[i] = data->robot[robot_index].vel[i]; // current e/n velocity
     }
 
-    // Position PID-Controller for east(x)/north(y) axis
+    // get position error vector in earth coordinate
+    for (int i = 0; i < 2; i++)
+        error_enu[i] = pos_ref[i] - pos[i];
+
+    // get heading unit vectors
+    float heading_angle = data->robot[robot_index].att[2];
+    heading_e_front[0] = -sin(heading_angle); // for pitch
+    heading_e_front[1] = cos(heading_angle);
+    heading_e_right[0] = heading_e_front[1]; // for roll
+    heading_e_right[1] = -heading_e_front[0];
+    
+    // convert error to robot's coordinate
+    error_p[0] = cblas_sdot(2, error_enu, 1, heading_e_right, 1); // for roll
+    error_p[1] = cblas_sdot(2, error_enu, 1, heading_e_front, 1); // for pitch
+
+    // convert velocity to robot's coordinate
+    float vel_p[2];
+    vel_p[0] = cblas_sdot(2, vel, 1, heading_e_right, 1); // for roll
+    vel_p[1] = cblas_sdot(2, vel, 1, heading_e_front, 1); // for pitch
+
+#if 0
+    printf("heading angle is %f\n", heading_angle);
+    printf("pos_ref is [%f, %f] m, pos is [%f, %f] m\n", pos_ref[0], pos_ref[1], pos[0], pos[1]);
+    printf("front error is %f m, right error is %f m\n", error_p[1], error_p[0]);
+#endif
+#if 1
+    printf("error_enu is [%f, %f] m\n", error_enu[0], error_enu[1]);
+#endif
+
     for (char i = 0; i < 2; i++) // 0 for roll, 1 for pitch
     {
-        error = constrain(pos_ref[i] - pos[i], -2.0, 2.0); // limit error to -2.0~2.0 m
-        error = applyDeadband(error, 0.01); // 1 cm deadband, remove small P parameter to reduce noise near zero position
+        // Position PID-Controller for east(x)/north(y) axis
+        target_vel[i] = constrain(pidProfile[robot_index].P[PIDPOS]*error_p[i], -2.0, 2.0); // limit error to +/- 2.0 m/s;
+        target_vel[i] = applyDeadband(target_vel[i], 0.01); // 1 cm/s
+
+        // Velocity PID-Controller
+        error = target_vel[i]-vel_p[i];
 
         // P
-        result = constrain((pidProfile[robot_index].P[PIDPOS]*error), -250, 250); // limit
+        result = constrain((pidProfile[robot_index].P[PIDPOSR]*error), -100, 100); // limit to +/- 100
         // I
-        errorPositionI[robot_index][i] += (pidProfile[robot_index].I[PIDPOS]*error);
-        errorPositionI[robot_index][i] = constrain(errorPositionI[robot_index][i], -200.0, 200.0); // limit
+        errorPositionI[robot_index][i] += (pidProfile[robot_index].I[PIDPOSR]*error);
+        errorPositionI[robot_index][i] = constrain(errorPositionI[robot_index][i], -200.0, 200.0); // limit to +/- 200
         result += errorPositionI[robot_index][i];
         // D
-        result -= constrain(pidProfile[robot_index].D[PIDPOS]*vel[i], -0.5, 0.5); // limit
+        //result -= constrain(pidProfile[robot_index].D[PIDPOSR]*vel_p[i], -100, 100); // limit
 
         // update roll/pitch value
         SPP_RC_DATA_t* rc_data = spp_get_rc_data();
@@ -286,5 +350,5 @@ static void microbee_pos_control(float dt, char robot_index)
 {
     microbee_throttle_control(dt, robot_index);
     microbee_roll_pitch_control(dt, robot_index);
-    microbee_yaw_control(dt, robot_index);
+//    microbee_yaw_control(dt, robot_index);
 }

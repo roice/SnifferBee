@@ -119,7 +119,7 @@ static void mbspEvaluateData(void)
                 mb[mbsp_data.from-1].sensors.front = front*3.3/4096.0;
                 mb[mbsp_data.from-1].sensors.left = left*3.3/4096.0;
                 mb[mbsp_data.from-1].sensors.right = right*3.3/4096.0;
-                printf("front %f, left %f, right %f\n", mb[mbsp_data.from-1].sensors.front, mb[mbsp_data.from-1].sensors.left, mb[mbsp_data.from-1].sensors.right);
+                //printf("front %f, left %f, right %f\n", mb[mbsp_data.from-1].sensors.front, mb[mbsp_data.from-1].sensors.left, mb[mbsp_data.from-1].sensors.right);
                 clock_gettime(CLOCK_REALTIME, &time);
                 mb[mbsp_data.from-1].time = time.tv_sec + time.tv_nsec/1.0e9;
             default:

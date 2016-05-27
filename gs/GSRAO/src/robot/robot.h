@@ -11,9 +11,10 @@
 
 typedef enum {
     PIDALT = 0,
-    PIDPOS,
-    PIDMAG,
     PIDVEL,
+    PIDPOS,
+    PIDPOSR,
+    PIDMAG,
     PID_ITEM_COUNT
 } pidIndex_e;
 
