@@ -733,9 +733,8 @@ void taskMainPidLoop(void)
 
         mbspSendGasMeasurement();
     }
-
     // send status to ground station at 0.5 Hz
-    if (mb_current_time - mb_heart_beat_last_time > 500000)
+    else if (mb_current_time - mb_heart_beat_last_time > 500000)
     {
         mb_heart_beat_last_time = mb_current_time;
 
