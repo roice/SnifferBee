@@ -8,26 +8,31 @@
  * file draw_robots.h, which is included by DrawScene.h
  *
  * Author: Roice (LUO Bing)
- * Date: 2016-03-09 create this file
+ * Date: 2016-03-09 create this file (RAOS)
+ *       2016-05-30 modified this file (GSRAO)
  */
 
 #include <FL/gl.h>
-#include <vector>
-#include "model/robot.h"
-#include "model/quadrotor.h"
+#include "GSRAO_Config.h"
+#include "mocap/packet_client.h"
 #include "ui/draw/draw_qr.h"
 
-void draw_robots(std::vector<Robot*>* robots)
+void draw_robots(void)
 {
-    for (int idx_robot = 0; idx_robot < robots->size(); idx_robot++)
+    // get robot number
+    GSRAO_Config_t* configs = GSRAO_Config_get_configs();
+    int num_robots = configs->robot.num_of_robots;
+
+    // get mocap data
+    MocapData_t* data = mocap_get_data();
+
+    for (int idx_robot = 0; idx_robot < num_robots; idx_robot++)
     {// draw every robot
 
         /* draw robot according to its type, configures... */
-        if (robots->at(idx_robot)->config.type == quadrotor)
-        {// draw quadrotor
-            draw_qr(&(robots->at(idx_robot)->state), 
-                    (QRframe_t*)(robots->at(idx_robot)->config.frame));
-        }
+        // draw quadrotor
+        draw_qr(&(data->robot[idx_robot]));
+        
     }
 }
 

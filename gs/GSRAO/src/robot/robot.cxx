@@ -7,10 +7,13 @@
  *      2016.05.25
  */
 #include <stdio.h>
+#include <vector>
 #include "robot/robot.h"
 #include "robot/microbee.h"
 
 static Robot_Ref_State_t robot_ref_state[4]; // 4 robots max
+
+std::vector<Robot_Record_t> robot_record[4]; // 4 robots max
 
 /* robot init */
 bool robot_init(void)
@@ -20,6 +23,10 @@ bool robot_init(void)
 
     if (!microbee_control_init())
         return false;
+
+    // prepare for the robot record
+    for (int i = 0; i < 4; i++) // 4 robots max
+        robot_record[i].reserve(10*60*10); // 10 min record for 10 Hz sample
 
     return true;
 }
@@ -33,4 +40,9 @@ void robot_shutdown(void)
 Robot_Ref_State_t* robot_get_ref_state(void)
 {
     return robot_ref_state;
+}
+
+std::vector<Robot_Record_t>* robot_get_record(void)
+{
+    return robot_record;
 }

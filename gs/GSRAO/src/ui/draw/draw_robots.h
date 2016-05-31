@@ -9,14 +9,13 @@
  * This file is included by DrawScene.h
  *
  * Author: Roice (LUO Bing)
- * Date: 2016-03-09 create this file
+ * Date: 2016-03-09 create this file (RAOS)
+ *       2016-05-30 modified this file (GSRAO)
  */
 #ifndef DRAW_ROBOTS_H
 #define DRAW_ROBOTS_H
 
-#include <vector>
-
-void draw_robots(std::vector<Robot*>*);
+void draw_robots(void);
 
 #endif
 /* End of draw_robots.h */

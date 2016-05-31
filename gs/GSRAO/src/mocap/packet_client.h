@@ -20,6 +20,7 @@ typedef struct {
     float att[3]; // roll, pitch, yaw
     float vel[3]; // velocity enu
     float acc[3]; // acc enu
+    float omega[3]; // anglular speed, delta roll, pitch, yaw
 } MocapRigidBody_t;
 
 typedef struct {

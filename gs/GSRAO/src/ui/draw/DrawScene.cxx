@@ -12,7 +12,7 @@
 
 #include <FL/gl.h>
 
-//#include "ui/draw/draw_robots.h" // robots visualization
+#include "ui/draw/draw_robots.h" // robots visualization
 #include "ui/draw/draw_arena.h" // arena visualization
 #include "ui/draw/materials.h" // create material lists
 
@@ -54,7 +54,7 @@ void DrawScene(void)
     draw_arena();
 
     /* draw quadrotor */
-    //draw_robots(SimModel_get_robots());
+    draw_robots();
 }
 
 void DrawScene_init(void) // call before DrawScene

@@ -9,15 +9,15 @@
  * This file is included by DrawScene.h
  *
  * Author: Roice (LUO Bing)
- * Date: 2016-02-23 create this file
+ * Date: 2016-02-23 create this file (RAOS)
+ *       2016-05-30 modified this file (GSRAO)
  */
 #ifndef DRAW_QR_H
 #define DRAW_QR_H
 
-#include "model/robot.h"
-#include "model/quadrotor.h"
+#include "mocap/packet_client.h"
 
-void draw_qr(RobotState_t*, QRframe_t*);
+void draw_qr(MocapRigidBody_t*);
 
 #endif
 /* End of draw_qr.h */

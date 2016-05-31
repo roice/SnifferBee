@@ -174,7 +174,7 @@ void mocap_set_request(std::string* model_name)
 // Convert Motion Capture (OpenGL) xyz to ENU
 void mocap_xyz_to_enu(MocapData_t* data)
 {
-    float enu[3], vel[3], acc[3]; // temp
+    float enu[3], vel[3], acc[3], ang_speed[3]; // temp
 
     for (char i = 0; i < 4; i++) // 4 robots max
     {
@@ -220,9 +220,12 @@ void mocap_quaternion_to_attitude(MocapData_t* data)
         // psi, range -pi~pi
         psi = atan2( 2*(qw*qz+qx*qy), 1-2*(qy*qy+qz*qz) );
 
+        data->robot[i].omega[0] = (phi - data->robot[i].att[0])/data->dlatency; // rad/s
+        data->robot[i].omega[1] = (theta - data->robot[i].att[1])/data->dlatency; // rad/s
+        data->robot[i].omega[2] = (psi - data->robot[i].att[2])/data->dlatency; // rad/s
         data->robot[i].att[0] = phi; // roll
         data->robot[i].att[1] = theta; // pitch
-        data->robot[i].att[2] = psi; // yaw
+        data->robot[i].att[2] = psi; // yaw 
     }
 }
 

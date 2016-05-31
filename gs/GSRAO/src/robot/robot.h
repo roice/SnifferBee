@@ -9,6 +9,8 @@
 #ifndef ROBOT_H
 #define ROBOT_H
 
+#include <vector>
+
 typedef enum {
     PIDALT = 0,
     PIDVEL,
@@ -30,7 +32,17 @@ typedef struct {
     float heading; // heading
 } Robot_Ref_State_t;
 
+// robot record
+typedef struct {
+    float enu[3]; // ENU position
+    float att[3]; // roll/pitch/yaw
+    float sensor[3]; // sensor readings
+    double time;
+} Robot_Record_t;
+
 Robot_Ref_State_t* robot_get_ref_state(void);
+
+std::vector<Robot_Record_t>* robot_get_record(void);
 
 bool robot_init(void);
 void robot_shutdown(void);

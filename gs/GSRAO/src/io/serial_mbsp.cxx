@@ -12,7 +12,9 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h> // nanosleep()
+#include <vector>
 #include "io/serial.h"
+#include "mocap/packet_client.h"
 #include "robot/robot.h"
 #include "robot/microbee.h"
 
@@ -22,6 +24,7 @@
 #define MBSP_ADDRESS_MB_3       3   // address of Microbee No. 3
 #define MBSP_ADDRESS_MB_4       4   // address of Microbee No. 4
 
+// command of MBSP start from 101
 #define MBSP_CMD_STATUS         101 // status of MicroBee
 #define MBSP_CMD_GAS_SENSORS    102 // readings of (three)gas sensors
 
@@ -98,17 +101,20 @@ static void mbspEvaluateData(void)
             && mbsp_data.from >= MBSP_ADDRESS_MB_1)
     {
         switch (mbsp_data.command) {
-            case MBSP_CMD_STATUS: 
+            case MBSP_CMD_STATUS:
+            {
                 if (mbsp_data.len != 5) // 1(char type)+4(float type)
                     break;
                 mb = microbee_get_states();
                 mb[mbsp_data.from-1].state.armed = mbsp_data.data[0]>0? true:false;
                 mb[mbsp_data.from-1].state.bat_volt = *(float*)(&(mbsp_data.data[1]));
-                printf("arm/disarm is %d, bat volt is %f\n", mb[mbsp_data.from-1].state.armed, mb[mbsp_data.from-1].state.bat_volt);
+                //printf("arm/disarm is %d, bat volt is %f\n", mb[mbsp_data.from-1].state.armed, mb[mbsp_data.from-1].state.bat_volt);
                 clock_gettime(CLOCK_REALTIME, &time);
                 mb[mbsp_data.from-1].time = time.tv_sec + time.tv_nsec/1.0e9;
                 break;
+            }
             case MBSP_CMD_GAS_SENSORS:
+            {
                 if (mbsp_data.len != 6) // 3*2(uint16_t)
                     break;
                 mb = microbee_get_states();
@@ -119,9 +125,20 @@ static void mbspEvaluateData(void)
                 mb[mbsp_data.from-1].sensors.front = front*3.3/4096.0;
                 mb[mbsp_data.from-1].sensors.left = left*3.3/4096.0;
                 mb[mbsp_data.from-1].sensors.right = right*3.3/4096.0;
-                //printf("front %f, left %f, right %f\n", mb[mbsp_data.from-1].sensors.front, mb[mbsp_data.from-1].sensors.left, mb[mbsp_data.from-1].sensors.right);
+                printf("front %f, left %f, right %f\n", mb[mbsp_data.from-1].sensors.front, mb[mbsp_data.from-1].sensors.left, mb[mbsp_data.from-1].sensors.right);
                 clock_gettime(CLOCK_REALTIME, &time);
                 mb[mbsp_data.from-1].time = time.tv_sec + time.tv_nsec/1.0e9;
+                // record
+                Robot_Record_t record = {0};
+                std::vector<Robot_Record_t>* robot_rec = robot_get_record();
+                MocapData_t* data = mocap_get_data(); 
+                memcpy(record.enu, data->robot[mbsp_data.from-1].enu, 3*sizeof(float));
+                memcpy(record.att, data->robot[mbsp_data.from-1].att, 3*sizeof(float));
+                memcpy(record.sensor, &(mb[mbsp_data.from-1].sensors.front), 3*sizeof(float));
+                record.time = mb[mbsp_data.from-1].time;
+                robot_rec[mbsp_data.from-1].push_back(record);
+                break;
+            }
             default:
                 break;
         }
@@ -177,7 +194,10 @@ static void mbspProcessByte(char c)
     else if (mbsp_state == MBSP_LEN) {
         mbsp_checksum ^= c;
         mbsp_data.command = c;
-        mbsp_state = MBSP_COMMAND;
+        if (c == 101 || c == 102)
+            mbsp_state = MBSP_COMMAND;
+        else
+            mbsp_state = MBSP_IDLE;
     }
     else if (mbsp_state == MBSP_COMMAND) {
         mbsp_checksum ^= c; 

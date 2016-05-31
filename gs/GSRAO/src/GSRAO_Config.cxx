@@ -200,16 +200,16 @@ void GSRAO_Config_init(void)
     for (char i = 0; i < 4; i++)
     {
         settings.robot.pidProfile[i].P[PIDALT] = 1.0;
-        settings.robot.pidProfile[i].P[PIDVEL] = 500;
-        settings.robot.pidProfile[i].I[PIDVEL] = 4;
-        settings.robot.pidProfile[i].D[PIDVEL] = 0;
-        settings.robot.pidProfile[i].P[PIDPOS] = 1.0;
-        settings.robot.pidProfile[i].P[PIDPOSR] = 100;
-        settings.robot.pidProfile[i].I[PIDPOSR] = 0.1;
-        settings.robot.pidProfile[i].D[PIDPOSR] = 0;
-        settings.robot.pidProfile[i].P[PIDMAG] = 0;
-        settings.robot.pidProfile[i].I[PIDMAG] = 0;
-        settings.robot.pidProfile[i].D[PIDMAG] = 0;
+        settings.robot.pidProfile[i].P[PIDVEL] = 600;
+        settings.robot.pidProfile[i].I[PIDVEL] = 14;
+        settings.robot.pidProfile[i].D[PIDVEL] = 0.04;
+        settings.robot.pidProfile[i].P[PIDPOS] = 0.5;
+        settings.robot.pidProfile[i].P[PIDPOSR] = 120;
+        settings.robot.pidProfile[i].I[PIDPOSR] = 0.6;
+        settings.robot.pidProfile[i].D[PIDPOSR] = 0.1;
+        settings.robot.pidProfile[i].P[PIDMAG] = 10;
+        settings.robot.pidProfile[i].I[PIDMAG] = 0.3;
+        settings.robot.pidProfile[i].D[PIDMAG] = 0.02;
         
     }
     // system

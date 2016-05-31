@@ -22,6 +22,7 @@
 #include <FL/Fl_Value_Slider.H>
 #include <FL/Fl_Choice.H>
 #include <FL/Fl_Input.H>
+#include <FL/Fl_Scroll.H>
 /* OpenGL */
 #include <FL/Fl_Gl_Window.H>
 #include <FL/gl.h>
@@ -31,6 +32,7 @@
 #include "ui/icons/icons.h" // pixmap icons used in Tool bar
 #include "ui/View.h" // 3D RAO view
 #include "ui/widgets/Fl_LED_Button/Fl_LED_Button.H"
+#include "ui/draw/draw_wave.h"
 #include "io/serial.h"
 #include "mocap/packet_client.h"
 #include "robot/robot.h"
@@ -457,7 +459,10 @@ RemoterPanel::RemoterPanel(int xpos, int ypos, int width, int height,
 struct RobotPanel_Widgets { // for parameter saving
     Fl_LED_Button*  robot_link_state[4]; // 4 robots max
     Fl_Box*         robot_arm_state[4]; // 4 robots max
+    Fl_Box*         robot_bat_state[4]; // 4 robots max
     Fl_Button*      robot_rc_button;
+    Fl_Choice*      robot_to_display_sensor_reading; // choose which robot's reading to display
+    WavePlot*      robot_sensor_reading; // reading of sensors
 };
 struct RobotPanel_handles {
     RemoterPanel*   remoter_panel;
@@ -537,7 +542,7 @@ RobotPanel::RobotPanel(int xpos, int ypos, int width, int height,
     begin();
     int t_x = 5, t_y = 5, t_w = w()-10, t_h = h()-10;
     //  robot link state, Note: only check data network (data receiving)
-    Fl_Box *link = new Fl_Box(t_x, t_y, 160, 160, "Robot State");
+    Fl_Box *link = new Fl_Box(t_x, t_y, 220, 160, "Robot State");
         link->box(FL_PLASTIC_UP_FRAME);
         link->labelsize(15);
         link->labelfont(FL_COURIER_BOLD_ITALIC);
@@ -560,6 +565,13 @@ RobotPanel::RobotPanel(int xpos, int ypos, int width, int height,
             ws.robot_arm_state[i] = new Fl_Box(t_x+90, t_y+40+30*i, 60, 25, "DISARM");
             ws.robot_arm_state[i]->labelcolor(FL_RED);
         }
+        // Battery status
+        new Fl_Box(t_x+160, t_y+20, 60, 25, "Battery");
+        for (char i = 0; i < 4; i++) // 4 robots max
+        {
+            ws.robot_bat_state[i] = new Fl_Box(t_x+150, t_y+40+30*i, 60, 25, "0 V");
+            ws.robot_bat_state[i]->labelcolor(FL_RED);
+        }
     }
     //  robot remote control
     ws.robot_rc_button = new Fl_Button(t_x, t_y+40+30*4, 34, 34);
@@ -568,7 +580,28 @@ RobotPanel::RobotPanel(int xpos, int ypos, int width, int height,
     ws.robot_rc_button->tooltip("Robot remote controller, please use with care.");
     ws.robot_rc_button->type(FL_TOGGLE_BUTTON);
     ws.robot_rc_button->callback(cb_robot_rc_button);
-    new Fl_Box(t_x+40, t_y+40+30*4, 120, 30, "Remote Control");
+    new Fl_Box(t_x+40, t_y+40+30*4, 120, 30, "");
+
+    // robot choice to display sensor reading
+    ws.robot_to_display_sensor_reading = new Fl_Choice(t_x+40, t_y+40+30*4+2, 180, 30);
+    ws.robot_to_display_sensor_reading->add("Show sensors robot 1");
+    ws.robot_to_display_sensor_reading->add("Show sensors robot 2");
+    ws.robot_to_display_sensor_reading->add("Show sensors robot 3");
+    ws.robot_to_display_sensor_reading->add("Show sensors robot 4");
+    ws.robot_to_display_sensor_reading->value(0);
+
+    // sensor reading plot
+    Fl_Box* sr_box = new Fl_Box(t_x+225, t_y, 465, 190, "Sensor reading");
+    sr_box->box(FL_PLASTIC_UP_FRAME);
+    sr_box->labelsize(15);
+    sr_box->labelfont(FL_COURIER_BOLD_ITALIC);
+    sr_box->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
+    {
+        Fl_Scroll* scroll = new Fl_Scroll(t_x+230, t_y+25, 455, 165);
+        ws.robot_sensor_reading = new WavePlot(t_x+230, t_y+25, 455*10, 140, ""); // *10 means 10 min length of data 
+        scroll->end();
+    }
+
     end();
 
     // set values from configs
@@ -675,6 +708,7 @@ static void cb_repeated_tasks_2hz(void* data)
         if (hs->robot_panel->shown())
         {
             MicroBee_t* mb = microbee_get_states();
+            char label_name[100];
             for (int i = 0; i < 4; i++)
             {
                 if (mb[i].state.linked)
@@ -691,6 +725,9 @@ static void cb_repeated_tasks_2hz(void* data)
                     hs->robot_panel->ws.robot_arm_state[i]->label("DISARM"); // arm/disarm
                     hs->robot_panel->ws.robot_arm_state[i]->labelcolor(FL_RED);
                 }
+                snprintf(label_name, 100, "%1.2f V", mb[i].state.bat_volt);
+                hs->robot_panel->ws.robot_bat_state[i]->copy_label(label_name); // battery status
+                hs->robot_panel->ws.robot_bat_state[i]->labelcolor(FL_BLUE);
             }
         }
     }
@@ -701,6 +738,7 @@ static void cb_repeated_tasks_2hz(void* data)
 static void cb_repeated_tasks_10hz(void* data)
 {
     ToolBar_Handles* hs = (ToolBar_Handles*)data;
+
     // refresh RC sticks in rc panel
     if (hs->robot_panel != NULL && hs->robot_panel->hs.remoter_panel != NULL)
     {
@@ -715,6 +753,12 @@ static void cb_repeated_tasks_10hz(void* data)
             remoter_ws->rc_yaw->value(rc_data[remoter_ws->robot_to_control->value()].yaw);
         }
     }
+    // draw sensor reading
+    if (hs->robot_panel != NULL && hs->robot_panel->shown())
+    {
+        hs->robot_panel->ws.robot_sensor_reading->redraw();
+    }
+
     // reload
     Fl::repeat_timeout(0.1, cb_repeated_tasks_10hz, data);
 }
@@ -803,6 +847,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             // add timers for repeated tasks (such as data display)
             Fl::add_timeout(0.5, cb_repeated_tasks_2hz, (void*)&hs);
             Fl::add_timeout(0.1, cb_repeated_tasks_10hz, (void*)&hs);
+
         }
         else {
             // user is trying to release start button when pause is not pressed
@@ -840,17 +885,27 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     mbsp_close(); // close serial link with DATA receiver
     mocap_client_close(); // close udp net link with motion capture system
     Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
+    Fl::remove_timeout(cb_repeated_tasks_10hz); // remove timeout callback for repeated tasks
     if (hs.robot_panel != NULL) {
         for (int i = 0; i < 4; i++) // clear robot states in robot panel
         {
             hs.robot_panel->ws.robot_link_state[i]->value(0); // linked leds
             hs.robot_panel->ws.robot_arm_state[i]->label("DISARM"); // arm/disarm
             hs.robot_panel->ws.robot_arm_state[i]->labelcolor(FL_RED);
+            hs.robot_panel->ws.robot_bat_state[i]->label("0 V"); // battery status
+            hs.robot_panel->ws.robot_bat_state[i]->labelcolor(FL_RED);
         }
     }
 
     // clear message zone
     widgets->msg_zone->label("");
+
+    // save robot record
+
+    // clear robot record
+    std::vector<Robot_Record_t>* robot_rec = robot_get_record();
+    for (int i = 0; i < 4; i++) // 4 robots max
+        robot_rec[i].clear();
 }
 
 void ToolBar::cb_button_config(Fl_Widget *w, void *data)
@@ -1018,6 +1073,7 @@ void UI::cb_close(Fl_Widget* w, void* data) {
         mbsp_close(); // close serial link with DATA receiver
         mocap_client_close(); // close udp net link with motion capture system
         Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
+        Fl::remove_timeout(cb_repeated_tasks_10hz); // remove timeout callback for repeated tasks
 
         // save open/close states of other sub-panels to configs
         GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs

@@ -23,11 +23,15 @@
 /* CBLAS */
 #include "cblas.h"
 
+#ifndef MICROBEE_LANDING_THRESHOLD
+#define MICROBEE_LANDING_THRESHOLD 0.15 // shutdown when bee lands neer ground
+#endif
+
 static pthread_t microbee_control_thread_handle;
 static pthread_t microbee_state_thread_handle;
 static bool exit_microbee_control_thread = false;
 static bool exit_microbee_state_thread = false;
-static MicroBee_t microbee[4]; // 4 robots max
+static MicroBee_t microbee[4] = {0}; // 4 robots max
 
 static void* microbee_control_loop(void*);
 static void* microbee_state_loop(void*);
@@ -129,9 +133,7 @@ static void* microbee_control_loop(void* exit)
     struct timespec req, rem, time;
     double previous_time, current_time;
     float dtime;
-    MocapData_t* data; // motion capture data
-
-    
+    MocapData_t* data  = mocap_get_data(); // get mocap data
 
     // init previous_time, current_time, dtime
     clock_gettime(CLOCK_REALTIME, &time);
@@ -140,9 +142,10 @@ static void* microbee_control_loop(void* exit)
     dtime = 0;
 
     Robot_Ref_State_t* robot_ref = robot_get_ref_state();
-robot_ref[0].enu[0] = 1.8;
-robot_ref[0].enu[1] = -0.6;
-robot_ref[0].enu[2] = 1.3;
+robot_ref[0].enu[0] = 0;
+robot_ref[0].enu[1] = 0;
+robot_ref[0].enu[2] = 1.0;
+robot_ref[0].heading = 0;
 
 /* Step 1: Take off */ 
     // arm, throttle min, yaw max
@@ -158,6 +161,7 @@ robot_ref[0].enu[2] = 1.3;
     // recover yaw to middle
     rc_data[0].yaw = 1500;
 
+/* Step 2: Fly */
     // loop interval
     req.tv_sec = 0;
     req.tv_nsec = 20000000L; // 20 ms
@@ -175,8 +179,33 @@ robot_ref[0].enu[2] = 1.3;
         nanosleep(&req, &rem); // 20 ms
     }
 
-/* Step 3: Descend */
+/* Step 3: Land */
+    req.tv_sec = 0;
+    req.tv_nsec = 20000000L; // 20 ms
+    while(data->robot[0].enu[2] > MICROBEE_LANDING_THRESHOLD)
+    {
+        clock_gettime(CLOCK_REALTIME, &time);
+        current_time = time.tv_sec + time.tv_nsec/1.0e9;
+        dtime = current_time - previous_time;
+        previous_time = current_time;
 
+        robot_ref[0].enu[2] -= 0.3/50.0; // 0.3 m/s descending
+
+        // position control, PID
+        microbee_pos_control(dtime, 0);
+
+        // 50 Hz
+        nanosleep(&req, &rem); // 20 ms
+    }
+
+/* Final Step: shutdown */
+    rc_data[0].throttle = 1000;
+    rc_data[0].roll = 1500;
+    rc_data[0].pitch = 1500;
+    rc_data[0].yaw = 1500;
+    req.tv_sec = 1; // 1s
+    req.tv_nsec = 0;
+    nanosleep(&req, &rem);
 }
 
 static float constrain(float amt, float low, float high)
@@ -295,6 +324,12 @@ static void microbee_roll_pitch_control(float dt, char robot_index)
     vel_p[0] = cblas_sdot(2, vel, 1, heading_e_right, 1); // for roll
     vel_p[1] = cblas_sdot(2, vel, 1, heading_e_front, 1); // for pitch
 
+    // convert acceleration to robot's coordinate
+    float acc_p[2];
+    float* acc = &(data->robot[robot_index].acc[0]); // current e/n acc
+    acc_p[0] = cblas_sdot(2, acc, 1, heading_e_right, 1); // for roll
+    acc_p[1] = cblas_sdot(2, acc, 1, heading_e_front, 1); // for pitch
+
 #if 0
     printf("heading angle is %f\n", heading_angle);
     printf("pos_ref is [%f, %f] m, pos is [%f, %f] m\n", pos_ref[0], pos_ref[1], pos[0], pos[1]);
@@ -320,7 +355,7 @@ static void microbee_roll_pitch_control(float dt, char robot_index)
         errorPositionI[robot_index][i] = constrain(errorPositionI[robot_index][i], -200.0, 200.0); // limit to +/- 200
         result += errorPositionI[robot_index][i];
         // D
-        //result -= constrain(pidProfile[robot_index].D[PIDPOSR]*vel_p[i], -100, 100); // limit
+        result -= constrain(pidProfile[robot_index].D[PIDPOSR]*acc_p[i], -100, 100); // limit
 
         // update roll/pitch value
         SPP_RC_DATA_t* rc_data = spp_get_rc_data();
@@ -333,22 +368,46 @@ static void microbee_roll_pitch_control(float dt, char robot_index)
 
 static void microbee_yaw_control(float dt, char robot_index)
 {
+    static float errorYawI[4] = {0}; // 4 robots max
     // get configs
     GSRAO_Config_t* configs = GSRAO_Config_get_configs();
     pidProfile_t*   pidProfile = configs->robot.pidProfile;
 
-    // get yaw
+    // get heading/heading_ref in earth coordinate
     MocapData_t* data = mocap_get_data(); // get mocap data
     Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref state
-    float yaw = data->robot[robot_index].att[2]; // real-time yaw angle
-    float yaw_ref = robot_ref[robot_index].heading; // reference yaw angle
+    float heading = data->robot[robot_index].att[2]; // real-time heading angle
+    float heading_ref = robot_ref[robot_index].heading; // reference heading angle
 
-    //error
+    // get yaw error in robot coordinate
+    float yaw_error = heading - heading_ref;
+    if (yaw_error > M_PI)
+        yaw_error -= 2*M_PI;
+    else if (yaw_error < -M_PI)
+        yaw_error += 2*M_PI;
+
+    // Position PID-Controller
+    float error = constrain(yaw_error, -M_PI, M_PI);
+    error = applyDeadband(error, M_PI/180.0); // 1 degree
+    // P
+    float result = constrain(pidProfile[robot_index].P[PIDMAG]*error, -200, 200);
+    // I
+    errorYawI[robot_index] += (pidProfile[robot_index].I[PIDMAG]*error);
+    errorYawI[robot_index] = constrain(errorYawI[robot_index], -300.0, 300.0);
+    result += errorYawI[robot_index];
+    // D
+    result += constrain(pidProfile[robot_index].D[PIDMAG]*data->robot[robot_index].omega[2], -100, 100); // limit
+
+    printf("yaw_error = %f, result = %f\n", yaw_error, result);
+
+    // update yaw value
+    SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+    rc_data[robot_index].yaw = constrain(1500 + result, 1050, 1950);
 }
 
 static void microbee_pos_control(float dt, char robot_index)
 {
     microbee_throttle_control(dt, robot_index);
     microbee_roll_pitch_control(dt, robot_index);
-//    microbee_yaw_control(dt, robot_index);
+    microbee_yaw_control(dt, robot_index);
 }
