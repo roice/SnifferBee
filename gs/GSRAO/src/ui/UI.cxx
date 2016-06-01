@@ -781,6 +781,11 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
         if (((Fl_Button*)w)->value()) // if start button is pressed down
         {
             widgets->msg_zone->label(""); // clear message zone
+            // clear robot record
+            std::vector<Robot_Record_t>* robot_rec = robot_get_record();
+            for (int i = 0; i < 4; i++) // 4 robots max
+                robot_rec[i].clear();
+        
             // Init link with robots
             if (!spp_init(configs->robot.ppm_serial_port_path.c_str())) // link with PPM encoder
             {
@@ -847,7 +852,6 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             // add timers for repeated tasks (such as data display)
             Fl::add_timeout(0.5, cb_repeated_tasks_2hz, (void*)&hs);
             Fl::add_timeout(0.1, cb_repeated_tasks_10hz, (void*)&hs);
-
         }
         else {
             // user is trying to release start button when pause is not pressed
@@ -903,9 +907,10 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     // save robot record
 
     // clear robot record
-    std::vector<Robot_Record_t>* robot_rec = robot_get_record();
+    /*std::vector<Robot_Record_t>* robot_rec = robot_get_record();
     for (int i = 0; i < 4; i++) // 4 robots max
         robot_rec[i].clear();
+        */
 }
 
 void ToolBar::cb_button_config(Fl_Widget *w, void *data)

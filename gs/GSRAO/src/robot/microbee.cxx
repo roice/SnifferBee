@@ -142,10 +142,10 @@ static void* microbee_control_loop(void* exit)
     dtime = 0;
 
     Robot_Ref_State_t* robot_ref = robot_get_ref_state();
-robot_ref[0].enu[0] = 0;
-robot_ref[0].enu[1] = 0;
-robot_ref[0].enu[2] = 1.0;
-robot_ref[0].heading = 0;
+robot_ref[0].enu[0] = 0.6;
+robot_ref[0].enu[1] = -0.6;
+robot_ref[0].enu[2] = 1.2;
+robot_ref[0].heading = -3.14/2;
 
 /* Step 1: Take off */ 
     // arm, throttle min, yaw max
@@ -342,7 +342,7 @@ static void microbee_roll_pitch_control(float dt, char robot_index)
     for (char i = 0; i < 2; i++) // 0 for roll, 1 for pitch
     {
         // Position PID-Controller for east(x)/north(y) axis
-        target_vel[i] = constrain(pidProfile[robot_index].P[PIDPOS]*error_p[i], -2.0, 2.0); // limit error to +/- 2.0 m/s;
+        target_vel[i] = constrain(pidProfile[robot_index].P[PIDPOS]*error_p[i], -0.3, 0.3); // limit error to +/- 0.3 m/s;
         target_vel[i] = applyDeadband(target_vel[i], 0.01); // 1 cm/s
 
         // Velocity PID-Controller
