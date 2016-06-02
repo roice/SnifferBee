@@ -37,6 +37,7 @@
 #include "mocap/packet_client.h"
 #include "robot/robot.h"
 #include "robot/microbee.h"
+#include "method/method.h"
 #include "GSRAO_Config.h"
 /* Linux Network */
 #include <ifaddrs.h>
@@ -849,6 +850,19 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 mocap_client_close();
                 return;
             }
+            // Init method
+            if (!method_start(METHOD_HOVER_MEASURE)) // start hover measure task
+            {
+                widgets->msg_zone->label("Method start failed!");
+                widgets->msg_zone->labelcolor(FL_RED);
+                ((Fl_Button*)w)->value(0);
+                // close spp, mbsp, mocap, robot
+                spp_close();
+                mbsp_close();
+                mocap_client_close();
+                robot_shutdown();
+                return;
+            }
             // add timers for repeated tasks (such as data display)
             Fl::add_timeout(0.5, cb_repeated_tasks_2hz, (void*)&hs);
             Fl::add_timeout(0.1, cb_repeated_tasks_10hz, (void*)&hs);
@@ -884,6 +898,7 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     widgets->pause->activate(); widgets->pause->clear();
 
     // close Link with robots and Motion Capture System
+    method_stop(); // stop method
     robot_shutdown(); // shutdown robots
     spp_close(); // close serial link with PPM encoder
     mbsp_close(); // close serial link with DATA receiver
@@ -905,12 +920,6 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     widgets->msg_zone->label("");
 
     // save robot record
-
-    // clear robot record
-    /*std::vector<Robot_Record_t>* robot_rec = robot_get_record();
-    for (int i = 0; i < 4; i++) // 4 robots max
-        robot_rec[i].clear();
-        */
 }
 
 void ToolBar::cb_button_config(Fl_Widget *w, void *data)

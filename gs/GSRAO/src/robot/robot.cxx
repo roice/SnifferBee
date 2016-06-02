@@ -7,7 +7,9 @@
  *      2016.05.25
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <vector>
+#include <string.h>
 #include "robot/robot.h"
 #include "robot/microbee.h"
 
@@ -20,16 +22,20 @@ std::vector<Robot_Record_t> robot_record[4]; // 4 robots max
 /* robot init */
 bool robot_init(void)
 {
+    // init robot reference state
+    for (int i = 0; i < 4; i++) // 4 robots max
+        memset(&(robot_ref_state[i]), 0, sizeof(Robot_Ref_State_t));
+
+    // prepare for the robot record
+    for (int i = 0; i < 4; i++) // 4 robots max
+        robot_record[i].reserve(10*60*10); // 10 min record for 10 Hz sample
+
     if (!microbee_state_init())
         return false;
 #ifndef DEBUG_HANDHELD_DEVICE
     if (!microbee_control_init())
         return false;
-#endif
-
-    // prepare for the robot record
-    for (int i = 0; i < 4; i++) // 4 robots max
-        robot_record[i].reserve(10*60*10); // 10 min record for 10 Hz sample
+#endif 
 
     return true;
 }
