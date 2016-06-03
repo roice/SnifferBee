@@ -30,8 +30,8 @@ typedef struct {
 
 MicroBee_t* microbee_get_states(void);
 
-bool microbee_control_init(void);
-void microbee_control_close(void);
+bool microbee_control_init(int);
+void microbee_control_close(int);
 bool microbee_state_init(void);
 void microbee_state_close(void);
 

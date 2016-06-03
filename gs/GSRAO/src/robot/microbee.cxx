@@ -114,7 +114,7 @@ static void* microbee_state_loop(void* exit)
 /*-------- MicroBee Control ---------*/
 
 /* microbee control init */
-bool microbee_control_init(void)
+bool microbee_control_init(int num_of_mbs)
 {
     /* init thread args */
     for (int i = 0; i < 4; i++) // 4 robots max
@@ -125,7 +125,7 @@ bool microbee_control_init(void)
 
     /* create trajectory control loop */
     exit_microbee_control_thread = false; // control robots to stop (take landing action) at the same time
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < num_of_mbs; i++)
     {
         if (pthread_create(&(microbee_control_thread_handle[i]), NULL, &microbee_control_loop, (void*)&(microbee_control_thread_args[i])) != 0)
         {
@@ -137,13 +137,19 @@ bool microbee_control_init(void)
 }
 
 /* close microbee control loop */
-void microbee_control_close(void)
+void microbee_control_close(int num_of_mbs)
 {
+    if (num_of_mbs < 1 || num_of_mbs > 4)
+    {
+        printf("MicroBee control close: num_of_mbs not in range 1-4, close failed.\n");
+        return;
+    }
+
     if (!exit_microbee_control_thread) // to avoid close twice
     {
         // exit microbee control thread
         exit_microbee_control_thread = true;
-        for (int i = 0; i < 4; i++) // 4 robots max
+        for (int i = 0; i < num_of_mbs; i++) // 4 robots max
             pthread_join(microbee_control_thread_handle[i], NULL);
         printf("microbee control thread terminated\n");
     }

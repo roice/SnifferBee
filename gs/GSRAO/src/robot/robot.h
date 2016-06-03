@@ -44,7 +44,7 @@ Robot_Ref_State_t* robot_get_ref_state(void);
 
 std::vector<Robot_Record_t>* robot_get_record(void);
 
-bool robot_init(void);
+bool robot_init(int);
 void robot_shutdown(void);
 
 #endif

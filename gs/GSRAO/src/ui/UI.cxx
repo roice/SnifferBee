@@ -781,6 +781,8 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
     // if pause button is not pressed, then need check start button state
         if (((Fl_Button*)w)->value()) // if start button is pressed down
         {
+            // lock config button
+            widgets->config->deactivate();
             widgets->msg_zone->label(""); // clear message zone
             // clear robot record
             std::vector<Robot_Record_t>* robot_rec = robot_get_record();
@@ -839,7 +841,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 return;
             }
             // Init robots
-            if (!robot_init())
+            if (!robot_init(configs->robot.num_of_robots))
             {
                 widgets->msg_zone->label("Robot init failed!");
                 widgets->msg_zone->labelcolor(FL_RED);
@@ -918,6 +920,8 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
 
     // clear message zone
     widgets->msg_zone->label("");
+    // unlock config button
+    widgets->config->activate();
 
     // save robot record
 }
@@ -930,7 +934,9 @@ void ToolBar::cb_button_config(Fl_Widget *w, void *data)
         if (hs.config_dlg->shown()) // if shown, do not open again
         {}
         else
-            hs.config_dlg->show();
+        {
+            hs.config_dlg->show(); 
+        }
     }
     else // first press this button
     {// create config dialog

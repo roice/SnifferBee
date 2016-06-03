@@ -13,6 +13,8 @@
 #include "robot/robot.h"
 #include "robot/microbee.h"
 
+static int amount_of_robots; // 1/2/3/4
+
 static Robot_Ref_State_t robot_ref_state[4]; // 4 robots max
 
 std::vector<Robot_Record_t> robot_record[4]; // 4 robots max
@@ -20,20 +22,28 @@ std::vector<Robot_Record_t> robot_record[4]; // 4 robots max
 //#define DEBUG_HANDHELD_DEVICE
 
 /* robot init */
-bool robot_init(void)
+bool robot_init(int num_robots)
 {
+    if (num_robots < 1 || num_robots > 4)
+    {
+        amount_of_robots = 1;
+        printf("Robot init: num_robots not in range 1-4, set to 1 by default.\n");
+    }
+    else
+        amount_of_robots = num_robots;
+
     // init robot reference state
     for (int i = 0; i < 4; i++) // 4 robots max
         memset(&(robot_ref_state[i]), 0, sizeof(Robot_Ref_State_t));
 
     // prepare for the robot record
-    for (int i = 0; i < 4; i++) // 4 robots max
+    for (int i = 0; i < amount_of_robots; i++) // 4 robots max
         robot_record[i].reserve(10*60*10); // 10 min record for 10 Hz sample
 
     if (!microbee_state_init())
         return false;
 #ifndef DEBUG_HANDHELD_DEVICE
-    if (!microbee_control_init())
+    if (!microbee_control_init(amount_of_robots))
         return false;
 #endif 
 
@@ -43,7 +53,7 @@ bool robot_init(void)
 void robot_shutdown(void)
 {
 #ifndef DEBUG_HANDHELD_DEVICE
-    microbee_control_close();
+    microbee_control_close(amount_of_robots);
 #endif
     microbee_state_close();
 }
