@@ -24,7 +24,7 @@
 #include "cblas.h"
 
 #ifndef MICROBEE_LANDING_THRESHOLD
-#define MICROBEE_LANDING_THRESHOLD 0.15 // shutdown when bee lands neer ground
+#define MICROBEE_LANDING_THRESHOLD 0.1 // shutdown when bee lands neer ground
 #endif
 
 typedef struct {
