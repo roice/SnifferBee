@@ -34,6 +34,7 @@
 #include "ui/widgets/Fl_LED_Button/Fl_LED_Button.H"
 #include "ui/draw/draw_wave.h"
 #include "io/serial.h"
+#include "io/record.h"
 #include "mocap/packet_client.h"
 #include "robot/robot.h"
 #include "robot/microbee.h"
@@ -924,6 +925,7 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     widgets->config->activate();
 
     // save robot record
+    GSRAO_Save_Data();
 }
 
 void ToolBar::cb_button_config(Fl_Widget *w, void *data)

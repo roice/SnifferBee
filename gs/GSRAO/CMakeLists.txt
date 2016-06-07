@@ -60,8 +60,8 @@ include(${FLTK_USE_FILE})
 #set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math)
 
 #---- External HDF5 related, for data recording
-#find_package(HDF5 COMPONENTS C CXX REQUIRED)
-#include_directories(${HDF5_INCLUDE_DIRS})
+find_package(HDF5 COMPONENTS C CXX REQUIRED)
+include_directories(${HDF5_INCLUDE_DIRS})
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #============== Build the project ================
@@ -98,6 +98,7 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
 # compile main file
 add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
     src/io/serial.cxx src/io/serial_spp.cxx src/io/serial_mbsp.cxx
+    src/io/record.cxx
     src/mocap/packet_client.cxx src/robot/robot.cxx src/robot/microbee.cxx
     src/method/method.cxx src/method/hover_measure.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})
@@ -118,7 +119,7 @@ target_link_libraries(${PRJ_NAME} blas)
 target_link_libraries(${PRJ_NAME} gfortran)
 target_link_libraries(${PRJ_NAME} pthread)
 # link extern hdf5 library
-#target_link_libraries(${PRJ_NAME} ${HDF5_LIBRARIES})
+target_link_libraries(${PRJ_NAME} ${HDF5_LIBRARIES})
 
 # install
 #install(TARGETS ${PRJ_NAME}
