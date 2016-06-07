@@ -25,6 +25,7 @@ typedef struct {
 typedef struct {
     MicroBee_State_t state;
     MicroBee_Sensors_t sensors; // 3 gas sensors
+    int motor[4]; // 4 motor values
     double time; // stores the latest time receiving messages from microbee
 } MicroBee_t;
 

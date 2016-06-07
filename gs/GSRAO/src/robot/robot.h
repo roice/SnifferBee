@@ -37,6 +37,7 @@ typedef struct {
     float enu[3]; // ENU position
     float att[3]; // roll/pitch/yaw
     float sensor[3]; // sensor readings
+    int motor[4]; // values of 4 motors
     double time;
 } Robot_Record_t;
 

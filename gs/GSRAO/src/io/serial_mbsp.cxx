@@ -26,7 +26,7 @@
 
 // command of MBSP start from 101
 #define MBSP_CMD_STATUS         101 // status of MicroBee
-#define MBSP_CMD_GAS_SENSORS    102 // readings of (three)gas sensors
+#define MBSP_CMD_MEASUREMENTS   102 // readings of (three)gas sensors & motor values(if required)
 
 typedef enum {
     MBSP_IDLE,
@@ -113,19 +113,33 @@ static void mbspEvaluateData(void)
                 mb[mbsp_data.from-1].time = time.tv_sec + time.tv_nsec/1.0e9;
                 break;
             }
-            case MBSP_CMD_GAS_SENSORS:
+            case MBSP_CMD_MEASUREMENTS:
             {
+#ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
+                if (mbsp_data.len != 3*2 + 4*2)
+#else
                 if (mbsp_data.len != 6) // 3*2(uint16_t)
+#endif
                     break;
                 mb = microbee_get_states();
                 int front, left, right;
                 front = *(short*)(&(mbsp_data.data[0]));
                 left = *(short*)(&(mbsp_data.data[2]));
                 right = *(short*)(&(mbsp_data.data[4]));
+#ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
+                int motor[4];
+                for (int i = 0; i < 4; i++)
+                    motor[i] = *(short*)(&(mbsp_data.data[6+2*i]));
+#endif
                 mb[mbsp_data.from-1].sensors.front = front*3.3/4096.0;
                 mb[mbsp_data.from-1].sensors.left = left*3.3/4096.0;
                 mb[mbsp_data.from-1].sensors.right = right*3.3/4096.0;
-                printf("front %f, left %f, right %f\n", mb[mbsp_data.from-1].sensors.front, mb[mbsp_data.from-1].sensors.left, mb[mbsp_data.from-1].sensors.right);
+#ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
+                for (int i = 0; i < 4; i++)
+                    mb[mbsp_data.from-1].motor[i] = motor[i] & 0x0000FFFF;
+#endif
+                //printf("front %f, left %f, right %f\n", mb[mbsp_data.from-1].sensors.front, mb[mbsp_data.from-1].sensors.left, mb[mbsp_data.from-1].sensors.right);
+                printf("motor: [ %d, %d, %d, %d ]\n", mb[mbsp_data.from-1].motor[0], mb[mbsp_data.from-1].motor[1], mb[mbsp_data.from-1].motor[2], mb[mbsp_data.from-1].motor[3]);
                 clock_gettime(CLOCK_REALTIME, &time);
                 mb[mbsp_data.from-1].time = time.tv_sec + time.tv_nsec/1.0e9;
                 // record
@@ -135,6 +149,9 @@ static void mbspEvaluateData(void)
                 memcpy(record.enu, data->robot[mbsp_data.from-1].enu, 3*sizeof(float));
                 memcpy(record.att, data->robot[mbsp_data.from-1].att, 3*sizeof(float));
                 memcpy(record.sensor, &(mb[mbsp_data.from-1].sensors.front), 3*sizeof(float));
+#ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
+                memcpy(record.motor, mb[mbsp_data.from-1].motor, 4*sizeof(int));
+#endif
                 record.time = mb[mbsp_data.from-1].time;
                 robot_rec[mbsp_data.from-1].push_back(record);
                 break;

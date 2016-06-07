@@ -14,6 +14,7 @@
 #include <vector>
 #include <time.h>
 #include "robot/robot.h"
+#include "io/serial.h" // macro MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
 
 void GSRAO_Save_Data(void)
 {
@@ -133,6 +134,32 @@ void GSRAO_Save_Data(void)
         // free space
         free(data);
     }
+
+#ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
+    // save robot motor values
+    for (int i = 0; i < 4; i++) // 4 robots max
+    {
+        data_dims[0] = robot_rec[i].size();
+        data_dims[1] = 4; // motor[4]
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        snprintf(ds_name, 32, "motors_of_robot_%d", i);
+        dataset_id = H5Dcreate2(file_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*4]), &(robot_rec[i].at(idx).motor[0]), 4*sizeof(float)); // motor
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+    }
+#endif
 
     /* Terminate access to the file. */
     status = H5Fclose(file_id);
