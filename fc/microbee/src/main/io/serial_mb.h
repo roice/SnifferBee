@@ -39,7 +39,7 @@ typedef struct mbspPort_s {
 void mbspInit(void);
 void mbspPrint(const char *str);
 void mbspPrintf(const char *fmt, ...);
-void mbspSendGasMeasurement(void);
+void mbspSendMeasurements(void);
 void mbspSendHeartBeat(void);
 
 float* mb_GetBatteryVoltage(void);

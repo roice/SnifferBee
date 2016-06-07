@@ -25,6 +25,8 @@
 #include "io/serial.h"
 #include "io/serial_mb.h"
 
+#include "flight/mixer.h"
+
 #include "common/printf.h"
 
 #include "config/runtime_config.h"
@@ -37,7 +39,9 @@
 #define MBSP_ADDRESS_MB_4       4   // address of Microbee No. 4
 
 #define MBSP_CMD_STATUS         101 // status of MicroBee
-#define MBSP_CMD_GAS_SENSORS    102 // readings of (three)gas sensors
+#define MBSP_CMD_MEASUREMENTS   102 // readings of (three)gas sensors & motor values (if required)
+
+#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // send motor values
 
 STATIC_UNIT_TESTED mbspPort_t mbspPort;
 
@@ -106,7 +110,7 @@ static void serialize32(uint32_t a)
     serialize16((uint16_t)(a >> 16));
 }
 
-void mbspSendGasMeasurement(void)
+void mbspSendMeasurements(void)
 {
     mbspPort.checksum = 0;
 
@@ -128,15 +132,24 @@ void mbspSendGasMeasurement(void)
     serialize8(MICROBEE_DEVICE_NUMBER);
 
     // length of data (bytes)
+#ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
+    serialize8(MB_ADC_CHANNEL_COUNT*sizeof(uint16_t) + 4*sizeof(uint16_t));
+#else
     serialize8(MB_ADC_CHANNEL_COUNT*sizeof(uint16_t));
+#endif
 
     // command, send gas sensor readings
-    serialize8(MBSP_CMD_GAS_SENSORS);
+    serialize8(MBSP_CMD_MEASUREMENTS);
 
-    // data
+    // gas sensor data
     serialize16(mb_adcGetChannel(ADC_GAS_SENSOR_FRONT));
     serialize16(mb_adcGetChannel(ADC_GAS_SENSOR_REAR_LEFT));
     serialize16(mb_adcGetChannel(ADC_GAS_SENSOR_REAR_RIGHT));
+
+#ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
+    for (int i = 0; i < 4; i++)
+        serialize16(motor[i]);
+#endif
 
     // checksum
     bufWriterAppend(mbspWriter, mbspPort.checksum);
