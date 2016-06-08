@@ -38,6 +38,7 @@ typedef struct {
     float att[3]; // roll/pitch/yaw
     float sensor[3]; // sensor readings
     int motor[4]; // values of 4 motors
+    float bat_volt; // battery voltage
     double time;
 } Robot_Record_t;
 

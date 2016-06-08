@@ -152,6 +152,7 @@ static void mbspEvaluateData(void)
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
                 memcpy(record.motor, mb[mbsp_data.from-1].motor, 4*sizeof(int));
 #endif
+                memcpy(&(record.bat_volt), &(mb[mbsp_data.from-1].state.bat_volt), sizeof(float));
                 record.time = mb[mbsp_data.from-1].time;
                 robot_rec[mbsp_data.from-1].push_back(record);
                 break;

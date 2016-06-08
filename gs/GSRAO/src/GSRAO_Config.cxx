@@ -207,7 +207,7 @@ void GSRAO_Config_init(void)
         settings.robot.pidProfile[i].P[PIDPOSR] = 120;
         settings.robot.pidProfile[i].I[PIDPOSR] = 0.6;
         settings.robot.pidProfile[i].D[PIDPOSR] = 0.1;
-        settings.robot.pidProfile[i].P[PIDMAG] = 10;
+        settings.robot.pidProfile[i].P[PIDMAG] = 30;
         settings.robot.pidProfile[i].I[PIDMAG] = 0.3;
         settings.robot.pidProfile[i].D[PIDMAG] = 0.02;
         
