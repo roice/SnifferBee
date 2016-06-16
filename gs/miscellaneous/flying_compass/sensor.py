@@ -37,11 +37,11 @@ sensor_front = Sensor(0.8, 0.9, 0)
 sensor_left = Sensor(1, 1.2, 0)
 sensor_right = Sensor(1.5, 1.0, 0)
 
-t = np.arange(0, 6, 0.1) # 10 Hz, 6 s
+t = np.arange(0, 20, 0.1) # 10 Hz, 20 s
 
-real_conc_front = np.array([ 3*pulse(i, 1.0, 1.8) for i in t ])
-real_conc_left = np.array([ 3*pulse(i, 1.2, 2.1) for i in t ])
-real_conc_right = np.array([ 3*pulse(i, 1.3, 2.5) for i in t ])
+real_conc_front = np.array([ 3*pulse(i, 1.0, 6) for i in t ])
+real_conc_left = np.array([ 3*pulse(i, 1.2, 6.2) for i in t ])
+real_conc_right = np.array([ 3*pulse(i, 1.3, 6.3) for i in t ])
 
 reading_front = np.array([ sensor_front.update(real_conc_front[i], t[i]) for i in range(0, len(t)) ])
 reading_left = np.array([ sensor_left.update(real_conc_left[i], t[i]) for i in range(0, len(t)) ])
