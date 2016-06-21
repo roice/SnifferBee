@@ -31,6 +31,8 @@ if(APPLE)
 elseif(UNIX)
     message("Compile on UNIX")
 endif()
+#======== Use C++11
+add_definitions(-std=c++11)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #============== Find Dependencies ================
@@ -44,6 +46,9 @@ endif()
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
 include_directories(${HDF5_INCLUDE_DIRS})
 
+#---- External Eigen library
+find_package(Eigen3 REQUIRED)
+
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #============== Build the project ================
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -51,10 +56,13 @@ include_directories(${HDF5_INCLUDE_DIRS})
 # add source directory into include path
 #   add root dir to search for header files of RAOS projects
 include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${PROJECT_SOURCE_DIR}/src/foc/kf)
 #   add cblas dir to search for cblas.h header for linear algebra
 include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/CBLAS/include)
 #   add ziggurat source file to generate normal distribution random numbers
 include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/ziggurat)
+#   add eigen header dir
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 #---- library files path settings ----
 # add library dir into lib path
@@ -66,9 +74,9 @@ link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/CBLAS/lib)
 set(LIB_FOC_NAME foc) # flying odor compass
 # make a library from ui files
 add_library(${LIB_FOC_NAME} 
-    src/foc/flying_odor_compass.cxx)
+    src/foc/flying_odor_compass.cpp)
 # compile main file
-add_executable(${PRJ_NAME} src/main.cxx)
+add_executable(${PRJ_NAME} src/main.cxx src/record.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_FOC_NAME})
 
 #---- start linking ----
