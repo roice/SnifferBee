@@ -1,9 +1,21 @@
 ####==================================================
 #### Compile, Setup and install script of GSRAO
-####                For Unix
+####                For Linux, MacOS
 ####==================================================
 
 #!/bin/sh
+
+# Get platform type
+if [ "$(uname)" = "Darwin" ]; then
+    # Do something under Mac OS X platform
+    SYSTEM="APPLE"
+elif [ "$(expr substr $(uname -s) 1 5)" = "Linux" ]; then
+    # Do something under GNU/Linux platform
+    SYSTEM="LINUX"
+elif [ "$(expr substr $(uname -s) 1 10)" = "MINGW32_NT" ]; then
+    # Do something under Windows NT platform
+    SYSTEM="WIN32"
+fi
 
 # Get the absolute TOP path of this project
 prjtop=$(cd "$(dirname "$0")"; pwd)
@@ -13,16 +25,18 @@ sleep 1
 ##======== Compile 3rd Party softwares ========
 echo "Start Compiling 3d party soft ..."
 # Compile fltk
-echo "Start Compiling FLTK..."
-sleep 1
-cd $prjtop/3rdparty
-tar -xjf fltk-1.3.x-r11608.tar.bz2
-cd fltk-1.3.x-r11608
-mkdir -p build/install
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=./install ..
-make
-make install
+if [ ${SYSTEM} = "LINUX" ]; then
+    echo "Start Compiling FLTK..."
+    sleep 1
+    cd $prjtop/3rdparty
+    tar -xjf fltk-1.3.x-r11608.tar.bz2
+    cd fltk-1.3.x-r11608
+    mkdir -p build/install
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=./install ..
+    make
+    make install
+fi
 # Compile blas
 echo "Start Compiling BLAS..."
 sleep 1
