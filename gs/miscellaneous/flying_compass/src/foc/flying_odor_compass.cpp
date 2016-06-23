@@ -26,7 +26,7 @@ typedef float T;
  *                /  \        R
  *               /    \    --------
  *              /      \
- *       sensor_2 ----- sensor_3
+ *      sensor_2 ------ sensor_3
  */
 
 Flying_Odor_Compass::Flying_Odor_Compass(void)
