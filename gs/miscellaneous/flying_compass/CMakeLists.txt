@@ -28,8 +28,8 @@ if(APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa")
     message("Compile on APPLE MACOSX")
-elseif(UNIX)
-    message("Compile on UNIX")
+elseif(UNIX and not APPLE)
+    message("Compile on LINUX")
 endif()
 #======== Use C++11
 add_definitions(-std=c++11)
@@ -47,6 +47,9 @@ find_package(HDF5 COMPONENTS C CXX REQUIRED)
 include_directories(${HDF5_INCLUDE_DIRS})
 
 #---- External Eigen library
+if(APPLE)
+    set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/scripts)
+endif(APPLE)
 find_package(Eigen3 REQUIRED)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -69,6 +72,10 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 #   add blas and cblas lib dir
 link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/BLAS-3.6.0)
 link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/CBLAS/lib)
+#   libgfortran
+if(APPLE)
+    link_directories(/usr/local/lib/gcc/6) # changes with gcc version
+endif(APPLE)
 
 #---- start compiling ----
 set(LIB_FOC_NAME foc) # flying odor compass
