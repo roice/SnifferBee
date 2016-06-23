@@ -28,7 +28,7 @@ if(APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa")
     message("Compile on APPLE MACOSX")
-elseif(UNIX and not APPLE)
+elseif(UNIX AND NOT APPLE)
     message("Compile on LINUX")
 endif()
 #======== Use C++11
