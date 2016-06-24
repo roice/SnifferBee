@@ -81,7 +81,7 @@ endif(APPLE)
 set(LIB_FOC_NAME foc) # flying odor compass
 # make a library from ui files
 add_library(${LIB_FOC_NAME} 
-    src/foc/flying_odor_compass.cpp)
+    src/foc/flying_odor_compass.cxx)
 # compile main file
 add_executable(${PRJ_NAME} src/main.cxx src/record.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_FOC_NAME})
