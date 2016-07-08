@@ -854,7 +854,8 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 return;
             }
             // Init method
-            if (!method_start(METHOD_HOVER_MEASURE)) // start hover measure task
+            //if (!method_start(METHOD_HOVER_MEASURE)) // start hover measure task
+            if (!method_start(METHOD_BACK_FORTH_MEASURE)) // start back-forth measure task
             {
                 widgets->msg_zone->label("Method start failed!");
                 widgets->msg_zone->labelcolor(FL_RED);
