@@ -5,7 +5,7 @@
 # Author: Roice(LUO Bing)
 # Date:   
 #         2016-06-17 Create this file
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
 #====================================================
 # ================ User can Access ==================
@@ -14,7 +14,8 @@ cmake_minimum_required(VERSION 2.8)
 # Project name
 set(PRJ_NAME Flying_Odor_Compass)
 # Debug version
-set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 # ===================================================
 
 #====================================================
@@ -31,8 +32,6 @@ if(APPLE)
 elseif(UNIX AND NOT APPLE)
     message("Compile on LINUX")
 endif()
-#======== Use C++11
-add_definitions(-std=c++11)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #============== Find Dependencies ================
@@ -51,6 +50,8 @@ if(APPLE)
     set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/scripts)
 endif(APPLE)
 find_package(Eigen3 REQUIRED)
+#---- External samplerate library
+find_package(Samplerate REQUIRED)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #============== Build the project ================
@@ -81,7 +82,9 @@ endif(APPLE)
 set(LIB_FOC_NAME foc) # flying odor compass
 # make a library from ui files
 add_library(${LIB_FOC_NAME} 
-    src/foc/flying_odor_compass.cxx)
+    src/foc/flying_odor_compass.cxx  src/foc/noise_suppression.cxx)
+target_compile_features(foc PRIVATE cxx_constexpr)
+target_link_libraries(${LIB_FOC_NAME} samplerate)
 # compile main file
 add_executable(${PRJ_NAME} src/main.cxx src/record.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_FOC_NAME})

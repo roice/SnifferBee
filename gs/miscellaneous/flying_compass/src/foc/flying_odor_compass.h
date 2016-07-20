@@ -18,7 +18,8 @@
 #define FOC_NUM_SENSORS     3
 #define FOC_RADIUS          0.1 // meter
 #define FOC_MOX_DAQ_FREQ    10 // 10 Hz
-#define FOC_RECORD_LEN      1000
+#define FOC_MOX_INTERP_FREQ 100 // 1000 Hz
+#define FOC_RECORD_LEN      600 // 600 s of history recording
 
 typedef struct {
     float mox_reading[FOC_NUM_SENSORS];
@@ -27,9 +28,9 @@ typedef struct {
 } FOC_Input_t;
 
 typedef struct {
-    float smoothed_mox_reading[FOC_NUM_SENSORS];
+    float reading[FOC_NUM_SENSORS];
     double time;
-} FOC_State_t;
+} FOC_Reading_t;
 
 class Flying_Odor_Compass
 {
@@ -38,16 +39,13 @@ class Flying_Odor_Compass
         void update(FOC_Input_t&);
         // data
         std::vector<FOC_Input_t> foc_input;
-        std::vector<FOC_State_t> foc_state;
+        std::vector<FOC_Reading_t> foc_ukf_out;
+        std::vector<FOC_Reading_t> foc_interp_out;
+        std::vector<FOC_Reading_t> foc_diff_out;
+        std::vector<double> foc_peak_time[FOC_NUM_SENSORS];
     private:
         // unscented kalman filters
-        float sensor_reading_var_process_noise;
-        float sensor_reading_var_measurement_noise;
-        void* sensor_reading_filter[FOC_NUM_SENSORS]; // ukf filters
-        void* sensor_reading_state[FOC_NUM_SENSORS]; // state vectors
-        void* sensor_reading_sys[FOC_NUM_SENSORS]; // system model
-        void* sensor_reading_mm[FOC_NUM_SENSORS]; // measurement model
-        void* sensor_reading_z[FOC_NUM_SENSORS]; // measurement
+        
 };
 
 #endif

@@ -13,6 +13,7 @@
 #include <vector>
 #include "foc/flying_odor_compass.h"
 
-void Record_Data(std::vector<FOC_Input_t>&, std::vector<FOC_State_t>&);
+void Record_Data(std::vector<FOC_Input_t>&, std::vector<FOC_Reading_t>&, std::vector<FOC_Reading_t>&, std::vector<FOC_Reading_t>&,
+        std::vector<double>*);
 
 #endif

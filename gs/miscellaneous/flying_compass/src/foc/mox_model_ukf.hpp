@@ -8,8 +8,8 @@
  *      2016.06.20
  */
 
-#ifndef NOISE_SUPPRESSION_HPP
-#define NOISE_SUPPRESSION_HPP
+#ifndef MOX_MODEL_UKF_HPP
+#define MOX_MODEL_UKF_HPP
 
 #include "foc/flying_odor_compass.h" // FOC_MOX_DAQ_FREQ
 #include <UnscentedKalmanFilter.hpp>
