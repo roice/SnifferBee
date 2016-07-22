@@ -9,6 +9,7 @@
 
 typedef enum {
     METHOD_HOVER_MEASURE = 0,
+    METHOD_BACK_FORTH_MEASURE = 1,
     METHOD_ITEM_COUNT,
     METHOD_NONE
 } methodName_e;

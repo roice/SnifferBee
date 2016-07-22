@@ -139,7 +139,7 @@ static void mbspEvaluateData(void)
                     mb[mbsp_data.from-1].motor[i] = motor[i] & 0x0000FFFF;
 #endif
                 //printf("front %f, left %f, right %f\n", mb[mbsp_data.from-1].sensors.front, mb[mbsp_data.from-1].sensors.left, mb[mbsp_data.from-1].sensors.right);
-                printf("motor: [ %d, %d, %d, %d ]\n", mb[mbsp_data.from-1].motor[0], mb[mbsp_data.from-1].motor[1], mb[mbsp_data.from-1].motor[2], mb[mbsp_data.from-1].motor[3]);
+                //printf("motor: [ %d, %d, %d, %d ]\n", mb[mbsp_data.from-1].motor[0], mb[mbsp_data.from-1].motor[1], mb[mbsp_data.from-1].motor[2], mb[mbsp_data.from-1].motor[3]);
                 clock_gettime(CLOCK_REALTIME, &time);
                 mb[mbsp_data.from-1].time = time.tv_sec + time.tv_nsec/1.0e9;
                 // record
