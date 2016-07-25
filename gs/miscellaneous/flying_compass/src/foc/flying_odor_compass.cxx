@@ -51,30 +51,10 @@ void Flying_Odor_Compass::update(FOC_Input_t& new_in)
     FOC_Reading_t ukf_out = noise_suppression_ukf_update(new_in);
     // save record
     foc_ukf_out.push_back(ukf_out);
-/* Step 2: interpolating (linear) */
-/*
-    double t, t1, t2, t_begin; float y, y1, y2;
-    FOC_Reading_t interp_out;
-    if (foc_ukf_out.size() > 1) {
-        t1 = (*(foc_ukf_out.end()-2)).time;
-        t2 = foc_ukf_out.back().time;
-        if (floor(t2*FOC_MOX_INTERP_FREQ) - ceil(t1*FOC_MOX_INTERP_FREQ) >= 0) {
-            t_begin = double(ceil(t1*FOC_MOX_INTERP_FREQ))/FOC_MOX_INTERP_FREQ;
-            for (int i = 0; i <= int(floor(t2*FOC_MOX_INTERP_FREQ) - ceil(t1*FOC_MOX_INTERP_FREQ)); i++) {
-                t = t_begin + i*1.0/FOC_MOX_INTERP_FREQ;
-                interp_out.time = t;
-                for (int sidx = 0; sidx < FOC_NUM_SENSORS; sidx++) {
-                    y1 = (*(foc_ukf_out.end()-2)).reading[sidx];
-                    y2 = foc_ukf_out.back().reading[sidx];
-                    y = y1 + (y2-y1)/(t2-t1)*(t-t1);
-                    interp_out.reading[sidx] = y;
-                }
-                foc_interp_out.push_back(interp_out);
-            }
-        }
-    }
-*/
 
+/* Step 3 */
+
+#if 0
     // sample rate converter
     int error;
     SRC_STATE* rate_conv = src_new(SRC_SINC_BEST_QUALITY, 1, &error);
@@ -173,4 +153,5 @@ void Flying_Odor_Compass::update(FOC_Input_t& new_in)
         }
     }
 /* Step : Save record */
+#endif
 }
