@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter
 from scipy import signal
 
-fd = h5py.File('../data/Record_2016-06-07_22-32-10.h5', 'r+')
+fd = h5py.File('../data/Record_2016-07-08_15-24-37.h5', 'r+')
 pos = fd['enu_of_robot_0'][...]
 att = fd['att_of_robot_0'][...]
 
 fd_foc = h5py.File('FOC_Record.h5', 'r+')
-mox_reading = fd_foc['mox_reading'][...]
-mox_ukf_out = fd_foc['mox_ukf_output'][...]
+mox_reading = fd_foc['/FOC/mox_reading'][...]
+mox_ukf_out = fd_foc['/FOC/mox_denoise'][...]
 
 mox_ukf_out = fd['sensors_of_robot_0'][...]
 

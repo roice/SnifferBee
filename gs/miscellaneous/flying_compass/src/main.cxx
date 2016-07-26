@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    for (int i = 0; i < 400; i++)
+    for (int i = 0; i < 600; i++)
     {
         // convert 3.3-0.8 to 0.8-3.3
         input.mox_reading[0] = 3.3 - sensor_reading[i][0];

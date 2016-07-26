@@ -71,6 +71,20 @@ void Record_Data(std::vector<FOC_Input_t>& data_raw, std::vector<FOC_Reading_t>&
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(data_pointer); // free space
 
+    // save data_diff
+    data_dims[0] = data_diff.size();
+    data_dims[1] = 3;
+    dataspace_id = H5Screate_simple(2, data_dims, NULL); 
+    dataset_id = H5Dcreate2(group_id, "mox_diff", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(data_diff.at(idx).reading[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+    free(data_pointer); // free space
+
     /* Close group "/FOC" */
     status = H5Gclose(group_id);
 
@@ -88,23 +102,7 @@ void Record_Data(std::vector<FOC_Input_t>& data_raw, std::vector<FOC_Reading_t>&
     
 
     // save foc diff output
-    data_dims[0] = foc_diff_out.size();
-    data_dims[1] = 3;
-    dataspace_id = H5Screate_simple(2, data_dims, NULL);
-    // create data set
-    dataset_id = H5Dcreate2(file_id, "mox_diff_output", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    // write data
-    data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
-    for (int idx = 0; idx < data_dims[0]; idx++)
-        memcpy(&(data[idx*3]), &(foc_diff_out.at(idx).reading[0]), 3*sizeof(float)); // sensor
-    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
-                      H5P_DEFAULT, data);
-    /* End access to the dataset and release resources used by it. */
-    status = H5Dclose(dataset_id);
-    /* Terminate access to the data space. */ 
-    status = H5Sclose(dataspace_id);
-    // free space
-    free(data);
+    
 
     // save foc peak output
     char dset_name[100];

@@ -16,7 +16,8 @@
 
 #include "foc/flying_odor_compass.h"
 #include "foc/foc_noise_reduction.h"
-#include "foc/foc_interpolation.h"
+#include "foc/foc_interp.h"
+#include "foc/foc_diff.h"
 
 #define SIGN(n) (n >= 0? 1:-1)
 
@@ -35,10 +36,14 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     // data
     data_raw.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_denoise.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
-    data_interp.reserve(2*FOC_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-    //data_diff.reserve(FOC_RECORD_LEN*FOC_MOX_INTERP_FREQ);
+    data_interp.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+    data_diff.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
 /* init UKF filtering */
     foc_noise_reduction_ukf_init();
+/* init FIR interpolation */
+    foc_interp_init(data_interp, FOC_MOX_INTERP_FACTOR, FOC_MOX_DAQ_FREQ*1, 60);
+/* init Differentiation */
+    foc_diff_init(data_diff, 2);
 }
 
 /* FOC update
@@ -56,10 +61,15 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
     data_denoise.push_back(ukf_out); // save record
 
 /* Step 2: FIR interpolation (`zero-stuffing' upsampling + filtering) */
-    if (!foc_interpolation(data_denoise, data_interp, FOC_MOX_INTERP_FACTOR, 10, 60))
-        return false; 
+    if (!foc_interp_update(ukf_out, data_interp))
+        return false;
 
-/* Step 3 */
+/* Step 3: FIR filtering */
+
+
+/* Step 4: Derivative */
+    if (!foc_diff_update(data_interp, data_diff))
+        return false;
 
 #if 0
     // sample rate converter

@@ -19,7 +19,7 @@
 #define FOC_RADIUS              0.1     // meter
 #define FOC_DELAY               20      // seconds
 #define FOC_MOX_DAQ_FREQ        10      // Hz
-#define FOC_MOX_INTERP_FACTOR   10      // samples/symbol
+#define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4
 #define FOC_RECORD_LEN          600     // seconds of history recording
 
 typedef struct {
