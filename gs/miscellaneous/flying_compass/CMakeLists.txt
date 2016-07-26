@@ -46,12 +46,8 @@ find_package(HDF5 COMPONENTS C CXX REQUIRED)
 include_directories(${HDF5_INCLUDE_DIRS})
 
 #---- External Eigen library
-if(APPLE)
-    set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/scripts)
-endif(APPLE)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/scripts)
 find_package(Eigen3 REQUIRED)
-#---- External samplerate library
-find_package(Samplerate REQUIRED)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #============== Build the project ================
@@ -61,6 +57,8 @@ find_package(Samplerate REQUIRED)
 #   add root dir to search for header files of RAOS projects
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/src/foc/kf)
+#   add liquid-dsp dir to search for liquid.h header for dsp
+include_directories(${PROJECT_SOURCE_DIR}/3rd-party/liquid-dsp/include)
 #   add cblas dir to search for cblas.h header for linear algebra
 include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/CBLAS/include)
 #   add ziggurat source file to generate normal distribution random numbers
@@ -70,6 +68,8 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 #---- library files path settings ----
 # add library dir into lib path
+#   add liquid-dsp lib dir
+link_directories(${PROJECT_SOURCE_DIR}/3rd-party/liquid-dsp)
 #   add blas and cblas lib dir
 link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/BLAS-3.6.0)
 link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/CBLAS/lib)
@@ -82,9 +82,11 @@ endif(APPLE)
 set(LIB_FOC_NAME foc) # flying odor compass
 # make a library from ui files
 add_library(${LIB_FOC_NAME} 
-    src/foc/flying_odor_compass.cxx  src/foc/noise_suppression.cxx)
+    src/foc/flying_odor_compass.cxx  src/foc/foc_noise_reduction.cxx
+    src/foc/foc_interpolation.cxx)
 target_compile_features(foc PRIVATE cxx_constexpr)
-target_link_libraries(${LIB_FOC_NAME} samplerate)
+# link external liquid-dsp library
+target_link_libraries(${LIB_FOC_NAME} liquid)
 # compile main file
 add_executable(${PRJ_NAME} src/main.cxx src/record.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_FOC_NAME})

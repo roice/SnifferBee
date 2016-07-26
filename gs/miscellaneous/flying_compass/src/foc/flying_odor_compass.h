@@ -15,11 +15,12 @@
 
 #include <vector>
 
-#define FOC_NUM_SENSORS     3
-#define FOC_RADIUS          0.1 // meter
-#define FOC_MOX_DAQ_FREQ    10 // 10 Hz
-#define FOC_MOX_INTERP_FREQ 100 // 1000 Hz
-#define FOC_RECORD_LEN      600 // 600 s of history recording
+#define FOC_NUM_SENSORS         3
+#define FOC_RADIUS              0.1     // meter
+#define FOC_DELAY               20      // seconds
+#define FOC_MOX_DAQ_FREQ        10      // Hz
+#define FOC_MOX_INTERP_FACTOR   10      // samples/symbol
+#define FOC_RECORD_LEN          600     // seconds of history recording
 
 typedef struct {
     float mox_reading[FOC_NUM_SENSORS];
@@ -36,13 +37,13 @@ class Flying_Odor_Compass
 {
     public:
         Flying_Odor_Compass(void);
-        void update(FOC_Input_t&);
+        bool update(FOC_Input_t&);
         // data
-        std::vector<FOC_Input_t> foc_input;
-        std::vector<FOC_Reading_t> foc_ukf_out;
-        std::vector<FOC_Reading_t> foc_interp_out;
-        std::vector<FOC_Reading_t> foc_diff_out;
-        std::vector<double> foc_peak_time[FOC_NUM_SENSORS];
+        std::vector<FOC_Input_t> data_raw;
+        std::vector<FOC_Reading_t> data_denoise;
+        std::vector<FOC_Reading_t> data_interp;
+        std::vector<FOC_Reading_t> data_diff;
+        std::vector<double> data_peak_time[FOC_NUM_SENSORS];
     private:
         // unscented kalman filters
         

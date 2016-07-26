@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 400; i++)
     {
         // convert 3.3-0.8 to 0.8-3.3
         input.mox_reading[0] = 3.3 - sensor_reading[i][0];
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
         foc.update(input);
     }
 
-    Record_Data(foc.foc_input, foc.foc_ukf_out, foc.foc_interp_out, foc.foc_diff_out, foc.foc_peak_time);
+    Record_Data(foc.data_raw, foc.data_denoise, foc.data_interp, foc.data_diff, foc.data_peak_time);
 
     return 0;
 }

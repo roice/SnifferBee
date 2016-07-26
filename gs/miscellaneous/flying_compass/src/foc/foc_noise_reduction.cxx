@@ -27,7 +27,7 @@ void* sensor_reading_sys[FOC_NUM_SENSORS]; // system model
 void* sensor_reading_mm[FOC_NUM_SENSORS]; // measurement model
 void* sensor_reading_z[FOC_NUM_SENSORS]; // measurement
 
-void noise_suppression_ukf_init(void)
+void foc_noise_reduction_ukf_init(void)
 {
     sensor_reading_var_process_noise = pow(0.85, 2);
     sensor_reading_var_measurement_noise = 0.05*0.05;
@@ -61,7 +61,7 @@ void noise_suppression_ukf_init(void)
     }
 }
 
-FOC_Reading_t noise_suppression_ukf_update(FOC_Input_t& new_in)
+FOC_Reading_t foc_noise_reduction_ukf_update(FOC_Input_t& new_in)
 {
     float dt;
     if (previous_time > 0)
@@ -144,13 +144,13 @@ static void CreateKernel(float sigma, int order, float* gKernel, int nWindowSize
     }
 }
 
-bool noise_suppression_gaussian_filter(std::vector<FOC_Reading_t>* input,
+bool foc_noise_reduction_gaussian_filter(std::vector<FOC_Reading_t>* input,
         std::vector<FOC_Reading_t>* output, int order, float backtrace_time)
 {
     // Create gaussian kernel
     float sigma = 1.0;//(1.0/FOC_MOX_DAQ_FREQ);
-    int nWindowSize = 1 + 2*ceil(4*sigma*FOC_MOX_INTERP_FREQ); // length of gaussian smoother;
-    if (backtrace_time*FOC_MOX_INTERP_FREQ <= nWindowSize)
+    int nWindowSize = 1 + 2*ceil(4*sigma*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR); // length of gaussian smoother;
+    if (backtrace_time*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR <= nWindowSize)
         return false;
     float* gKernel; // gaussian kernel
     if ((gKernel = (float*)malloc(nWindowSize*sizeof(float)))==NULL)  
@@ -166,9 +166,9 @@ bool noise_suppression_gaussian_filter(std::vector<FOC_Reading_t>* input,
     int nLen = nWindowSize/2;
     double DotMul[FOC_NUM_SENSORS], WeightSum[FOC_NUM_SENSORS];
     FOC_Reading_t new_out;
-    if (input->size() >= backtrace_time*FOC_MOX_INTERP_FREQ) {
+    if (input->size() >= backtrace_time*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR) {
         output->clear(); // remove all data
-        for(int i = input->size() - backtrace_time*FOC_MOX_INTERP_FREQ; i < input->size(); i++)  {
+        for(int i = input->size() - backtrace_time*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR; i < input->size(); i++)  {
             for (int sensor_index = 0; sensor_index < FOC_NUM_SENSORS; sensor_index++) {
                 DotMul[sensor_index] = 0;
                 WeightSum[sensor_index] = 0;

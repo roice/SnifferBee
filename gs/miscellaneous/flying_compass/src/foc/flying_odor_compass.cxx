@@ -15,9 +15,8 @@
 #include <vector>
 
 #include "foc/flying_odor_compass.h"
-#include "foc/noise_suppression.h"
-
-#include <samplerate.h> // require libsamplerate
+#include "foc/foc_noise_reduction.h"
+#include "foc/foc_interpolation.h"
 
 #define SIGN(n) (n >= 0? 1:-1)
 
@@ -34,23 +33,31 @@
 Flying_Odor_Compass::Flying_Odor_Compass(void)
 {
     // data
-    foc_input.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
-    foc_ukf_out.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
-    foc_interp_out.reserve(FOC_RECORD_LEN*FOC_MOX_INTERP_FREQ);
-    foc_diff_out.reserve(FOC_RECORD_LEN*FOC_MOX_INTERP_FREQ);
+    data_raw.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
+    data_denoise.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
+    data_interp.reserve(2*FOC_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+    //data_diff.reserve(FOC_RECORD_LEN*FOC_MOX_INTERP_FREQ);
 /* init UKF filtering */
-    noise_suppression_ukf_init();
+    foc_noise_reduction_ukf_init();
 }
 
-void Flying_Odor_Compass::update(FOC_Input_t& new_in)
+/* FOC update
+ * Bool output:
+ *      true    Odor direction updated 
+ *      false   Haven't dug out useful information
+ */
+bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 {
-    foc_input.push_back(new_in); // save record
+    data_raw.push_back(new_in); // save record
 /* Step 0: Pre-processing */
     
 /* Step 1: UKF filtering */
-    FOC_Reading_t ukf_out = noise_suppression_ukf_update(new_in);
-    // save record
-    foc_ukf_out.push_back(ukf_out);
+    FOC_Reading_t ukf_out = foc_noise_reduction_ukf_update(new_in);
+    data_denoise.push_back(ukf_out); // save record
+
+/* Step 2: FIR interpolation (`zero-stuffing' upsampling + filtering) */
+    if (!foc_interpolation(data_denoise, data_interp, FOC_MOX_INTERP_FACTOR, 10, 60))
+        return false; 
 
 /* Step 3 */
 
