@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <vector>
 #include "flying_odor_compass.h"
+#include "liquid.h"
 
 // index of latest differentiated reading
 static int index_in_reading = 0;
@@ -9,7 +10,9 @@ static int index_in_reading = 0;
 static int diff_order = 2;
 static float x[4+1] = {0}, y = 0;// support upto 4-th order derivative
 
-/* 
+static firfilt_rrrf f[FOC_NUM_SENSORS];
+
+/* Derivative + smoothing
  * Args:
  *      order   order of diff, 1 <= order <= 4, default: 2
  */
@@ -20,6 +23,10 @@ void foc_diff_init(std::vector<FOC_Reading_t>& out, int order=2)
         fprintf(stderr, "error: diff order %d not valid.\n", order);
         exit(1);
     }
+
+    // create filter from prototype
+    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+        f[idx] = firfilt_rrrf_create_kaiser(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, 0.5f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60.0, 0.0);
 
     out.clear();
 
@@ -64,12 +71,21 @@ bool foc_diff_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Reading_t>&
                     break;
                 case 2:
                     y = (x[2] - 2*x[1] + x[0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+                    break; 
+                case 3:
+                    y = (x[3] - 3*x[2] + 3*x[1] - x[0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+                    break;
+                case 4:
+                    y = (x[4] - 4*x[3] + 6*x[2] - 4*x[1] + x[0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+                    break;
                 default: // 2-nd
                     y = (x[2] - 2*x[1] + x[0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
                     break;
             }
 
-            sp.reading[idx] = y;
+            // smooth
+            firfilt_rrrf_push(f[idx], y);
+            firfilt_rrrf_execute(f[idx], &sp.reading[idx]);
         }
 
         // save results

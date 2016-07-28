@@ -82,8 +82,13 @@ endif(APPLE)
 set(LIB_FOC_NAME foc) # flying odor compass
 # make a library from ui files
 add_library(${LIB_FOC_NAME} 
-    src/foc/flying_odor_compass.cxx  src/foc/foc_noise_reduction.cxx
-    src/foc/foc_interp.cxx src/foc/foc_diff.cxx)
+    src/foc/flying_odor_compass.cxx
+    src/foc/foc_noise_reduction.cxx
+    src/foc/foc_interp.cxx
+    src/foc/foc_smooth.cxx
+    src/foc/foc_diff.cxx
+    src/foc/foc_delta.cxx
+    )
 target_compile_features(foc PRIVATE cxx_constexpr)
 # link external liquid-dsp library
 target_link_libraries(${LIB_FOC_NAME} liquid)

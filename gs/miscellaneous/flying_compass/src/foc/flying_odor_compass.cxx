@@ -17,7 +17,9 @@
 #include "foc/flying_odor_compass.h"
 #include "foc/foc_noise_reduction.h"
 #include "foc/foc_interp.h"
+#include "foc/foc_smooth.h"
 #include "foc/foc_diff.h"
+#include "foc/foc_delta.h"
 
 #define SIGN(n) (n >= 0? 1:-1)
 
@@ -34,16 +36,25 @@
 Flying_Odor_Compass::Flying_Odor_Compass(void)
 {
     // data
+    data_wind.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_raw.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_denoise.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_interp.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+    data_smooth.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
     data_diff.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+    data_delta.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
 /* init UKF filtering */
     foc_noise_reduction_ukf_init();
 /* init FIR interpolation */
     foc_interp_init(data_interp, FOC_MOX_INTERP_FACTOR, FOC_MOX_DAQ_FREQ*1, 60);
-/* init Differentiation */
-    foc_diff_init(data_diff, 2);
+/* init FIR smoothing
+ * h_len = 10 s * sampling_freq, fc = 0.5 Hz */
+    foc_smooth_init(data_smooth, 10*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, 0.5f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60, 0.0);
+/* init Differentiation 
+ * order = 3 */
+    foc_diff_init(data_diff, 3);
+/* init feature extraction */
+    foc_delta_init(data_delta);
 }
 
 /* FOC update
@@ -55,8 +66,8 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 {
     data_raw.push_back(new_in); // save record
 /* Step 0: Pre-processing */
-    
-/* Step 1: UKF filtering */
+
+/* Step 1: Noise reduction through UKF filtering */
     FOC_Reading_t ukf_out = foc_noise_reduction_ukf_update(new_in);
     data_denoise.push_back(ukf_out); // save record
 
@@ -64,111 +75,14 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
     if (!foc_interp_update(ukf_out, data_interp))
         return false;
 
-/* Step 3: FIR filtering */
-
-
-/* Step 4: Derivative */
-    if (!foc_diff_update(data_interp, data_diff))
+/* Step 3: Smoothing through FIR filtering */
+    if (!foc_smooth_update(data_interp, data_smooth))
         return false;
 
-#if 0
-    // sample rate converter
-    int error;
-    SRC_STATE* rate_conv = src_new(SRC_SINC_BEST_QUALITY, 1, &error);
-
-    // sample rate convert data struct
-    SRC_DATA src_data;
-    src_data.src_ratio = (float)FOC_MOX_INTERP_FREQ/(float)FOC_MOX_DAQ_FREQ;
-    src_data.input_frames = foc_ukf_out.size();
-    src_data.output_frames = src_data.input_frames*src_data.src_ratio;
-    src_data.end_of_input = 1;
-
-    // interpolation input and output array
-    float* interp_in[FOC_NUM_SENSORS];
-    float* interp_out[FOC_NUM_SENSORS];
-
-    // convert (interpolate)
-    for (int sidx = 0; sidx < FOC_NUM_SENSORS; sidx++) {
-        interp_in[sidx] = (float*)malloc(src_data.input_frames*sizeof(float));
-        interp_out[sidx] = (float*)malloc(src_data.output_frames*sizeof(float));
-
-        // prepare input
-        for (int i = 0; i < src_data.input_frames; i++)
-            interp_in[sidx][i] = foc_ukf_out.at(i).reading[sidx];
-        src_data.data_in = interp_in[sidx];
-        src_data.data_out = interp_out[sidx];
-        
-        // interpolate
-        src_reset(rate_conv);
-        src_process(rate_conv, &src_data); 
-    }
-
-    // save to vector
-    FOC_Reading_t new_interp = {0};
-    foc_interp_out.clear();
-    for (int i = 0; i < src_data.output_frames; i++)
-    {
-        new_interp.time += (double)i/(double)FOC_MOX_INTERP_FREQ;
-        for (int sidx = 0; sidx < FOC_NUM_SENSORS; sidx++)
-            new_interp.reading[sidx] = interp_out[sidx][i];
-        foc_interp_out.push_back(new_interp);
-    }
-
-    for (int sidx = 0; sidx < FOC_NUM_SENSORS; sidx++) {
-        free(interp_in[sidx]);
-        free(interp_out[sidx]);
-    }
-    
-    
-
-    
-
-    
-
-    
-    
-/* Step 3: compute 1st derivative */
-    noise_suppression_gaussian_filter(&foc_interp_out, &foc_diff_out, 2, 10.0);
-/*
-    if(noise_suppression_gaussian_smooth_update(&foc_interp_out, &foc_diff_out, 10.0)) { // smooth
-        for (int i = 0; i < foc_diff_out.size()-1; i++) // 1st derivative
-            for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-                foc_diff_out.at(i).reading[idx] = (foc_diff_out.at(i+1).reading[idx] - foc_diff_out.at(i).reading[idx])*FOC_MOX_INTERP_FREQ;
-    }
-    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-        foc_diff_out.back().reading[idx] = 0;
-    // normalize
-    double sum[FOC_NUM_SENSORS] = {0};
-    float std_var[FOC_NUM_SENSORS] = {0};
-    for (int i = 0; i < foc_diff_out.size(); i++)
-        for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-            sum[idx] += pow(foc_diff_out.at(i).reading[idx],2);
-    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-        std_var[idx] = sqrt(sum[idx]/((double)foc_diff_out.size()));
-    for (int i = 0; i < foc_diff_out.size(); i++)
-        for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-            foc_diff_out.at(i).reading[idx] = foc_diff_out.at(i).reading[idx]/std_var[idx];
-*/
-
-/* Step 4: find change points */
-    double peak_time;
-    if (foc_diff_out.size() >= 2) {
-        for (int i = 0; i < FOC_NUM_SENSORS; i++)
-            foc_peak_time[i].clear();
-        for (int i = 0; i < foc_diff_out.size()-1; i++) {
-            for (int idx = 0; idx < FOC_NUM_SENSORS; idx++) {
-                //if (SIGN(foc_diff_out.at(i).reading[idx]) != SIGN(foc_diff_out.at(i+1).reading[idx]))
-                if (foc_diff_out.at(i).reading[idx] < 0 && foc_diff_out.at(i+1).reading[idx] > 0)
-                {
-                    peak_time = foc_diff_out.at(i).time + 
-                        (0 - foc_diff_out.at(i).reading[idx])/
-                        (foc_diff_out.at(i+1).reading[idx] - foc_diff_out.at(i).reading[idx])*
-                        (foc_diff_out.at(i+1).time - foc_diff_out.at(i).time);
-                    foc_peak_time[idx].push_back(peak_time);
-                }
-            }
-        }
-    }
-/* Step : Save record */
-#endif
+/* Step 4: Derivative */
+    if (!foc_diff_update(data_smooth, data_diff))
+        return false;
+/* Step 5: Extracting features: time diff and variance */
+    if (!foc_delta_update(data_diff, data_delta))
+        return false;
 }

@@ -6,8 +6,8 @@
 #include <time.h>
 #include "foc/flying_odor_compass.h"
 
-void Record_Data(std::vector<FOC_Input_t>& data_raw, std::vector<FOC_Reading_t>& data_denoise,
-        std::vector<FOC_Reading_t>& data_interp, std::vector<FOC_Reading_t>& data_diff,
+void Record_Data(std::vector<FOC_Wind_t>& data_wind, std::vector<FOC_Input_t>& data_raw, std::vector<FOC_Reading_t>& data_denoise,
+        std::vector<FOC_Reading_t>& data_interp, std::vector<FOC_Reading_t>& data_smooth, std::vector<FOC_Reading_t>& data_diff, std::vector<FOC_Delta_t>& data_delta,
         std::vector<double>* data_peak_time)
 {
     hid_t file_id, group_id, dataset_id, dataspace_id; 
@@ -28,7 +28,21 @@ void Record_Data(std::vector<FOC_Input_t>& data_raw, std::vector<FOC_Reading_t>&
 
     /* Create a group named "/FOC" in the file */
     group_id = H5Gcreate2(file_id, "/FOC", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    
+   
+    // save data_wind
+    data_dims[0] = data_wind.size();
+    data_dims[1] = 3;
+    dataspace_id = H5Screate_simple(2, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "wind_direction", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(data_wind.at(idx).dir[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer);   // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it.
+    status = H5Sclose(dataspace_id); // Terminate access to the data space.
+    free(data_pointer); // free space
+
     // save data_raw
     data_dims[0] = data_raw.size();
     data_dims[1] = 3;
@@ -71,6 +85,20 @@ void Record_Data(std::vector<FOC_Input_t>& data_raw, std::vector<FOC_Reading_t>&
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(data_pointer); // free space
 
+    // save data_smooth
+    data_dims[0] = data_smooth.size();
+    data_dims[1] = 3;
+    dataspace_id = H5Screate_simple(2, data_dims, NULL); 
+    dataset_id = H5Dcreate2(group_id, "mox_smooth", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(data_smooth.at(idx).reading[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+    free(data_pointer); // free space
+
     // save data_diff
     data_dims[0] = data_diff.size();
     data_dims[1] = 3;
@@ -85,50 +113,34 @@ void Record_Data(std::vector<FOC_Input_t>& data_raw, std::vector<FOC_Reading_t>&
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(data_pointer); // free space
 
+    // save data_delta
+    data_dims[0] = data_delta.size();
+    data_dims[1] = 3;
+    dataspace_id = H5Screate_simple(2, data_dims, NULL); 
+    dataset_id = H5Dcreate2(group_id, "mox_std", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(data_delta.at(idx).std[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+    free(data_pointer); // free space
+    
+    dataspace_id = H5Screate_simple(2, data_dims, NULL); 
+    dataset_id = H5Dcreate2(group_id, "mox_toa", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(data_delta.at(idx).toa[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+    free(data_pointer); // free space
+
+
     /* Close group "/FOC" */
     status = H5Gclose(group_id);
-
-
-
-
-
-
-   
-    
-#if 0
-    
-
-    // save foc interp output
-    
-
-    // save foc diff output
-    
-
-    // save foc peak output
-    char dset_name[100];
-    double* time_data;
-    for (int sensor_idx = 0; sensor_idx < FOC_NUM_SENSORS; sensor_idx++) {
-        data_dims[0] = foc_peak_time[sensor_idx].size();
-        data_dims[1] = 1;
-        dataspace_id = H5Screate_simple(2, data_dims, NULL);
-        // create data set
-        snprintf(dset_name, 50, "mox_peak_time_%d", sensor_idx);
-        dataset_id = H5Dcreate2(file_id, dset_name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        // write data
-        time_data = (double*)malloc(data_dims[0]*data_dims[1]*sizeof(*time_data));
-        for (int idx = 0; idx < data_dims[0]; idx++)
-            memcpy(&(time_data[idx]), &(foc_peak_time[sensor_idx].at(idx)), sizeof(double));
-        status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,
-                      H5P_DEFAULT, time_data);
-        /* End access to the dataset and release resources used by it. */
-        status = H5Dclose(dataset_id);
-        /* Terminate access to the data space. */ 
-        status = H5Sclose(dataspace_id);
-        // free space
-        free(time_data);
-    }
-
-#endif
 
     /* Terminate access to the file. */
     status = H5Fclose(file_id);
