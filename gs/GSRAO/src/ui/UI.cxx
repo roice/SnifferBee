@@ -457,7 +457,9 @@ RemoterPanel::RemoterPanel(int xpos, int ypos, int width, int height,
     show();
 }
 
-/*------- Robot panel (state viewer & controller) -------*/
+/* =================================================
+ * ==== Robot panel (state viewer & controller) ====
+ * =================================================*/
 struct RobotPanel_Widgets { // for parameter saving
     Fl_LED_Button*  robot_link_state[4]; // 4 robots max
     Fl_Box*         robot_arm_state[4]; // 4 robots max
@@ -612,7 +614,9 @@ RobotPanel::RobotPanel(int xpos, int ypos, int width, int height,
     show();
 }
 
-/*------- Result panel -------*/
+/* ================================
+ * ========= Result Panel =========
+ * ================================*/
 struct ResultPanel_Widgets { // for parameter saving
 };
 struct ResultPanel_handles {
@@ -665,7 +669,9 @@ ResultPanel::ResultPanel(int xpos, int ypos, int width, int height,
     show();
 }
 
-/*------- ToolBar -------*/
+/* ================================
+ * ========= ToolBar ==============
+ * ================================*/
 struct ToolBar_Widgets
 {
     Fl_Button*  start;  // start button
@@ -1004,7 +1010,6 @@ void ToolBar::restore_from_configs(ToolBar_Widgets* ws, void *data)
 
     // check whether to open robot panel or not
     if (configs->system.robot_panel_opened) {
-        // open remoter panel
         Fl_Window* window = (Fl_Window*)data;
         hs.robot_panel = new RobotPanel(window->x(), window->y()+window->h()+40, 
             window->w(), 200, "Robot Panel");
@@ -1013,7 +1018,6 @@ void ToolBar::restore_from_configs(ToolBar_Widgets* ws, void *data)
     }
     // check whether to open result panel or not
     if (configs->system.result_panel_opened) {
-        // open remoter panel
         Fl_Window* window = (Fl_Window*)data;
         hs.result_panel = new ResultPanel(window->x()+window->w(), window->y(), 
                 200, window->h(), "Result Panel");
@@ -1021,6 +1025,7 @@ void ToolBar::restore_from_configs(ToolBar_Widgets* ws, void *data)
         ws->result->value(1);
     }
 }
+
 ToolBar::ToolBar(int Xpos, int Ypos, int Width, int Height, void *win) :
 Fl_Group(Xpos, Ypos, Width, Height)
 {
@@ -1085,8 +1090,9 @@ Fl_Group(Xpos, Ypos, Width, Height)
     end();
 }
 
-
-/*------- Creation function of User Interface  -------*/
+/* ====================================
+ * ============== UI ==================
+ * ==================================== */
 void UI::cb_close(Fl_Widget* w, void* data) { 
     // close GSRAO
     if (Fl::event() == FL_CLOSE) {
