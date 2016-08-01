@@ -14,6 +14,6 @@
 #include "foc/flying_odor_compass.h"
 
 void Record_Data(std::vector<FOC_Wind_t>&, std::vector<FOC_Input_t>&, std::vector<FOC_Reading_t>&, std::vector<FOC_Reading_t>&, std::vector<FOC_Reading_t>&, std::vector<FOC_Reading_t>&, std::vector<FOC_Delta_t>&,
-        std::vector<double>*);
+        std::vector<FOC_Estimation_t>&);
 
 #endif

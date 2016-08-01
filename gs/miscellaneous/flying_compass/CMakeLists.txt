@@ -88,6 +88,7 @@ add_library(${LIB_FOC_NAME}
     src/foc/foc_smooth.cxx
     src/foc/foc_diff.cxx
     src/foc/foc_delta.cxx
+    src/foc/foc_estimate.cxx
     )
 target_compile_features(foc PRIVATE cxx_constexpr)
 # link external liquid-dsp library

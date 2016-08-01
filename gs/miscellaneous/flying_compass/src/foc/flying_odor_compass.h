@@ -17,10 +17,12 @@
 
 #define FOC_NUM_SENSORS         3
 #define FOC_RADIUS              0.1     // meter
-#define FOC_DELAY               2       // seconds
-#define FOC_MOX_DAQ_FREQ        10      // Hz
-#define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4
-#define FOC_RECORD_LEN          600     // seconds of history recording
+#define FOC_WIND_MIN            0.05    // m/s
+#define FOC_WIND_MAX            2.0     // m/s
+#define FOC_DELAY               5       // seconds, int
+#define FOC_MOX_DAQ_FREQ        10      // Hz, int
+#define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4, int
+#define FOC_RECORD_LEN          600     // seconds of history recording, int
 
 typedef struct {
     float mox_reading[FOC_NUM_SENSORS];
@@ -43,6 +45,13 @@ typedef struct {
     float std[FOC_NUM_SENSORS]; // standard deviation
 } FOC_Delta_t; // delta time/varince (feature extracted from mox reading)
 
+typedef struct {
+    float wind_speed_xy[2]; // plane coord, x/y
+    float wind_speed_en[2]; // global coord, e/n
+    float wind_speed_filtered_xy[2];
+    bool valid; // this result is valid or not
+} FOC_Estimation_t;
+
 class Flying_Odor_Compass
 {
     public:
@@ -56,7 +65,7 @@ class Flying_Odor_Compass
         std::vector<FOC_Reading_t> data_smooth;
         std::vector<FOC_Reading_t> data_diff;
         std::vector<FOC_Delta_t> data_delta;
-        std::vector<double> data_peak_time[FOC_NUM_SENSORS];
+        std::vector<FOC_Estimation_t> data_est;
     private:
         // unscented kalman filters
         

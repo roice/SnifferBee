@@ -15,7 +15,7 @@
 #include "foc/flying_odor_compass.h"
 #include "record.h"
 
-#define FILE "../data/Record_2016-07-08_15-24-37.h5"
+#define FILE "../data/Record_2016-06-07_22-30-51.h5"
 
 int main(int argc, char* argv[])
 {
@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    for (int i = 0; i < 600; i++)
+    for (int i = 0; i < 300; i++)
     {
         // convert 3.3-0.8 to 0.8-3.3
         input.mox_reading[0] = 3.3 - sensor_reading[i][0];
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
         foc.update(input);
     }
 
-    Record_Data(foc.data_wind, foc.data_raw, foc.data_denoise, foc.data_interp, foc.data_smooth, foc.data_diff, foc.data_delta, foc.data_peak_time);
+    Record_Data(foc.data_wind, foc.data_raw, foc.data_denoise, foc.data_interp, foc.data_smooth, foc.data_diff, foc.data_delta, foc.data_est);
 
     return 0;
 }
