@@ -16,6 +16,7 @@
 static int amount_of_robots; // 1/2/3/4
 
 static Robot_Ref_State_t robot_ref_state[4]; // 4 robots max
+static Robot_State_t robot_state[4] = {{0},{0},{0},{0}};
 
 std::vector<Robot_Record_t> robot_record[4]; // 4 robots max
 
@@ -61,6 +62,11 @@ void robot_shutdown(void)
 Robot_Ref_State_t* robot_get_ref_state(void)
 {
     return robot_ref_state;
+}
+
+Robot_State_t* robot_get_state(void)
+{
+    return robot_state;
 }
 
 std::vector<Robot_Record_t>* robot_get_record(void)

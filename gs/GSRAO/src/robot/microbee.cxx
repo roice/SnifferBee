@@ -197,7 +197,7 @@ static void* microbee_control_loop(void* args)
         dtime = current_time - previous_time;
         previous_time = current_time;
 
-        // position control, PID
+        // position control update
         microbee_pos_control(dtime, idx_robot);
 
         // 50 Hz
@@ -216,7 +216,7 @@ static void* microbee_control_loop(void* args)
 
         robot_ref[idx_robot].enu[2] -= 0.3/50.0; // 0.3 m/s descending, 50 Hz control
 
-        // position control, PID
+        // position control update
         microbee_pos_control(dtime, idx_robot);
 
         // 50 Hz
@@ -260,7 +260,7 @@ static float applyDeadband(float value, float deadband)
  * TODO:
  *  dt not used
  */
-static void microbee_throttle_control(float dt, int robot_index)
+static void microbee_throttle_control_pid(float dt, int robot_index)
 {
     static float errorVelocityI[4] = {0}; // 4 robots max
 
@@ -311,7 +311,7 @@ static void microbee_throttle_control(float dt, int robot_index)
  * TODO:
  *  dt not used
  */
-static void microbee_roll_pitch_control(float dt, int robot_index)
+static void microbee_roll_pitch_control_pid(float dt, int robot_index)
 {
     static float errorPositionI[4][2] = {0};
     float error_enu[2]; // error vector in earth coordinate
@@ -402,7 +402,7 @@ static void microbee_roll_pitch_control(float dt, int robot_index)
  * TODO:
  *  dt not used
  */
-static void microbee_yaw_control(float dt, int robot_index)
+static void microbee_yaw_control_pid(float dt, int robot_index)
 {
     static float errorYawI[4] = {0}; // 4 robots max
     // get configs
@@ -440,13 +440,306 @@ static void microbee_yaw_control(float dt, int robot_index)
     SPP_RC_DATA_t* rc_data = spp_get_rc_data();
     rc_data[robot_index].yaw = constrain(1500 + result, 1050, 1950);
 }
+
+/* ADRC state vector type */
+typedef struct {
+    float z1;
+    float z2;
+    float z3;
+    float u;
+} ADRC_State_t;
+
+/* LADRC
+ *  z1(k) = z1(k-1)+T*(z2(k-1)+3*w0*(y-z1(k-1)))
+ *  z2(k) = z2(k-1)+T*(z3(k-1)+3*w0^2*(y-z1(k-1))+u(k-1))
+ *  z3(k) = z3(k-1)+T*(w0^3*(y-z1(k-1)))
+ *  u0(k) = kp*(r-z1(k))+kd*(dr-z2(k))
+ *  u(k) = u0(k)-z3(k)
+ */
+static void microbee_throttle_control_adrc(float dt, int robot_index)
+{
+    static ADRC_State_t state[4] = {{0},{0},{0},{0}}; // 4 robots max
+    // get configs
+    GSRAO_Config_t* configs = GSRAO_Config_get_configs();
+    adrcProfile_t*   adrcProfile = configs->robot.adrcProfile;
+
+    // get alt
+    MocapData_t* data = mocap_get_data(); // get mocap data
+    Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref state
+    float EstAlt = data->robot[robot_index].enu[2]; // z axis, robot's real-time z axis pos
+    float AltHold = robot_ref[robot_index].enu[2]; // reference z axis pos
+
+    /* altitude control, throttle */
+    /* LADRC */
+    float leso_err = EstAlt - state[robot_index].z1;
+    // LESO
+    state[robot_index].z1 += dt*(state[robot_index].z2 + 3*adrcProfile[robot_index].w0[ADRCALT]*leso_err);
+    state[robot_index].z2 += dt*(state[robot_index].z3 + 3*pow(adrcProfile[robot_index].w0[ADRCALT],2)*leso_err + state[robot_index].u);
+    state[robot_index].z3 += dt*(pow(adrcProfile[robot_index].w0[ADRCALT],3)*leso_err);
+    // PD
+    float pd_err = AltHold - state[robot_index].z1;
+    float u0 = adrcProfile[robot_index].kp[ADRCALT]*pd_err + adrcProfile[robot_index].kd[ADRCALT]*(-state[robot_index].z2);
+    state[robot_index].u = u0 - state[robot_index].z3;
+
+    // convert u to result
+    float result = 1.0*state[robot_index].u;
+
+// for DEBUG
+printf("AltHold = %f, EstAlt = %f, pd_err = %f, u0 = %f, z3 = %f, result = %f\n", AltHold, EstAlt, pd_err, u0, state[robot_index].z3, result);
+
+    // update throttle value
+    SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+    rc_data[robot_index].throttle = constrain(1050 + result, 1050, 1950);
+}
+
+static void microbee_roll_pitch_control_adrc(float dt, int robot_index)
+{
+    static ADRC_State_t state[4][2] = {{{0},{0}}, {{0},{0}}, {{0},{0}}, {{0},{0}}}; // 4 robots max 
+
+    // get configs
+    GSRAO_Config_t* configs = GSRAO_Config_get_configs();
+    adrcProfile_t*   adrcProfile = configs->robot.adrcProfile;
+
+    // get east/north
+    float pos[2], pos_ref[2], vel[2]; // e/n
+    MocapData_t* data = mocap_get_data(); // get mocap data
+    Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref states
+    for (int i = 0; i < 2; i++) // e/n
+    {
+        pos[i] = data->robot[robot_index].enu[i]; // e/n axis, robot's real-time x y axis pos
+        pos_ref[i] = robot_ref[robot_index].enu[i]; // reference x y axis pos
+        vel[i] = data->robot[robot_index].vel[i]; // current e/n velocity
+    }
+
+    // get position error vector in earth coordinate
+    float error_enu[2]; // error vector in earth coordinate
+    for (int i = 0; i < 2; i++)
+        error_enu[i] = pos_ref[i] - pos[i];
+
+    // get heading unit vectors
+    float heading_angle = data->robot[robot_index].att[2];
+    float heading_e_front[2]; // heading unit vector, indicating front direction
+    float heading_e_right[2]; // perpendicular vector of heading, indicating right
+    heading_e_front[0] = -sin(heading_angle); // for pitch
+    heading_e_front[1] = cos(heading_angle);
+    heading_e_right[0] = heading_e_front[1]; // for roll
+    heading_e_right[1] = -heading_e_front[0];
+    
+    // convert error to robot's coordinate
+    float error_p[2];// error vector in robot's coordinate
+    error_p[0] = cblas_sdot(2, error_enu, 1, heading_e_right, 1); // for roll
+    error_p[1] = cblas_sdot(2, error_enu, 1, heading_e_front, 1); // for pitch
+
+    // convert velocity to robot's coordinate
+    float vel_p[2];
+    vel_p[0] = cblas_sdot(2, vel, 1, heading_e_right, 1); // for roll
+    vel_p[1] = cblas_sdot(2, vel, 1, heading_e_front, 1); // for pitch
+
+    /* position control, roll & pitch */
+    float target_vel[2];
+    for (int i = 0; i < 2; i++) {
+        // Position P-Controller for east(x)/north(y) axis
+        target_vel[i] = constrain(0.5*error_p[i], -0.3, 0.3); // limit error to +/- 0.3 m/s;
+        target_vel[i] = applyDeadband(target_vel[i], 0.01); // 1 cm/s
+    }
+    // LADRC Velocity controller
+    float b = 2.0;
+    float leso_err[2] = {vel_p[0]-state[robot_index][0].z1, vel_p[1]-state[robot_index][1].z1};
+    for (int i = 0; i < 2; i++) {
+        // LESO
+        state[robot_index][i].z1 += dt*(state[robot_index][i].z2 + 3*adrcProfile[robot_index].w0[ADRCPOS]*leso_err[i]);
+        state[robot_index][i].z2 += dt*(state[robot_index][i].z3 + 3*pow(adrcProfile[robot_index].w0[ADRCPOS],2)*leso_err[i] + b*state[robot_index][i].u);
+        state[robot_index][i].z3 += dt*(pow(adrcProfile[robot_index].w0[ADRCPOS],3)*leso_err[i]);
+    }
+    // PD
+    float pd_err[2] = {target_vel[0]-state[robot_index][0].z1, target_vel[1]-state[robot_index][1].z1};
+    float u0[2];
+    for (int i = 0; i < 2; i++) {
+        u0[i] = adrcProfile[robot_index].kp[ADRCPOS]*pd_err[i] + adrcProfile[robot_index].kd[ADRCPOS]*(-state[robot_index][i].z2);
+        state[robot_index][i].u = u0[i] - state[robot_index][i].z3;
+    }
+
+    // convert u to result 
+    float result[2] = {state[robot_index][0].u/b, state[robot_index][1].u/b};
+
+    // DEBUG
+printf("vel_enu = [%f, %f], vel_p = [%f, %f], vel_err = [%f, %f], pd_err = [%f, %f], u0 = [%f, %f], result = [%f, %f]\n", vel[0], vel[1], vel_p[0], vel_p[1], target_vel[0]-vel_p[0], target_vel[1]-vel_p[1], pd_err[0], pd_err[1], u0[0], u0[1], result[0], result[1]);
+
+    // update roll/pitch value
+    SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+    for (int i = 0; i < 2; i++) {    
+        if (i == 0)
+            rc_data[robot_index].roll = constrain(1500 + result[i], 1000, 2000);
+        else if (i == 1)
+            rc_data[robot_index].pitch = constrain(1500 + result[i], 1000, 2000);
+    }
+}
+
+static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
+{
+    static float errorPositionI[4][2] = {0};
+    float error_enu[2]; // error vector in earth coordinate
+    float error_p[2];// error vector in robot's coordinate
+    float heading_e_front[2]; // heading unit vector, indicating front direction
+    float heading_e_right[2]; // perpendicular vector of heading, indicating right
+    float target_vel[2];
+    float error;
+    float result;
+
+    static ADRC_State_t state[4][2] = {{{0},{0}}, {{0},{0}}, {{0},{0}}, {{0},{0}}}; // 4 robots max
+
+    // get configs
+    GSRAO_Config_t* configs = GSRAO_Config_get_configs();
+    pidProfile_t*   pidProfile = configs->robot.pidProfile;
+    adrcProfile_t*   adrcProfile = configs->robot.adrcProfile;
+
+    // get east/north
+    float pos[2], pos_ref[2], vel[2]; // e/n
+    MocapData_t* data = mocap_get_data(); // get mocap data
+    Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref states
+    for (int i = 0; i < 2; i++) // e/n
+    {
+        pos[i] = data->robot[robot_index].enu[i]; // e/n axis, robot's real-time x y axis pos
+        pos_ref[i] = robot_ref[robot_index].enu[i]; // reference x y axis pos
+        vel[i] = data->robot[robot_index].vel[i]; // current e/n velocity
+    }
+
+    // get position error vector in earth coordinate
+    for (int i = 0; i < 2; i++)
+        error_enu[i] = pos_ref[i] - pos[i];
+
+    // get heading unit vectors
+    float heading_angle = data->robot[robot_index].att[2];
+    heading_e_front[0] = -sin(heading_angle); // for pitch
+    heading_e_front[1] = cos(heading_angle);
+    heading_e_right[0] = heading_e_front[1]; // for roll
+    heading_e_right[1] = -heading_e_front[0];
+    
+    // convert error to robot's coordinate
+    error_p[0] = cblas_sdot(2, error_enu, 1, heading_e_right, 1); // for roll
+    error_p[1] = cblas_sdot(2, error_enu, 1, heading_e_front, 1); // for pitch
+
+    // convert velocity to robot's coordinate
+    float vel_p[2];
+    vel_p[0] = cblas_sdot(2, vel, 1, heading_e_right, 1); // for roll
+    vel_p[1] = cblas_sdot(2, vel, 1, heading_e_front, 1); // for pitch
+
+    // convert acceleration to robot's coordinate
+    float acc_p[2];
+    float* acc = &(data->robot[robot_index].acc[0]); // current e/n acc
+    acc_p[0] = cblas_sdot(2, acc, 1, heading_e_right, 1); // for roll
+    acc_p[1] = cblas_sdot(2, acc, 1, heading_e_front, 1); // for pitch
+
+#if 0
+    printf("heading angle is %f\n", heading_angle);
+    printf("pos_ref is [%f, %f] m, pos is [%f, %f] m\n", pos_ref[0], pos_ref[1], pos[0], pos[1]);
+    printf("front error is %f m, right error is %f m\n", error_p[1], error_p[0]);
+#endif
+#if 0
+    printf("error_enu is [%f, %f] m\n", error_enu[0], error_enu[1]);
+#endif
+
+    // LESO
+    float leso_err[2] = {error_p[0]-state[robot_index][0].z1, error_p[1]-state[robot_index][1].z1};
+
+    // Velocity-PID
+    for (int i = 0; i < 2; i++) // 0 for roll, 1 for pitch
+    {
+        // Position PID-Controller for east(x)/north(y) axis
+        target_vel[i] = constrain(pidProfile[robot_index].P[PIDPOS]*error_p[i], -0.3, 0.3); // limit error to +/- 0.3 m/s;
+        target_vel[i] = applyDeadband(target_vel[i], 0.01); // 1 cm/s
+
+        // Velocity PID-Controller
+        error = target_vel[i]-vel_p[i];
+
+        // P
+        result = constrain((pidProfile[robot_index].P[PIDPOSR]*error), -100, 100); // limit to +/- 100
+        // I
+        errorPositionI[robot_index][i] += (pidProfile[robot_index].I[PIDPOSR]*error);
+        errorPositionI[robot_index][i] = constrain(errorPositionI[robot_index][i], -200.0, 200.0); // limit to +/- 200
+        result += errorPositionI[robot_index][i];
+        // D
+        result -= constrain(pidProfile[robot_index].D[PIDPOSR]*acc_p[i], -100, 100); // limit
+
+        // update roll/pitch value
+        SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+        if (i == 0)
+            rc_data[robot_index].roll = constrain(1500 + result, 1000, 2000);
+        else if (i == 1)
+            rc_data[robot_index].pitch = constrain(1500 + result, 1000, 2000);
+
+        // LESO
+        state[robot_index][i].z1 += dt*(state[robot_index][i].z2 + 3*adrcProfile[robot_index].w0[ADRCPOS]*leso_err[i]);
+        state[robot_index][i].z2 += dt*(state[robot_index][i].z3 + 3*pow(adrcProfile[robot_index].w0[ADRCPOS],2)*leso_err[i] + result);
+        state[robot_index][i].z3 += dt*(pow(adrcProfile[robot_index].w0[ADRCPOS],3)*leso_err[i]);
+    }
+
+// DEBUG
+printf("error_p = [%f, %f], z1 = [%f, %f], z2 = [%f, %f], z3 = [%f, %f]\n", error_p[0], error_p[1], state[robot_index][0].z1, state[robot_index][1].z1, state[robot_index][0].z2, state[robot_index][1].z2, state[robot_index][0].z3, state[robot_index][1].z3);
+
+    // save z3 to wind est
+    Robot_State_t* robot_state = robot_get_state();
+    robot_state[robot_index].wind[0] = state[robot_index][0].z3;
+    robot_state[robot_index].wind[1] = state[robot_index][1].z3;
+}
+
+static void microbee_yaw_control_adrc(float dt, int robot_index)
+{
+    static ADRC_State_t state[4] = {{0},{0},{0},{0}}; // 4 robots max
+    // get configs
+    GSRAO_Config_t* configs = GSRAO_Config_get_configs();
+    adrcProfile_t*   adrcProfile = configs->robot.adrcProfile;
+
+    // get heading/heading_ref in earth coordinate
+    MocapData_t* data = mocap_get_data(); // get mocap data
+    Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref state
+    float heading = data->robot[robot_index].att[2]; // real-time heading angle
+    float heading_ref = robot_ref[robot_index].heading; // reference heading angle
+
+    /* LADRC */
+    float leso_err = heading - state[robot_index].z1;
+    /*if (leso_err > M_PI)
+        leso_err -= 2*M_PI;
+    else if (leso_err < -M_PI)
+        leso_err += 2*M_PI;
+    leso_err = constrain(leso_err, -M_PI, M_PI);*/
+    // LESO
+    state[robot_index].z1 += dt*(state[robot_index].z2 + 3*adrcProfile[robot_index].w0[ADRCMAG]*leso_err);
+    state[robot_index].z2 += dt*(state[robot_index].z3 + 3*pow(adrcProfile[robot_index].w0[ADRCMAG],2)*leso_err + state[robot_index].u);
+    state[robot_index].z3 += dt*(pow(adrcProfile[robot_index].w0[ADRCMAG],3)*leso_err);
+    // PD
+    float pd_err = state[robot_index].z1 - heading_ref;
+    if (pd_err > M_PI)
+        pd_err -= 2*M_PI;
+    else if (pd_err < -M_PI)
+        pd_err += 2*M_PI;
+    float u0 = adrcProfile[robot_index].kp[ADRCMAG]*pd_err + adrcProfile[robot_index].kd[ADRCMAG]*state[robot_index].z2;
+    state[robot_index].u = u0 - state[robot_index].z3;
+
+    // convert u to result
+    float result = 0.4*state[robot_index].u;
+
+// for DEBUG
+//printf("heading_ref = %f, heading = %f, pd_err = %f, z2 = %f, z3 = %f, result = %f\n", heading_ref, heading, pd_err, state[robot_index].z2, state[robot_index].z3, result);
+
+    // update yaw value
+    SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+    rc_data[robot_index].yaw = constrain(1500 + result, 1050, 1950);
+}
+
 /*
  * TODO:
  *  dt not used
  */
 static void microbee_pos_control(float dt, int robot_index)
 {
-    microbee_throttle_control(dt, robot_index);
-    microbee_roll_pitch_control(dt, robot_index);
-    microbee_yaw_control(dt, robot_index);
+#ifdef MICROBEE_POS_CONTROL_USE_ADRC
+    microbee_throttle_control_pid(dt, robot_index);
+    microbee_roll_pitch_control_pid_leso(dt, robot_index);
+    microbee_yaw_control_adrc(dt, robot_index);
+#else // use PID
+    microbee_throttle_control_pid(dt, robot_index);
+    microbee_roll_pitch_control_pid(dt, robot_index);
+    microbee_yaw_control_pid(dt, robot_index);
+#endif
 }

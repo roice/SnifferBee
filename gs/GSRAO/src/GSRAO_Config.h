@@ -33,6 +33,7 @@ typedef struct {
     std::string ppm_serial_port_path;
     std::string dnet_serial_port_path;
     pidProfile_t    pidProfile[4]; // 4 robots max
+    adrcProfile_t   adrcProfile[4]; // 4 robots max
 }GSRAO_Config_Robot_t;
 
 typedef struct {

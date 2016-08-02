@@ -18,11 +18,11 @@
 
 void GSRAO_Save_Data(void)
 {
-    hid_t file_id, dataset_id, dataspace_id;
+    hid_t file_id, group_id, dataset_id, dataspace_id;
     herr_t status;
     hsize_t data_dims[2];
 
-    char ds_name[32];
+    char gr_name[32];
     
     // create file, if the file already exists, the current contents will be 
     // deleted so that the application can rewrite the file with new data.
@@ -37,16 +37,24 @@ void GSRAO_Save_Data(void)
     /* get records */
     std::vector <Robot_Record_t>* robot_rec = robot_get_record();
 
-    // save robot time info
     double* time_seq;
+    float* data;
+#ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
+    int* motor_data;
+#endif
+ 
     for (int i = 0; i < 4; i++) // 4 robots max
     {
+        /* Create a group named "robot1~robot4" in the file */
+        snprintf(gr_name, 32, "robot%d", i+1);
+        group_id = H5Gcreate2(file_id, gr_name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        
+        // robot time
         data_dims[0] = robot_rec[i].size();
         data_dims[1] = 1; // time
         dataspace_id = H5Screate_simple(2, data_dims, NULL);
         // create data set
-        snprintf(ds_name, 32, "time_of_robot_%d", i);
-        dataset_id = H5Dcreate2(file_id, ds_name, H5T_NATIVE_DOUBLE, dataspace_id,
+        dataset_id = H5Dcreate2(group_id, "time", H5T_NATIVE_DOUBLE, dataspace_id,
                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         // write data
         time_seq = (double*)malloc(data_dims[0]*data_dims[1]*sizeof(*time_seq));
@@ -60,18 +68,13 @@ void GSRAO_Save_Data(void)
         status = H5Sclose(dataspace_id);
         // free space
         free(time_seq);
-    }
 
-    // save robot enu info
-    float* data;
-    for (int i = 0; i < 4; i++) // 4 robots max
-    {
+        // robot enu info
         data_dims[0] = robot_rec[i].size();
         data_dims[1] = 3; // enu[3]
         dataspace_id = H5Screate_simple(2, data_dims, NULL);
         // create data set
-        snprintf(ds_name, 32, "enu_of_robot_%d", i);
-        dataset_id = H5Dcreate2(file_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id,
+        dataset_id = H5Dcreate2(group_id, "enu", H5T_NATIVE_FLOAT, dataspace_id,
                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         // write data
         data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
@@ -85,17 +88,13 @@ void GSRAO_Save_Data(void)
         status = H5Sclose(dataspace_id);
         // free space
         free(data);
-    }
 
-    // save robot att info
-    for (int i = 0; i < 4; i++) // 4 robots max
-    {
+        // robot att info
         data_dims[0] = robot_rec[i].size();
         data_dims[1] = 3; // att[3]
         dataspace_id = H5Screate_simple(2, data_dims, NULL);
         // create data set
-        snprintf(ds_name, 32, "att_of_robot_%d", i);
-        dataset_id = H5Dcreate2(file_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id,
+        dataset_id = H5Dcreate2(group_id, "att", H5T_NATIVE_FLOAT, dataspace_id,
                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         // write data
         data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
@@ -109,17 +108,13 @@ void GSRAO_Save_Data(void)
         status = H5Sclose(dataspace_id);
         // free space
         free(data);
-    }
 
-    // save robot sensor info
-    for (int i = 0; i < 4; i++) // 4 robots max
-    {
+        // robot sensor info
         data_dims[0] = robot_rec[i].size();
         data_dims[1] = 3; // sensor[3]
         dataspace_id = H5Screate_simple(2, data_dims, NULL);
         // create data set
-        snprintf(ds_name, 32, "sensors_of_robot_%d", i);
-        dataset_id = H5Dcreate2(file_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id,
+        dataset_id = H5Dcreate2(group_id, "mox", H5T_NATIVE_FLOAT, dataspace_id,
                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         // write data
         data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
@@ -133,19 +128,14 @@ void GSRAO_Save_Data(void)
         status = H5Sclose(dataspace_id);
         // free space
         free(data);
-    }
 
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
-    // save robot motor values
-    int* motor_data;
-    for (int i = 0; i < 4; i++) // 4 robots max
-    {
+        // robot motor values
         data_dims[0] = robot_rec[i].size();
         data_dims[1] = 4; // motor[4]
         dataspace_id = H5Screate_simple(2, data_dims, NULL);
         // create data set
-        snprintf(ds_name, 32, "motors_of_robot_%d", i);
-        dataset_id = H5Dcreate2(file_id, ds_name, H5T_NATIVE_INT, dataspace_id,
+        dataset_id = H5Dcreate2(group_id, "motors", H5T_NATIVE_INT, dataspace_id,
                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         // write data
         motor_data = (int*)malloc(data_dims[0]*data_dims[1]*sizeof(*motor_data));
@@ -159,18 +149,14 @@ void GSRAO_Save_Data(void)
         status = H5Sclose(dataspace_id);
         // free space
         free(motor_data);
-    }
 #endif
 
-    // save robot bat voltage
-    for (int i = 0; i < 4; i++) // 4 robots max
-    {
+        // robot bat voltage
         data_dims[0] = robot_rec[i].size();
         data_dims[1] = 1; // bat volt
         dataspace_id = H5Screate_simple(2, data_dims, NULL);
         // create data set
-        snprintf(ds_name, 32, "bat_volt_of_robot_%d", i);
-        dataset_id = H5Dcreate2(file_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id,
+        dataset_id = H5Dcreate2(group_id, "bat_volt", H5T_NATIVE_FLOAT, dataspace_id,
                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         // write data
         data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
@@ -184,6 +170,29 @@ void GSRAO_Save_Data(void)
         status = H5Sclose(dataspace_id);
         // free space
         free(data);
+
+        // robot wind measurement/estimation
+        data_dims[0] = robot_rec[i].size();
+        data_dims[1] = 3; // wind[3]
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "wind", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_rec[i].at(idx).wind[0]), 3*sizeof(float)); // att
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        /* close group "robot0~robot4" */
+        status = H5Gclose(group_id);
     }
 
     /* Terminate access to the file. */

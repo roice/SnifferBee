@@ -10,6 +10,8 @@
 #ifndef MICROBEE_H
 #define MICROBEE_H
 
+#define MICROBEE_POS_CONTROL_USE_ADRC
+
 typedef struct {
     bool linked; // false for unlinked, true for linked to GS
     bool armed; // false for disarm, true for arm

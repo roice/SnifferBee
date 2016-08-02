@@ -49,6 +49,7 @@ void GSRAO_Config_restore(void)
         settings.robot.num_of_robots = pt.get<int>("Robot.num_of_robots");
         settings.robot.ppm_serial_port_path = pt.get<std::string>("Robot.ppm_serial_port_path");
         settings.robot.dnet_serial_port_path = pt.get<std::string>("Robot.dnet_serial_port_path");
+        // PID
         settings.robot.pidProfile[0].P[PIDALT] = pt.get<float>("Robot.pidProfile_P_ALT_of_robot_1");
         settings.robot.pidProfile[0].P[PIDVEL] = pt.get<float>("Robot.pidProfile_P_VEL_of_robot_1");
         settings.robot.pidProfile[0].I[PIDVEL] = pt.get<float>("Robot.pidProfile_I_VEL_of_robot_1");
@@ -96,6 +97,16 @@ void GSRAO_Config_restore(void)
         settings.robot.pidProfile[3].P[PIDMAG] = pt.get<float>("Robot.pidProfile_P_MAG_of_robot_4");
         settings.robot.pidProfile[3].I[PIDMAG] = pt.get<float>("Robot.pidProfile_I_MAG_of_robot_4");
         settings.robot.pidProfile[3].D[PIDMAG] = pt.get<float>("Robot.pidProfile_D_MAG_of_robot_4");
+        // ADRC
+        settings.robot.adrcProfile[0].w0[ADRCALT] = pt.get<float>("Robot.adrcProfile_w0_ALT_of_robot_1");
+        settings.robot.adrcProfile[0].kp[ADRCALT] = pt.get<float>("Robot.adrcProfile_kp_ALT_of_robot_1");
+        settings.robot.adrcProfile[0].kd[ADRCALT] = pt.get<float>("Robot.adrcProfile_kd_ALT_of_robot_1");
+        settings.robot.adrcProfile[0].w0[ADRCPOS] = pt.get<float>("Robot.adrcProfile_w0_POS_of_robot_1");
+        settings.robot.adrcProfile[0].kp[ADRCPOS] = pt.get<float>("Robot.adrcProfile_kp_POS_of_robot_1");
+        settings.robot.adrcProfile[0].kd[ADRCPOS] = pt.get<float>("Robot.adrcProfile_kd_POS_of_robot_1");
+        settings.robot.adrcProfile[0].w0[ADRCMAG] = pt.get<float>("Robot.adrcProfile_w0_MAG_of_robot_1");
+        settings.robot.adrcProfile[0].kp[ADRCMAG] = pt.get<float>("Robot.adrcProfile_kp_MAG_of_robot_1");
+        settings.robot.adrcProfile[0].kd[ADRCMAG] = pt.get<float>("Robot.adrcProfile_kd_MAG_of_robot_1");
         // System
         settings.system.robot_panel_opened = pt.get<bool>("System.robot_panel_opened");
         settings.system.result_panel_opened = pt.get<bool>("System.result_panel_opened");
@@ -122,6 +133,7 @@ void GSRAO_Config_save(void)
     pt.put("Robot.num_of_robots", settings.robot.num_of_robots);
     pt.put("Robot.ppm_serial_port_path", settings.robot.ppm_serial_port_path);
     pt.put("Robot.dnet_serial_port_path", settings.robot.dnet_serial_port_path);
+    // PID
     pt.put("Robot.pidProfile_P_ALT_of_robot_1", settings.robot.pidProfile[0].P[PIDALT]);
     pt.put("Robot.pidProfile_P_VEL_of_robot_1", settings.robot.pidProfile[0].P[PIDVEL]);
     pt.put("Robot.pidProfile_I_VEL_of_robot_1", settings.robot.pidProfile[0].I[PIDVEL]);
@@ -169,6 +181,16 @@ void GSRAO_Config_save(void)
     pt.put("Robot.pidProfile_P_MAG_of_robot_4", settings.robot.pidProfile[3].P[PIDMAG]);
     pt.put("Robot.pidProfile_I_MAG_of_robot_4", settings.robot.pidProfile[3].I[PIDMAG]);
     pt.put("Robot.pidProfile_D_MAG_of_robot_4", settings.robot.pidProfile[3].D[PIDMAG]);
+    // ADRC
+    pt.put("Robot.adrcProfile_w0_ALT_of_robot_1", settings.robot.adrcProfile[0].w0[ADRCALT]);
+    pt.put("Robot.adrcProfile_kp_ALT_of_robot_1", settings.robot.adrcProfile[0].kp[ADRCALT]);
+    pt.put("Robot.adrcProfile_kd_ALT_of_robot_1", settings.robot.adrcProfile[0].kd[ADRCALT]);
+    pt.put("Robot.adrcProfile_w0_POS_of_robot_1", settings.robot.adrcProfile[0].w0[ADRCPOS]);
+    pt.put("Robot.adrcProfile_kp_POS_of_robot_1", settings.robot.adrcProfile[0].kp[ADRCPOS]);
+    pt.put("Robot.adrcProfile_kd_POS_of_robot_1", settings.robot.adrcProfile[0].kd[ADRCPOS]);
+    pt.put("Robot.adrcProfile_w0_MAG_of_robot_1", settings.robot.adrcProfile[0].w0[ADRCMAG]);
+    pt.put("Robot.adrcProfile_kp_MAG_of_robot_1", settings.robot.adrcProfile[0].kp[ADRCMAG]);
+    pt.put("Robot.adrcProfile_kd_MAG_of_robot_1", settings.robot.adrcProfile[0].kd[ADRCMAG]);
 
     // System
     pt.put("System.robot_panel_opened", settings.system.robot_panel_opened);
@@ -199,6 +221,7 @@ void GSRAO_Config_init(void)
     settings.robot.dnet_serial_port_path = "/dev/ttyUSB_GSRAO_DATA";
     for (char i = 0; i < 4; i++)
     {
+        // PID
         settings.robot.pidProfile[i].P[PIDALT] = 1.0;
         settings.robot.pidProfile[i].P[PIDVEL] = 500;
         settings.robot.pidProfile[i].I[PIDVEL] = 10;
@@ -210,7 +233,16 @@ void GSRAO_Config_init(void)
         settings.robot.pidProfile[i].P[PIDMAG] = 30;
         settings.robot.pidProfile[i].I[PIDMAG] = 0.3;
         settings.robot.pidProfile[i].D[PIDMAG] = 0.02;
-        
+        // ADRC
+        settings.robot.adrcProfile[i].w0[ADRCALT] = 1;
+        settings.robot.adrcProfile[i].kp[ADRCALT] = 1;
+        settings.robot.adrcProfile[i].kd[ADRCALT] = 1;
+        settings.robot.adrcProfile[i].w0[ADRCPOS] = 1;
+        settings.robot.adrcProfile[i].kp[ADRCPOS] = 1;
+        settings.robot.adrcProfile[i].kd[ADRCPOS] = 1;
+        settings.robot.adrcProfile[i].w0[ADRCMAG] = 20;
+        settings.robot.adrcProfile[i].kp[ADRCMAG] = 16;
+        settings.robot.adrcProfile[i].kd[ADRCMAG] = 8;
     }
     // system
     settings.system.robot_panel_opened = false;

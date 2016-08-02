@@ -16,6 +16,7 @@
 #include "GSRAO_Config.h"
 #include "mocap/packet_client.h"
 #include "ui/draw/draw_qr.h"
+#include "ui/draw/draw_arrow.h"
 
 void draw_robots(void)
 {
@@ -26,12 +27,23 @@ void draw_robots(void)
     // get mocap data
     MocapData_t* data = mocap_get_data();
 
+    // get robot state
+    Robot_State_t* robot_state = robot_get_state();
+
     for (int idx_robot = 0; idx_robot < num_robots; idx_robot++)
     {// draw every robot
 
         /* draw robot according to its type, configures... */
         // draw quadrotor
         draw_qr(&(data->robot[idx_robot]));
+
+        // draw wind vector measurement/estimation
+        draw_arrow(data->robot[idx_robot].enu[0],
+            data->robot[idx_robot].enu[1],
+            data->robot[idx_robot].enu[2],
+            data->robot[idx_robot].enu[0] + 0.01*robot_state[idx_robot].wind[0],
+            data->robot[idx_robot].enu[1] + 0.01*robot_state[idx_robot].wind[1],
+            data->robot[idx_robot].enu[2] + 0.01*robot_state[idx_robot].wind[2]);
         
     }
 }

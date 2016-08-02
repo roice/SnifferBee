@@ -145,15 +145,17 @@ static void mbspEvaluateData(void)
                 // record
                 Robot_Record_t record = {0};
                 std::vector<Robot_Record_t>* robot_rec = robot_get_record();
-                MocapData_t* data = mocap_get_data(); 
+                MocapData_t* data = mocap_get_data();
+                Robot_State_t* robot_state = robot_get_state();
                 memcpy(record.enu, data->robot[mbsp_data.from-1].enu, 3*sizeof(float));
                 memcpy(record.att, data->robot[mbsp_data.from-1].att, 3*sizeof(float));
-                memcpy(record.sensor, &(mb[mbsp_data.from-1].sensors.front), 3*sizeof(float));
+                memcpy(record.sensor, &(mb[mbsp_data.from-1].sensors.front), 3*sizeof(float)); 
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
                 memcpy(record.motor, mb[mbsp_data.from-1].motor, 4*sizeof(int));
 #endif
                 memcpy(&(record.bat_volt), &(mb[mbsp_data.from-1].state.bat_volt), sizeof(float));
                 record.time = mb[mbsp_data.from-1].time;
+                memcpy(record.wind, robot_state[mbsp_data.from-1].wind, 3*sizeof(float));
                 robot_rec[mbsp_data.from-1].push_back(record);
                 break;
             }
