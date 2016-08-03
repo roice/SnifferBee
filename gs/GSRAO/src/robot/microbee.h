@@ -28,6 +28,7 @@ typedef struct {
     MicroBee_State_t state;
     MicroBee_Sensors_t sensors; // 3 gas sensors
     int motor[4]; // 4 motor values
+    int count; // sequence of this frame counted by microbee
     double time; // stores the latest time receiving messages from microbee
 } MicroBee_t;
 

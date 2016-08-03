@@ -1097,6 +1097,7 @@ void UI::cb_close(Fl_Widget* w, void* data) {
     // close GSRAO
     if (Fl::event() == FL_CLOSE) {
         // close Link with robots and Motion Capture System
+        method_stop();
         robot_shutdown(); // shutdown robots
         spp_close(); // close serial link with PPM encoder
         mbsp_close(); // close serial link with DATA receiver
@@ -1137,6 +1138,9 @@ void UI::cb_close(Fl_Widget* w, void* data) {
 
         // close main window
         ((Fl_Window*)w)->hide();
+
+        // save robot record
+        GSRAO_Save_Data();
     }
 }
 UI::UI(int width, int height, const char* title=0)

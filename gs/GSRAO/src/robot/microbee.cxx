@@ -675,7 +675,7 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
     }
 
 // DEBUG
-printf("error_p = [%f, %f], z1 = [%f, %f], z2 = [%f, %f], z3 = [%f, %f]\n", error_p[0], error_p[1], state[robot_index][0].z1, state[robot_index][1].z1, state[robot_index][0].z2, state[robot_index][1].z2, state[robot_index][0].z3, state[robot_index][1].z3);
+//printf("error_p = [%f, %f], z1 = [%f, %f], z2 = [%f, %f], z3 = [%f, %f]\n", error_p[0], error_p[1], state[robot_index][0].z1, state[robot_index][1].z1, state[robot_index][0].z2, state[robot_index][1].z2, state[robot_index][0].z3, state[robot_index][1].z3);
 
     // save z3 to wind est
     Robot_State_t* robot_state = robot_get_state();

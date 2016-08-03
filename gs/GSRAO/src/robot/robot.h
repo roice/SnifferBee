@@ -60,6 +60,7 @@ typedef struct {
     float wind[3]; // wind measurement/estimation
     int motor[4]; // values of 4 motors
     float bat_volt; // battery voltage
+    int count;
     double time;
 } Robot_Record_t;
 

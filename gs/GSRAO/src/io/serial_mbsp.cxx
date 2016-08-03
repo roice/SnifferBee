@@ -108,7 +108,6 @@ static void mbspEvaluateData(void)
                 mb = microbee_get_states();
                 mb[mbsp_data.from-1].state.armed = mbsp_data.data[0]>0? true:false;
                 mb[mbsp_data.from-1].state.bat_volt = *(float*)(&(mbsp_data.data[1]));
-                //printf("arm/disarm is %d, bat volt is %f\n", mb[mbsp_data.from-1].state.armed, mb[mbsp_data.from-1].state.bat_volt);
                 clock_gettime(CLOCK_REALTIME, &time);
                 mb[mbsp_data.from-1].time = time.tv_sec + time.tv_nsec/1.0e9;
                 break;
@@ -116,9 +115,9 @@ static void mbspEvaluateData(void)
             case MBSP_CMD_MEASUREMENTS:
             {
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
-                if (mbsp_data.len != 3*2 + 4*2)
+                if (mbsp_data.len != 3*2 + 2 + 4*2)
 #else
-                if (mbsp_data.len != 6) // 3*2(uint16_t)
+                if (mbsp_data.len != 3*2 +2) // 3*sizeof((uint16_t)) + (sizeof(uint16_t))
 #endif
                     break;
                 mb = microbee_get_states();
@@ -126,14 +125,17 @@ static void mbspEvaluateData(void)
                 front = *(short*)(&(mbsp_data.data[0]));
                 left = *(short*)(&(mbsp_data.data[2]));
                 right = *(short*)(&(mbsp_data.data[4]));
+                unsigned short count;
+                count = *(short*)(&(mbsp_data.data[6]));
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
                 int motor[4];
                 for (int i = 0; i < 4; i++)
-                    motor[i] = *(short*)(&(mbsp_data.data[6+2*i]));
-#endif
+                    motor[i] = *(short*)(&(mbsp_data.data[8+2*i]));
+#endif 
                 mb[mbsp_data.from-1].sensors.front = front*3.3/4096.0;
                 mb[mbsp_data.from-1].sensors.left = left*3.3/4096.0;
                 mb[mbsp_data.from-1].sensors.right = right*3.3/4096.0;
+                mb[mbsp_data.from-1].count = count;
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
                 for (int i = 0; i < 4; i++)
                     mb[mbsp_data.from-1].motor[i] = motor[i] & 0x0000FFFF;
@@ -149,7 +151,8 @@ static void mbspEvaluateData(void)
                 Robot_State_t* robot_state = robot_get_state();
                 memcpy(record.enu, data->robot[mbsp_data.from-1].enu, 3*sizeof(float));
                 memcpy(record.att, data->robot[mbsp_data.from-1].att, 3*sizeof(float));
-                memcpy(record.sensor, &(mb[mbsp_data.from-1].sensors.front), 3*sizeof(float)); 
+                memcpy(record.sensor, &(mb[mbsp_data.from-1].sensors.front), 3*sizeof(float));
+                memcpy(&(record.count), &(mb[mbsp_data.from-1].count), sizeof(int));
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
                 memcpy(record.motor, mb[mbsp_data.from-1].motor, 4*sizeof(int));
 #endif

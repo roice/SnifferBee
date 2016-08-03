@@ -39,6 +39,7 @@ void GSRAO_Save_Data(void)
 
     double* time_seq;
     float* data;
+    int* count_data;
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
     int* motor_data;
 #endif
@@ -128,6 +129,26 @@ void GSRAO_Save_Data(void)
         status = H5Sclose(dataspace_id);
         // free space
         free(data);
+
+        // robot measurement count number
+        data_dims[0] = robot_rec[i].size();
+        data_dims[1] = 1; // count
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "count", H5T_NATIVE_INT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        count_data = (int*)malloc(data_dims[0]*data_dims[1]*sizeof(*count_data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(count_data[idx]), &(robot_rec[i].at(idx).count), sizeof(int));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, count_data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(count_data);
 
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
         // robot motor values
