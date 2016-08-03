@@ -9,9 +9,9 @@ wind_speed_en = fd['/FOC/est_wind_speed_en'][...]
 wind_speed_filtered_xy = fd['/FOC/est_wind_speed_filtered_xy'][...]
 valid = fd['/FOC/est_valid'][...]
 
-fd_ori = h5py.File('../data/Record_2016-06-07_22-30-51.h5', 'r+')
-att = fd_ori['att_of_robot_0'][...]
-pos = fd_ori['enu_of_robot_0'][...]
+fd_ori = h5py.File('../data/Record_2016-08-03_17-30-06.h5', 'r+')
+att = fd_ori['robot1/att'][...]
+pos = fd_ori['robot1/enu'][...]
 
 direction = []
 for i in range(len(valid)):

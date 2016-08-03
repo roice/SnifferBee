@@ -28,6 +28,7 @@ typedef struct {
     float mox_reading[FOC_NUM_SENSORS];
     float position[3];
     float attitude[3];
+    int count;
     double time;
 } FOC_Input_t; // data type input to FOC
 

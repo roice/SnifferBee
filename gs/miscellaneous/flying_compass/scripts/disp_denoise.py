@@ -6,9 +6,14 @@ fd = h5py.File('FOC_Record.h5', 'r+')
 mox_reading = fd['/FOC/mox_reading'][...]
 mox_ukf_out = fd['/FOC/mox_denoise'][...]
 
-fig = plt.figure(figsize=(8,6))
-ax = fig.add_subplot(111)
-ax.plot(mox_ukf_out)
-#ax.plot(mox_reading)
+fig, (ax1, ax2) = plt.subplots(nrows=2)
+
+ax1.plot(mox_reading[:,0], color='red')
+ax1.plot(mox_reading[:,1], color='yellow')
+ax1.plot(mox_reading[:,2], color='blue')
+
+ax2.plot(mox_ukf_out[:,0], color='red')
+ax2.plot(mox_ukf_out[:,1], color='yellow')
+ax2.plot(mox_ukf_out[:,2], color='blue')
 
 plt.show()
