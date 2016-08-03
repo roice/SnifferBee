@@ -1097,7 +1097,6 @@ void UI::cb_close(Fl_Widget* w, void* data) {
     // close GSRAO
     if (Fl::event() == FL_CLOSE) {
         // close Link with robots and Motion Capture System
-        method_stop();
         robot_shutdown(); // shutdown robots
         spp_close(); // close serial link with PPM encoder
         mbsp_close(); // close serial link with DATA receiver
@@ -1105,9 +1104,14 @@ void UI::cb_close(Fl_Widget* w, void* data) {
         Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
         Fl::remove_timeout(cb_repeated_tasks_10hz); // remove timeout callback for repeated tasks
 
+        UI_Widgets* ws = (UI_Widgets*)data;
+
+        // save robot record
+        if ((((ToolBar*)ws->toolbar)->ws.start != NULL and ((ToolBar*)ws->toolbar)->ws.start->value()) or (((ToolBar*)ws->toolbar)->ws.pause != NULL and ((ToolBar*)ws->toolbar)->ws.pause->value())) // start/pause is pressed, simulation is running
+            GSRAO_Save_Data();
+
         // save open/close states of other sub-panels to configs
         GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
-        UI_Widgets* ws = (UI_Widgets*)data;
         if (((ToolBar*)ws->toolbar)->hs.robot_panel != NULL) { // robot panel
             if (((ToolBar*)ws->toolbar)->hs.robot_panel->shown())
                 configs->system.robot_panel_opened = true;
@@ -1138,9 +1142,6 @@ void UI::cb_close(Fl_Widget* w, void* data) {
 
         // close main window
         ((Fl_Window*)w)->hide();
-
-        // save robot record
-        GSRAO_Save_Data();
     }
 }
 UI::UI(int width, int height, const char* title=0)
