@@ -26,7 +26,7 @@ void foc_diff_init(std::vector<FOC_Reading_t>& out, int order=2)
 
     // create filter from prototype
     for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-        f[idx] = firfilt_rrrf_create_kaiser(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, 1.0f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60.0, 0.0);
+        f[idx] = firfilt_rrrf_create_kaiser(2*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, 0.5f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60.0, 0.0);
 
     out.clear();
 

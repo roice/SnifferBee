@@ -4,7 +4,7 @@
 #include <vector>
 #include "flying_odor_compass.h"
 
-#define N   (FOC_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)
+#define N   (FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)
 
 /* Feature extraction
  * Args:

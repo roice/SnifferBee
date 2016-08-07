@@ -21,6 +21,7 @@
 #include "foc/foc_diff.h"
 #include "foc/foc_delta.h"
 #include "foc/foc_estimate.h"
+#include "foc/foc_wind.h"
 
 #define SIGN(n) (n >= 0? 1:-1)
 
@@ -45,20 +46,22 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     data_diff.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
     data_delta.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_est.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
+/* init wind filtering */
+    foc_wind_smooth_init(data_wind); // FOC_DELAY s delay
 /* init UKF filtering */
     foc_noise_reduction_ukf_init();
 /* init FIR interpolation */
-    foc_interp_init(data_interp, FOC_MOX_INTERP_FACTOR, FOC_MOX_DAQ_FREQ*1, 60);
+    foc_interp_init(data_interp, FOC_MOX_INTERP_FACTOR, FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ, 60); // FOC_DELAY s delay, consistent with wind smoothing
 /* init FIR smoothing
- * h_len = 5 s * sampling_freq, fc = 0.2 Hz */
-    foc_smooth_init(data_smooth, 5*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, 0.2f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60, 0.0);
+ * h_len = 2 s * sampling_freq, fc = 0.5 Hz */
+    //foc_smooth_init(data_smooth, 2*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, 0.5f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60, 0.0);
 /* init Differentiation 
  * order = 3 */
-    foc_diff_init(data_diff, 3);
+    foc_diff_init(data_diff, 1);
 /* init feature extraction */
     foc_delta_init(data_delta);
 /* init direction estimation */
-    foc_estimate_init(data_est);
+    foc_estimate_source_direction_init(data_est);
 }
 
 /* FOC update
@@ -70,6 +73,7 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 {
     data_raw.push_back(new_in); // save record
 /* Step 0: Pre-processing */
+    foc_wind_smooth_update(new_in, data_wind); // smooth wind data
 
 /* Step 1: Noise reduction through UKF filtering */
     FOC_Reading_t ukf_out = foc_noise_reduction_ukf_update(new_in);
@@ -80,11 +84,11 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
         return false;
 
 /* Step 3: Smoothing through FIR filtering */
-    if (!foc_smooth_update(data_interp, data_smooth))
-        return false;
+//    if (!foc_smooth_update(data_interp, data_smooth))
+//        return false;
 
 /* Step 4: Derivative */
-    if (!foc_diff_update(data_smooth, data_diff))
+    if (!foc_diff_update(data_interp, data_diff))
         return false;
 
 /* Step 5: Extracting features: time diff and variance */
@@ -93,7 +97,7 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 
 /* Step 6: Estimate the direction the odor comes from 
  * Warning: This step is only suitable for 3 sensors (FOC_NUM_SENSORS = 3)*/
-    if (!foc_estimate_update(data_delta, data_est))
+    if (!foc_estimate_source_direction_update(data_raw, data_delta, data_wind, data_est))
         return false;
 
     return true;

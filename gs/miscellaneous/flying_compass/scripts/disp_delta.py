@@ -68,9 +68,9 @@ for i in range(len(corr_shift_fl)):
         angle.append(psi[np.array(cos_angle).argmin()])
 
 # get original heading
-fd_ori = h5py.File('../data/Record_2016-07-08_15-24-37.h5', 'r+')
-heading = fd_ori['att_of_robot_0'][...][:,2]
-pos = fd_ori['enu_of_robot_0'][...]
+fd_ori = h5py.File('../data/Record_2016-08-03_17-30-06.h5', 'r+')
+heading = fd_ori['robot1/att'][...][:,2]
+pos = fd_ori['robot1/enu'][...]
 
 fuse_angle = []
 for i in range(len(angle)):

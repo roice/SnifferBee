@@ -33,10 +33,20 @@ void Record_Data(std::vector<FOC_Wind_t>& data_wind, std::vector<FOC_Input_t>& d
     data_dims[0] = data_wind.size();
     data_dims[1] = 3;
     dataspace_id = H5Screate_simple(2, data_dims, NULL);
-    dataset_id = H5Dcreate2(group_id, "wind_direction", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    dataset_id = H5Dcreate2(group_id, "wind", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
     data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
     for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
-        memcpy(&(data_pointer[idx*3]), &(data_wind.at(idx).dir[0]), 3*sizeof(float));
+        memcpy(&(data_pointer[idx*3]), &(data_wind.at(idx).wind[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer);   // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it.
+    status = H5Sclose(dataspace_id); // Terminate access to the data space.
+    free(data_pointer); // free space
+    dataspace_id = H5Screate_simple(2, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "wind_filtered", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(data_wind.at(idx).wind_filtered[0]), 3*sizeof(float));
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data_pointer);   // write data
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it.

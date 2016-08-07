@@ -42,6 +42,9 @@ for i in range(len(valid)):
 for i in range(len(direction)):
     direction[i] += -att[i,2]
 
+for i in range(len(direction_filtered)):
+    direction_filtered += -att[i,2]
+
 fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4)
 
 ax1.plot(wind_speed_xy[:,0], color='red')
@@ -52,8 +55,8 @@ ax1.plot(wind_speed_xy[:,1], color='blue')
 
 ax2.plot(att[:,2]*180./np.pi)
 
-ax3.plot(np.asarray(direction)*180./np.pi)
+ax3.plot(np.asarray(direction_filtered)*180./np.pi)
 
-ax4.plot(pos[:,1])
+ax4.plot(pos[:,0])
 
 plt.show()

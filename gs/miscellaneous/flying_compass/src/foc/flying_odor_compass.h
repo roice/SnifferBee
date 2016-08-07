@@ -19,15 +19,18 @@
 #define FOC_RADIUS              0.1     // meter
 #define FOC_WIND_MIN            0.05    // m/s
 #define FOC_WIND_MAX            2.0     // m/s
-#define FOC_DELAY               5       // seconds, int
+#define FOC_SIGNAL_DELAY        1       // seconds, int
+#define FOC_TIME_RECENT_INFO    1       // seconds int
 #define FOC_MOX_DAQ_FREQ        10      // Hz, int
 #define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4, int
+#define FOC_MAX_PARTICLES       100     // max number of particles
 #define FOC_RECORD_LEN          600     // seconds of history recording, int
 
 typedef struct {
     float mox_reading[FOC_NUM_SENSORS];
     float position[3];
     float attitude[3];
+    float wind[3];
     int count;
     double time;
 } FOC_Input_t; // data type input to FOC
@@ -38,7 +41,8 @@ typedef struct {
 } FOC_Reading_t; // mox reading data type processed in FOC
 
 typedef struct {
-    float dir[3];
+    float wind[3];
+    float wind_filtered[3];
 } FOC_Wind_t;
 
 typedef struct {
@@ -47,6 +51,12 @@ typedef struct {
 } FOC_Delta_t; // delta time/varince (feature extracted from mox reading)
 
 typedef struct {
+    float pos_r[3]; // relative position from particle to robot
+    float weight;
+} FOC_Particle_t;
+
+typedef struct {
+    std::vector<FOC_Particle_t>* particles;
     float wind_speed_xy[2]; // plane coord, x/y
     float wind_speed_en[2]; // global coord, e/n
     float wind_speed_filtered_xy[2];

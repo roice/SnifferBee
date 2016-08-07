@@ -89,6 +89,8 @@ add_library(${LIB_FOC_NAME}
     src/foc/foc_diff.cxx
     src/foc/foc_delta.cxx
     src/foc/foc_estimate.cxx
+    src/foc/foc_wind.cxx
+    ../../../3rdparty/ziggurat/ziggurat.cpp
     )
 target_compile_features(foc PRIVATE cxx_constexpr)
 # link external liquid-dsp library
