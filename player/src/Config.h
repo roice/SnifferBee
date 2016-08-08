@@ -39,4 +39,4 @@ Config_t* Config_get_configs(void);
 
 #endif
 
-/* End of GSRAO_Config.h */
+/* End of Config.h */

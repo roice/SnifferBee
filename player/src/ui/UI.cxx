@@ -23,6 +23,7 @@
 #include <FL/Fl_Choice.H>
 #include <FL/Fl_Input.H>
 #include <FL/Fl_Scroll.H>
+#include <FL/Fl_File_Chooser.H>
 /* OpenGL */
 #include <FL/Fl_Gl_Window.H>
 #include <FL/gl.h>
@@ -34,7 +35,6 @@
 #include "ui/widgets/Fl_LED_Button/Fl_LED_Button.H"
 #include "ui/draw/draw_wave.h"
 #include "io/record.h"
-#include "method/method.h"
 #include "Config.h"
 
 /*------- Configuration Dialog -------*/
@@ -329,6 +329,7 @@ struct ToolBar_Widgets
     Fl_Light_Button*    record; // record button
     Fl_Button*          robot;  // robot state&control button
     Fl_Button*          result; // result display button
+    Fl_Button*          open;   // choose file
     Fl_Box*             msg_zone; // message zone
 };
 struct ToolBar_Handles // handles of dialogs/panels opened by corresponding buttons
@@ -336,6 +337,7 @@ struct ToolBar_Handles // handles of dialogs/panels opened by corresponding butt
     ConfigDlg* config_dlg; // handle of config dialog opened by config button
     RobotPanel* robot_panel; // handle of robot panel opened by robot button
     ResultPanel* result_panel; // handle of result panel opened by result button
+    Fl_File_Chooser* fc; // handle of file chooser opened by open button
 };
 
 class ToolBar : public Fl_Group
@@ -351,9 +353,10 @@ private:
     static void cb_button_stop(Fl_Widget*, void*);
     static void cb_button_config(Fl_Widget*, void*);
     static void cb_button_robot(Fl_Widget*, void*);
-    static void cb_button_result(Fl_Widget*, void*); 
+    static void cb_button_result(Fl_Widget*, void*);
+    static void cb_button_open(Fl_Widget*, void*);
 };
-struct ToolBar_Handles ToolBar::hs = {NULL, NULL, NULL};
+struct ToolBar_Handles ToolBar::hs = {NULL, NULL, NULL, NULL};
 
 /*------- Repeated Tasks -------*/
 static void cb_repeated_tasks_2hz(void* data)
@@ -551,6 +554,19 @@ void ToolBar::cb_button_result(Fl_Widget *w, void *data)
         }
     }
 }
+
+void ToolBar::cb_button_open(Fl_Widget *w, void *data)
+{
+    ToolBar_Widgets* widgets = (ToolBar_Widgets*)data;
+
+    if (hs.fc != NULL) {
+    }
+    else {
+        hs.fc = new Fl_File_Chooser(".", "*", Fl_File_Chooser::SINGLE, "Choose data file");
+        hs.fc->show();
+    }
+}
+
 void ToolBar::restore_from_configs(ToolBar_Widgets* ws, void *data)
 {
     Config_t* configs = Config_get_configs(); // get runtime configs
@@ -589,6 +605,7 @@ Fl_Group(Xpos, Ypos, Width, Height)
     ws.record = new Fl_Light_Button(Xpos, Ypos, Width+22, Height); Xpos += Width+22+5;
     ws.robot = new Fl_Button(Xpos, Ypos, Width, Height); Xpos += Width + 5;
     ws.result = new Fl_Button(Xpos, Ypos, Width, Height); Xpos += Width + 5;
+    ws.open = new Fl_Button(Xpos, Ypos, Width, Height); Xpos += Width +5;
     ws.msg_zone = new Fl_Box(FL_DOWN_BOX, Xpos, Ypos, bar->w()-Xpos, Height, "");
     ws.msg_zone->align(Fl_Align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE));
     resizable(ws.msg_zone); // protect buttons from resizing
@@ -600,6 +617,7 @@ Fl_Group(Xpos, Ypos, Width, Height)
     Fl_Pixmap *icon_record = new Fl_Pixmap(pixmap_icon_record);
     Fl_Pixmap *icon_robot = new Fl_Pixmap(pixmap_icon_helicopter);
     Fl_Pixmap *icon_result = new Fl_Pixmap(pixmap_icon_result);
+    Fl_Pixmap *icon_open = new Fl_Pixmap(pixmap_icon_open);
     // link icons to buttons
     ws.start->image(icon_start);
     ws.pause->image(icon_pause);
@@ -608,6 +626,7 @@ Fl_Group(Xpos, Ypos, Width, Height)
     ws.record->image(icon_record);
     ws.robot->image(icon_robot);
     ws.result->image(icon_result);
+    ws.open->image(icon_open);
     // tips for buttons
     ws.start->tooltip("Start Searching");
     ws.pause->tooltip("Pause Searching");
@@ -616,6 +635,7 @@ Fl_Group(Xpos, Ypos, Width, Height)
     ws.record->tooltip("Recording");
     ws.robot->tooltip("Robot viewer & controller");
     ws.result->tooltip("Result viewer");
+    ws.open->tooltip("Choose data file to replay");
     // types of buttons
     ws.start->type(FL_TOGGLE_BUTTON); // start & pause are mutually exclusive
     ws.pause->type(FL_TOGGLE_BUTTON);
@@ -634,6 +654,8 @@ Fl_Group(Xpos, Ypos, Width, Height)
     ws.robot->callback(cb_button_robot, (void*)win);
     //  result window will pop up when result button pressed
     ws.result->callback(cb_button_result, (void*)win);
+    //  file choosing window will pop up when open button pressed
+    ws.open->callback(cb_button_open, (void*)&ws);
     end();
 }
 
