@@ -28,8 +28,8 @@ project(${PRJ_NAME})
 # if compile on Mac OSX, the "-framework Cocoa" flag should be added
 if(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa  -framework OpenGL -framework GLUT")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa  -framework OpenGL -framework GLUT")
     message("Compile on APPLE MACOSX")
 elseif(UNIX)
     message("Compile on UNIX")
@@ -40,19 +40,36 @@ endif()
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #---- External FLTK related settings ----
 # Set FLTK_DIR to the directory which contains FLTKConfig.cmake file
-set(FLTK_DIR "${PROJECT_SOURCE_DIR}/../3rdparty/fltk-1.3.x-r11608/build")
+if(UNIX AND NOT APPLE) # MacOSX use brew fltk
+    set(FLTK_DIR "${PROJECT_SOURCE_DIR}/../3rdparty/fltk-1.3.x-r11608/build")
+endif()
 # print out paths in order to check if goes wrong
 message("Project Source Dir: \"${PROJECT_SOURCE_DIR}\"")
 message("Project Binary Dir: \"${PROJECT_BINARY_DIR}\"")
-message("FLTK_DIR (where the FLTKConfig.cmake file is): \"${FLTK_DIR}\"")
+if(UNIX AND NOT APPLE) # MacOSX use brew fltk
+    message("FLTK_DIR (where the FLTKConfig.cmake file is): \"${FLTK_DIR}\"")
+endif()
 # find the FLTK package
 # "NO_MODULE" tells CMake to search only for the FLTKConfig file, not using
 # the FindFLTK.cmake supplied with CMake, which doesn't work with this version
 # of FLTK
-find_package(FLTK REQUIRED NO_MODULE)
+if(UNIX AND NOT APPLE)
+    find_package(FLTK REQUIRED NO_MODULE)
+elseif(APPLE)
+    find_package(FLTK REQUIRED)
+endif()
 find_package(OpenGL REQUIRED)
 # this file is in the same folder as FLTKConfig.cmake file
-include(${FLTK_USE_FILE})
+if(UNIX AND NOT APPLE)
+    include(${FLTK_USE_FILE})
+endif()
+# gl.h and glu.h
+if(UNIX AND NOT APPLE)
+    add_definitions(-DGL_HEADER="FL/gl.h" -DGLU_HEADER="FL/glu.h" -DGLUT_HEADER="FL/glut.H")
+elseif(APPLE)
+    #add_definitions(-DGL_HEADER=<OpenGL/gl.h> -DGLU_HEADER=<OpenGL/glu.h> -DGLUT_HEADER=<GLUT/glut.h>)
+    add_definitions(-DGL_HEADER="FL/gl.h" -DGLU_HEADER="FL/glu.h" -DGLUT_HEADER="FL/glut.H")
+endif()
 
 #---- External CUDA related settings ----
 #find_package(CUDA REQUIRED)
@@ -79,10 +96,16 @@ include_directories(${PROJECT_SOURCE_DIR}/../3rdparty/ziggurat)
 #---- library files path settings ----
 # add library dir into lib path
 #   add fltk lib directory
-link_directories(${PROJECT_SOURCE_DIR}/../3rdparty/fltk-1.3.x-r11608/build/lib)
+if(UNIX AND NOT APPLE)
+    link_directories(${PROJECT_SOURCE_DIR}/../3rdparty/fltk-1.3.x-r11608/build/lib)
+endif()
 #   add blas and cblas lib dir
 link_directories(${PROJECT_SOURCE_DIR}/../3rdparty/blas/BLAS-3.6.0)
 link_directories(${PROJECT_SOURCE_DIR}/../3rdparty/blas/CBLAS/lib)
+#   libgfortran
+if(APPLE)
+    link_directories(/usr/local/lib/gcc/6/)
+endif()
 
 #---- start compiling ----
 set(LIB_UI_NAME ui)
@@ -95,7 +118,7 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     # 3rdparty fltk widgets
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 # compile main file
-add_executable(${PRJ_NAME} src/main.cxx src/Config.cxx)
+add_executable(${PRJ_NAME} src/main.cxx src/Player_Config.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})
 
 #---- start linking ----

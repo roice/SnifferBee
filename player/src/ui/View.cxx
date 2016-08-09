@@ -19,7 +19,7 @@
 #include <time.h> // for srand seeding and FPS calculation
 #include "ui/agv.h" // eye movement
 #include "ui/draw/DrawScene.h" // draw experiment scene
-#include "Config.h"
+#include "Player_Config.h"
 
 // width and height of current window, for redraw function
 static int win_width = 1;

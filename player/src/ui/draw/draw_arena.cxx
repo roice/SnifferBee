@@ -14,7 +14,7 @@
 #include <math.h> // floor()
 #include "ui/draw/draw_arena.h"
 #include "ui/draw/materials.h" // use material lists
-#include "Config.h" // get configurations about Arena
+#include "Player_Config.h" // get configurations about Arena
 
 void draw_arena()
 {

@@ -6,8 +6,8 @@
  * Date: 2016-08-07 create this file
  */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef PLAYER_CONFIG_H
+#define PLAYER_CONFIG_H
 
 #include <string>
 

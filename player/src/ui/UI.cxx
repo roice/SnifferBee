@@ -35,7 +35,7 @@
 #include "ui/widgets/Fl_LED_Button/Fl_LED_Button.H"
 #include "ui/draw/draw_wave.h"
 #include "io/record.h"
-#include "Config.h"
+#include "Player_Config.h"
 
 /*------- Configuration Dialog -------*/
 struct ConfigDlg_Widgets { // for parameter saving

@@ -5,7 +5,7 @@
  * Author: Roice (LUO Bing)
  * Date: 2016-08-07 create this file
  */
-#include "Config.h"
+#include "Player_Config.h"
 // for .ini file reading
 #include <boost/property_tree/ptree.hpp>  
 #include <boost/property_tree/ini_parser.hpp>
