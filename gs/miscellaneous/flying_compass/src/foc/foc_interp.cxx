@@ -44,7 +44,7 @@ void foc_interp_init(std::vector<FOC_Reading_t>& samples, int k = 4, int m = 3, 
  */
 bool foc_interp_update(FOC_Reading_t& symbol, std::vector<FOC_Reading_t>& samples)
 {
-    float samples_array[FOC_NUM_SENSORS][interp_factor] = {0};
+    float samples_array[FOC_NUM_SENSORS][interp_factor];
 
     for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
     {
