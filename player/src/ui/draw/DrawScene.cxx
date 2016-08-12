@@ -54,7 +54,7 @@ void DrawScene(void)
     draw_arena();
 
     /* draw quadrotor */
-    //draw_robots();
+    draw_robots();
 }
 
 void DrawScene_init(void) // call before DrawScene

@@ -79,6 +79,9 @@ endif()
 #---- External HDF5 related, for data recording
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
 include_directories(${HDF5_INCLUDE_DIRS})
+#---- External Eigen library
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/scripts)
+find_package(Eigen3 REQUIRED)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #============== Build the project ================
@@ -88,10 +91,15 @@ include_directories(${HDF5_INCLUDE_DIRS})
 # add source directory into include path
 #   add root dir to search for header files of RAOS projects
 include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${PROJECT_SOURCE_DIR}/src/foc/kf)
 #   add cblas dir to search for cblas.h header for linear algebra
 include_directories(${PROJECT_SOURCE_DIR}/../3rdparty/blas/CBLAS/include)
 #   add ziggurat source file to generate normal distribution random numbers
 include_directories(${PROJECT_SOURCE_DIR}/../3rdparty/ziggurat)
+#   add liquid-dsp dir to search for liquid.h header for dsp
+include_directories(${PROJECT_SOURCE_DIR}/../3rdparty/liquid-dsp/include)
+#   add eigen header dir
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 #---- library files path settings ----
 # add library dir into lib path
@@ -102,6 +110,8 @@ endif()
 #   add blas and cblas lib dir
 link_directories(${PROJECT_SOURCE_DIR}/../3rdparty/blas/BLAS-3.6.0)
 link_directories(${PROJECT_SOURCE_DIR}/../3rdparty/blas/CBLAS/lib)
+#   add liquid-dsp lib dir
+link_directories(${PROJECT_SOURCE_DIR}/../3rdparty/liquid-dsp)
 #   libgfortran
 if(APPLE)
     link_directories(/usr/local/lib/gcc/6/)
@@ -112,19 +122,37 @@ set(LIB_UI_NAME ui)
 # make a library from ui files
 add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/draw/DrawScene.cxx src/ui/draw/materials.cxx
-    src/ui/draw/draw_arena.cxx #src/ui/draw/draw_robots.cxx
-    src/ui/draw/draw_wave.cxx #src/ui/draw/draw_qr.cxx
-    src/ui/draw/draw_arrow.cxx
+    src/ui/draw/draw_arena.cxx src/ui/draw/draw_robots.cxx
+    src/ui/draw/draw_wave.cxx src/ui/draw/draw_qr.cxx
+    src/robot/robot.cxx src/ui/draw/draw_arrow.cxx
     # 3rdparty fltk widgets
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
+set(LIB_FOC_NAME foc) # flying odor compass
+# make a library from ui files
+add_library(${LIB_FOC_NAME} 
+    src/foc/flying_odor_compass.cxx
+    src/foc/foc_noise_reduction.cxx
+    src/foc/foc_interp.cxx
+    src/foc/foc_smooth.cxx
+    src/foc/foc_diff.cxx
+    src/foc/foc_delta.cxx
+    src/foc/foc_estimate.cxx
+    src/foc/foc_wind.cxx
+    ../3rdparty/ziggurat/ziggurat.cpp
+    )
+target_compile_features(foc PRIVATE cxx_constexpr)
+# link external liquid-dsp library
+target_link_libraries(${LIB_FOC_NAME} liquid)
 # compile main file
-add_executable(${PRJ_NAME} src/main.cxx src/Player_Config.cxx)
-add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})
+add_executable(${PRJ_NAME} src/main.cxx src/Player_Config.cxx src/io/play_thread.cxx)
+add_dependencies(${PRJ_NAME} ${LIB_UI_NAME} ${LIB_FOC_NAME})
 
 #---- start linking ----
 # Note: the former line depends on the next line
 # link GUI library created above
 target_link_libraries(${PRJ_NAME} ${LIB_UI_NAME})
+# link FOC library created above
+target_link_libraries(${PRJ_NAME} ${LIB_FOC_NAME})
 # link external FLTK library
 target_link_libraries(${PRJ_NAME} fltk)
 # link external OpenGL library

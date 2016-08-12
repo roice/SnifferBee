@@ -8,7 +8,9 @@
  * file draw_qr.h, which is included by DrawScene.h
  *
  * Author: Roice (LUO Bing)
- * Date: 2016-02-23 create this file
+ * Date: 2016-02-23 create this file (RAOS)
+ *       2016-05-30 modified this file (GSRAO)
+ *       2016-08-11 modified this file (Player)
  */
 
 #include <stdio.h>
@@ -16,6 +18,7 @@
 #include <math.h>
 #include <FL/gl.h>
 #include "ui/draw/materials.h" // use material lists
+#include "robot/robot.h"
 
 #ifndef PI
 #define PI 3.14159265
@@ -28,11 +31,11 @@ static double RAD2DEG = 180 / PI;
 // simple planar
 static void draw_motor(double);
 static void draw_rotor(double);
-static void draw_qr_model(MocapRigidBody_t*, int shadow);
+static void draw_qr_model(int shadow);
 static void draw_qr_mast(float);
 
 /* draw the quad rotor, simple planar */
-void draw_qr(MocapRigidBody_t* rb)
+void draw_qr(robot_state_t* data)
 {
     double phi, theta, psi;
 	double glX, glY, glZ;
@@ -43,12 +46,12 @@ void draw_qr(MocapRigidBody_t* rb)
     		0.0, 0.0, 0.0, 1.0
   	};
     /* change from NASA airplane to OpenGL coordinates */
-  	glX = rb->enu[0];
-	glZ = -rb->enu[1];
-	glY = rb->enu[2];
- 	phi = rb->att[0];
-	theta = -rb->att[1];
-	psi = -rb->att[2];
+  	glX = data->position[0];
+	glZ = -data->position[1];
+	glY = data->position[2];
+ 	phi = data->attitude[0];
+	theta = -data->attitude[1];
+	psi = -data->attitude[2];
 
     /* draw the quad rotor */
     glPushMatrix(); 
@@ -64,7 +67,7 @@ void draw_qr(MocapRigidBody_t* rb)
     /* draw the mast of quad rotor, indicating up/down */
     draw_qr_mast(0.22);
 
-  	draw_qr_model(rb, 0);
+  	draw_qr_model(0);
       	
   	glPopMatrix();
 
@@ -83,7 +86,7 @@ void draw_qr(MocapRigidBody_t* rb)
   	glEnable(GL_BLEND);
   	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  	draw_qr_model(rb, 1); 
+  	draw_qr_model(1); 
 
   	glDisable(GL_BLEND);
   	glPopMatrix();
@@ -131,7 +134,7 @@ static void draw_rotor(double radius)
     draw_ring(radius*1.03, radius*0.97);
 }
 
-static void draw_qr_model(MocapRigidBody_t* rb, int shadow)
+static void draw_qr_model(int shadow)
 {
     GLfloat qr_strut_r; // frame_size/2
     GLfloat qr_prop_r; // propeller radius
@@ -235,7 +238,7 @@ static void draw_qr_model(MocapRigidBody_t* rb, int shadow)
 #endif
 
     /* color of propellers (red front, black back) */    
-	if (0x0001 && 0x0001 && !shadow)
+	if (0x0001 & !shadow)
     {   // front red ones
         glDisable(GL_LIGHTING);
         glColor3f(1.0, 0.0, 0.0); /* red */

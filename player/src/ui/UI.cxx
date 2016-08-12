@@ -35,6 +35,7 @@
 #include "ui/widgets/Fl_LED_Button/Fl_LED_Button.H"
 #include "ui/draw/draw_wave.h"
 #include "io/record.h"
+#include "io/play_thread.h"
 #include "Player_Config.h"
 
 /*------- Configuration Dialog -------*/
@@ -355,6 +356,7 @@ private:
     static void cb_button_robot(Fl_Widget*, void*);
     static void cb_button_result(Fl_Widget*, void*);
     static void cb_button_open(Fl_Widget*, void*);
+    static void cb_file_chooser(Fl_File_Chooser*, void*);
 };
 struct ToolBar_Handles ToolBar::hs = {NULL, NULL, NULL, NULL};
 
@@ -431,6 +433,9 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             // lock config button
             widgets->config->deactivate();
             widgets->msg_zone->label(""); // clear message zone
+
+            // start playing experiment records
+            play_thread_init();
          
             // add timers for repeated tasks (such as data display)
             //Fl::add_timeout(0.5, cb_repeated_tasks_2hz, (void*)&hs);
@@ -465,6 +470,9 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     struct ToolBar_Widgets *widgets = (struct ToolBar_Widgets*)data;
     widgets->start->clear();
     widgets->pause->activate(); widgets->pause->clear();
+
+    // stop playing experiment records
+    play_thread_stop();
 
     //Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
     Fl::remove_timeout(cb_repeated_tasks_10hz); // remove timeout callback for repeated tasks
@@ -560,10 +568,23 @@ void ToolBar::cb_button_open(Fl_Widget *w, void *data)
     ToolBar_Widgets* widgets = (ToolBar_Widgets*)data;
 
     if (hs.fc != NULL) {
+        hs.fc->show();
     }
     else {
         hs.fc = new Fl_File_Chooser(".", "*", Fl_File_Chooser::SINGLE, "Choose data file");
+        hs.fc->callback(cb_file_chooser, widgets);
+        hs.fc->filter("HDF5 Files (*.h5)");
         hs.fc->show();
+    }
+}
+void ToolBar::cb_file_chooser(Fl_File_Chooser *w, void *data)
+{
+    ToolBar_Widgets* widgets = (ToolBar_Widgets*)data;
+
+    if (w->value()) {
+        play_thread_set_file_path(w->value());
+        // display file path in message zone
+        widgets->msg_zone->label(w->value());
     }
 }
 
@@ -669,6 +690,9 @@ void UI::cb_close(Fl_Widget* w, void* data) {
         Fl::remove_timeout(cb_repeated_tasks_10hz); // remove timeout callback for repeated tasks
 
         UI_Widgets* ws = (UI_Widgets*)data;
+
+        // stop playing experiment records
+        play_thread_stop();
 
         // save open/close states of other sub-panels to configs
         Config_t* configs = Config_get_configs(); // get runtime configs

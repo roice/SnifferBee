@@ -14,36 +14,35 @@
  */
 
 #include <FL/gl.h>
-#include "Config.h"
+#include "Player_Config.h"
 #include "ui/draw/draw_qr.h"
 #include "ui/draw/draw_arrow.h"
+#include "io/play_thread.h"
+#include "robot/robot.h"
 
 void draw_robots(void)
 {
     // get robot number
-    Config_t* configs = Config_get_configs();
-    int num_robots = configs->robot.num_of_robots;
+    //Config_t* configs = Config_get_configs();
 
-    // get mocap data
-    MocapData_t* data = mocap_get_data();
+    // get robot info
+    robot_state_t* robot_state = robot_get_state();
 
-    // get robot state
-    Robot_State_t* robot_state = robot_get_state();
-
-    for (int idx_robot = 0; idx_robot < num_robots; idx_robot++)
+    // TODO: multiple robots
+    for (int idx_robot = 0; idx_robot < 1; idx_robot++)
     {// draw every robot
 
         /* draw robot according to its type, configures... */
         // draw quadrotor
-        draw_qr(&(data->robot[idx_robot]));
+        draw_qr(robot_state);
 
         // draw wind vector measurement/estimation
-        draw_arrow(data->robot[idx_robot].enu[0],
-            data->robot[idx_robot].enu[1],
-            data->robot[idx_robot].enu[2],
-            data->robot[idx_robot].enu[0] + 0.01*robot_state[idx_robot].wind[0],
-            data->robot[idx_robot].enu[1] + 0.01*robot_state[idx_robot].wind[1],
-            data->robot[idx_robot].enu[2] + 0.01*robot_state[idx_robot].wind[2]);
+        draw_arrow(robot_state->position[0],
+            robot_state->position[1],
+            robot_state->position[2],
+            robot_state->position[0] + 0.01*robot_state->wind[0],
+            robot_state->position[1] + 0.01*robot_state->wind[1],
+            robot_state->position[2] + 0.01*robot_state->wind[2]);
         
     }
 }

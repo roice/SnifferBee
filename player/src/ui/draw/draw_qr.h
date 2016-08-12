@@ -11,13 +11,14 @@
  * Author: Roice (LUO Bing)
  * Date: 2016-02-23 create this file (RAOS)
  *       2016-05-30 modified this file (GSRAO)
+ *       2016-08-11 modified this file (Player)
  */
 #ifndef DRAW_QR_H
 #define DRAW_QR_H
 
-#include "mocap/packet_client.h"
+#include "robot/robot.h"
 
-void draw_qr(MocapRigidBody_t*);
+void draw_qr(robot_state_t*);
 
 #endif
 /* End of draw_qr.h */
