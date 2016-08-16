@@ -9,7 +9,7 @@ void foc_wind_smooth_init(std::vector<FOC_Wind_t>& out)
 {
 /* create FIR filter for Phase 0: wind estimation */
     for (int i = 0; i < 3; i++)
-        f_w[i] = firfilt_rrrf_create_kaiser(FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ, 1.0f/FOC_MOX_DAQ_FREQ*2, 60.0, 0.0);
+        f_w[i] = firfilt_rrrf_create_kaiser((FOC_SIGNAL_DELAY)*FOC_MOX_DAQ_FREQ, 0.1f/FOC_MOX_DAQ_FREQ*2, 60.0, 0.0);
     out.clear();
 }
 

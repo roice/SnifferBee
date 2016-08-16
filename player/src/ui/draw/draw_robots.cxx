@@ -45,9 +45,12 @@ void draw_robots(void)
         draw_arrow(robot_state->position[0],
             robot_state->position[1],
             robot_state->position[2],
-            robot_state->position[0] + 0.005*temp_wind[0],
-            robot_state->position[1] + 0.005*temp_wind[1],
-            robot_state->position[2] + 0.005*temp_wind[2],
+            //robot_state->position[0] + 0.005*temp_wind[0],
+            //robot_state->position[1] + 0.005*temp_wind[1],
+            //robot_state->position[2] + 0.005*temp_wind[2],
+            robot_state->position[0] + 0.1*temp_wind[0],
+            robot_state->position[1] + 0.1*temp_wind[1],
+            robot_state->position[2] + 0.1*temp_wind[2],
             0.0, 1.0, 0.0);
         
     }
