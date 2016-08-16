@@ -3,7 +3,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-fd = h5py.File('FOC_Record.h5', 'r+')
+ifd = h5py.File('FOC_Record.h5', 'r+')
 wind_speed_xy = fd['/FOC/est_wind_speed_xy'][...]
 wind_speed_en = fd['/FOC/est_wind_speed_en'][...]
 wind_speed_filtered_xy = fd['/FOC/est_wind_speed_filtered_xy'][...]

@@ -49,12 +49,19 @@ for i in range(len(valid)):
     else:
         angle.append(3*np.pi)
 
+wind_strength = []
+for i in range(len(wind)):
+    strength = wind[i,0]*wind[i,0]+wind[i,1]*wind[i,1]
+    wind_strength.append(strength)
+
 fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4)
 
 ax1.plot(est_direction, color='red');
 ax1.plot(est_wind, color='blue')
 
 ax2.plot(angle)
+
+ax3.plot(wind_strength)
 
 plt.show()
 
