@@ -56,7 +56,8 @@ find_package(Eigen3 REQUIRED)
 # add source directory into include path
 #   add root dir to search for header files of RAOS projects
 include_directories(${PROJECT_SOURCE_DIR}/src)
-include_directories(${PROJECT_SOURCE_DIR}/src/foc/kf)
+include_directories(${PROJECT_SOURCE_DIR}/../../../player/src/)
+include_directories(${PROJECT_SOURCE_DIR}/../../../player/src/foc/kf)
 #   add liquid-dsp dir to search for liquid.h header for dsp
 include_directories(${PROJECT_SOURCE_DIR}/3rd-party/liquid-dsp/include)
 #   add cblas dir to search for cblas.h header for linear algebra
@@ -82,14 +83,17 @@ endif(APPLE)
 set(LIB_FOC_NAME foc) # flying odor compass
 # make a library from ui files
 add_library(${LIB_FOC_NAME} 
-    src/foc/flying_odor_compass.cxx
-    src/foc/foc_noise_reduction.cxx
-    src/foc/foc_interp.cxx
-    src/foc/foc_smooth.cxx
-    src/foc/foc_diff.cxx
-    src/foc/foc_delta.cxx
-    src/foc/foc_estimate.cxx
-    src/foc/foc_wind.cxx
+    ../../../player/src/foc/flying_odor_compass.cxx
+    ../../../player/src/foc/foc_noise_reduction.cxx
+    ../../../player/src/foc/foc_interp.cxx
+    ../../../player/src/foc/foc_smooth.cxx
+    ../../../player/src/foc/foc_diff.cxx
+    ../../../player/src/foc/foc_delta.cxx
+    ../../../player/src/foc/foc_estimate.cxx
+    ../../../player/src/foc/foc_wind.cxx
+    ../../../player/src/foc/wake_qr.cxx
+    ../../../player/src/foc/virtual_plume.cxx
+    ../../../player/src/foc/vector_rotation.cxx
     ../../../3rdparty/ziggurat/ziggurat.cpp
     )
 target_compile_features(foc PRIVATE cxx_constexpr)
