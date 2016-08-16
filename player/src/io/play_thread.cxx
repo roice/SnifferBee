@@ -75,12 +75,12 @@ bool play_thread_init(void)
 void play_thread_stop(void)
 {
     if(!exit_play_thread and foc != NULL) // to avoid close twice
-    {
-        delete foc;
-        foc = NULL;
+    { 
         // exit play thread
         exit_play_thread = true;
         pthread_join(play_thread_handle, NULL);
+        delete foc;
+        foc = NULL;
         printf("Play thread terminated.\n");
     }
 }

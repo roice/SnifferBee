@@ -17,7 +17,9 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 # Project name
 set(PRJ_NAME RAO_Player)
 # Debug version
-set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Debug)
+# Release version
+set(CMAKE_BUILD_TYPE Release)
 # ===================================================
 
 #====================================================
@@ -125,6 +127,7 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/draw/draw_arena.cxx src/ui/draw/draw_robots.cxx
     src/ui/draw/draw_wave.cxx src/ui/draw/draw_qr.cxx
     src/robot/robot.cxx src/ui/draw/draw_arrow.cxx
+    src/ui/draw/draw_foc.cxx
     # 3rdparty fltk widgets
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 set(LIB_FOC_NAME foc) # flying odor compass
@@ -138,6 +141,9 @@ add_library(${LIB_FOC_NAME}
     src/foc/foc_delta.cxx
     src/foc/foc_estimate.cxx
     src/foc/foc_wind.cxx
+    src/foc/wake_qr.cxx
+    src/foc/virtual_plume.cxx
+    src/foc/vector_rotation.cxx
     ../3rdparty/ziggurat/ziggurat.cpp
     )
 target_compile_features(foc PRIVATE cxx_constexpr)

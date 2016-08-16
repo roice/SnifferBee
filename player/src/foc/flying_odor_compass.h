@@ -20,7 +20,8 @@
 #define FOC_WIND_MIN            0.05    // m/s
 #define FOC_WIND_MAX            2.0     // m/s
 #define FOC_SIGNAL_DELAY        1       // seconds, int
-#define FOC_TIME_RECENT_INFO    1       // seconds int
+#define FOC_TIME_RECENT_INFO    3       // seconds, int
+#define FOC_TIME_RECENT_RESULT  10      // seconds, int
 #define FOC_MOX_DAQ_FREQ        10      // Hz, int
 #define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4, int
 #define FOC_MAX_PARTICLES       100     // max number of particles
@@ -51,15 +52,24 @@ typedef struct {
 } FOC_Delta_t; // delta time/varince (feature extracted from mox reading)
 
 typedef struct {
+    float pos[3];
+    float r;
+} FOC_Puff_t;
+
+typedef struct {
     float pos_r[3]; // relative position from particle to robot
     float weight;
+    std::vector<FOC_Puff_t>* plume; // virtual plume
+    std::vector<FOC_Reading_t>* reading; // virtual reading induced by the virtual plume
+    FOC_Delta_t delta;
 } FOC_Particle_t;
 
 typedef struct {
-    std::vector<FOC_Particle_t>* particles;
+    std::vector<FOC_Particle_t>* particles; // particles, virtual sources
     float wind_speed_xy[2]; // plane coord, x/y
     float wind_speed_en[2]; // global coord, e/n
     float wind_speed_filtered_xy[2];
+    float direction[3]; // direction of gas source
     bool valid; // this result is valid or not
 } FOC_Estimation_t;
 

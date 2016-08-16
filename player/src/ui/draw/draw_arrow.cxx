@@ -13,10 +13,10 @@
 
 #include <FL/gl.h>
 
-void draw_arrow(float start_x, float start_y, float start_z, float end_x, float end_y, float end_z)
+void draw_arrow(float start_x, float start_y, float start_z, float end_x, float end_y, float end_z, float RGB_R, float RGB_G, float RGB_B)
 {
     glDisable(GL_LIGHTING);
-    glColor3f(0.0, 1.0, 0.0); // green
+    glColor3f(RGB_R, RGB_G, RGB_B); // green
     glBegin(GL_LINES);
     glVertex3f(start_x, start_z, -start_y);
     glVertex3f(end_x, end_z, -end_y);
