@@ -21,11 +21,13 @@
 #define FOC_WIND_MAX            2.0     // m/s
 #define FOC_SIGNAL_DELAY        1       // seconds, int
 #define FOC_TIME_RECENT_INFO    3       // seconds, int
-#define FOC_TIME_RECENT_RESULT  10      // seconds, int
 #define FOC_MOX_DAQ_FREQ        10      // Hz, int
-#define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4, int
+#define FOC_MOX_INTERP_FACTOR   100      // samples/symbol, > 4, int
 #define FOC_MAX_PARTICLES       100     // max number of particles
 #define FOC_RECORD_LEN          600     // seconds of history recording, int
+
+//#define FOC_DELTA_METHOD_CROSS_CORRELATION      // get delta from cross correlation of signal deviations
+#define FOC_DELTA_METHOD_EDGE_DETECTION         // get delta from edge detection & clustering
 
 typedef struct {
     float mox_reading[FOC_NUM_SENSORS];
@@ -49,6 +51,9 @@ typedef struct {
 typedef struct {
     float toa[FOC_NUM_SENSORS]; // time of arrival
     float std[FOC_NUM_SENSORS]; // standard deviation
+#ifdef FOC_DELTA_METHOD_EDGE_DETECTION
+    float belief;
+#endif
 } FOC_Delta_t; // delta time/varince (feature extracted from mox reading)
 
 typedef struct {
@@ -70,8 +75,20 @@ typedef struct {
     float wind_speed_en[2]; // global coord, e/n
     float wind_speed_filtered_xy[2];
     float direction[3]; // direction of gas source
+    float belief;
     bool valid; // this result is valid or not
 } FOC_Estimation_t;
+
+typedef struct {
+    float   reading;
+    int     index_time;
+    int     index_sensor;
+} FOC_Edge_t;
+
+typedef struct {
+    int index[FOC_NUM_SENSORS]; // indices of change points
+    int disp;
+} FOC_ChangePoints_t;
 
 class Flying_Odor_Compass
 {
@@ -84,7 +101,15 @@ class Flying_Odor_Compass
         std::vector<FOC_Reading_t> data_denoise;
         std::vector<FOC_Reading_t> data_interp;
         std::vector<FOC_Reading_t> data_smooth;
+#if defined(FOC_DELTA_METHOD_CROSS_CORRELATION) 
         std::vector<FOC_Reading_t> data_diff;
+#elif defined(FOC_DELTA_METHOD_EDGE_DETECTION)
+        std::vector<FOC_Reading_t> data_gradient;
+        std::vector<FOC_Reading_t> data_edge_max;
+        std::vector<FOC_Reading_t> data_edge_min;
+        std::vector<FOC_ChangePoints_t> data_cp_max;
+        std::vector<FOC_ChangePoints_t> data_cp_min;
+#endif
         std::vector<FOC_Delta_t> data_delta;
         std::vector<FOC_Estimation_t> data_est;
     private:

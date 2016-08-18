@@ -10,6 +10,8 @@ corr_shift_fl = toa[:,1]
 corr_shift_fr = toa[:,2]
 corr_shift_lr = toa[:,2] - toa[:,1]
 
+'''
+
 # 2D
 R = 5 # 5 cm
 loc_f = np.asarray([0, R]) # 5 cm
@@ -81,6 +83,8 @@ for i in range(len(angle)):
         fuse_psi = (fuse_psi + 180) + 180;
     fuse_angle.append(fuse_psi)
 
+'''
+
 fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4)
 
 ax1.plot(std[:,0], color='r')
@@ -91,8 +95,8 @@ ax2.plot(toa[:,0], color='r')
 ax2.plot(toa[:,1], color='y')
 ax2.plot(toa[:,2], color='b')
 
-ax3.plot(fuse_angle)
+#ax3.plot(fuse_angle)
 
-ax4.plot(pos[:,1])
+#ax4.plot(pos[:,1])
 
 plt.show()

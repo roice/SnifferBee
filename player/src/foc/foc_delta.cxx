@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <cmath>
+#include <math.h>
 #include <vector>
 #include "flying_odor_compass.h"
 
-#define N   (FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)
+#define     N   (FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)
 
+#if defined(FOC_DELTA_METHOD_CROSS_CORRELATION)
 /* Feature extraction
  * Args:
  *      out     features (time of arrival & standard deviation) extracted to output vector
@@ -14,7 +16,6 @@ void foc_delta_init(std::vector<FOC_Delta_t>& out)
 {
     out.clear();
 }
-
 /* Feature extraction
  * Args:
  *      in      input mox signal (smoothed & differentiated)
@@ -87,3 +88,204 @@ bool foc_delta_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Delta_t>& 
 
     return true;
 }
+
+#elif defined(FOC_DELTA_METHOD_EDGE_DETECTION)
+/* Feature extraction
+ * Args:
+ *      cp_max  change points extracted from non-maximum suppressed gradient
+ *      cp_min  change points extracted from non-minimum suppressed gradient
+ *      out     features (time of arrival & standard deviation) extracted to output vector
+ */
+void foc_delta_init(std::vector<FOC_ChangePoints_t>& cp_max, std::vector<FOC_ChangePoints_t>& cp_min, std::vector<FOC_Delta_t>& out)
+{
+    cp_max.clear();
+    cp_min.clear();
+    out.clear();
+}
+/* Feature extraction
+ * Args:
+ *      grad    gradient of mox signals, to calculate std
+ *      edge    non-extremum suppressioned gradient, to calculate tdoa
+ * Return:
+ *      false   an error happend
+ *      true    feature extraction successful
+ */
+
+static void reorganize_edge_to_a_vector(std::vector<FOC_Reading_t>&, int, std::vector<FOC_Edge_t>&);
+static void find_pairs_of_change_points(std::vector<FOC_Edge_t>&, std::vector<FOC_ChangePoints_t>&);
+static bool calculate_delta(std::vector<FOC_ChangePoints_t>&, int, std::vector<FOC_Delta_t>&, float*, std::vector<FOC_Reading_t>&);
+
+bool foc_delta_update(std::vector<FOC_Reading_t>& grad, std::vector<FOC_Reading_t>& edge_max, std::vector<FOC_Reading_t>& edge_min, std::vector<FOC_ChangePoints_t>& cp_max, std::vector<FOC_ChangePoints_t>& cp_min, std::vector<FOC_Delta_t>& out)
+{
+    // check if args valid for differentiation
+    if (grad.size() < N or edge_max.size() < N or edge_min.size() < N)
+        return false;
+
+/* Calculate standard deviation according to gradient */
+    float std[FOC_NUM_SENSORS];
+    double sum[FOC_NUM_SENSORS] = {0};
+    float mean[FOC_NUM_SENSORS] = {0};
+    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+    {
+        //for (int i = in.size() - N; i < in.size(); i++)
+        //    sum[idx] += in.at(i).reading[idx];
+        //mean[idx] = sum[idx]/N;
+        //sum[idx] = 0;
+        for (int i = grad.size() - N; i < grad.size(); i++)
+            sum[idx] += std::abs(grad.at(i).reading[idx]); //pow((grad.at(i).reading[idx] - mean[idx]), 2);
+        std[idx] = sum[idx]/N; //sqrt(sum[idx]/N);
+    }
+
+/* Calculate time difference of arrival according to non-extremum suppressioned gradient */
+
+    static std::vector<FOC_Edge_t> edge_max_cps;
+    static std::vector<FOC_Edge_t> edge_min_cps;
+    /* Phase 0: organize change points to a vector */
+    reorganize_edge_to_a_vector(edge_max, N, edge_max_cps);
+    reorganize_edge_to_a_vector(edge_min, N, edge_min_cps);
+
+    /* Phase 1: find contiguous change points of different mox sensors */
+    int cp_max_size = cp_max.size(); int cp_min_size = cp_min.size();
+    find_pairs_of_change_points(edge_max_cps, cp_max);
+    find_pairs_of_change_points(edge_min_cps, cp_min);
+
+    /* Phase 2: update delta */
+    if (calculate_delta(cp_max, cp_max_size, out, std, grad) or 
+            calculate_delta(cp_min, cp_min_size, out, std, grad))
+        return true;
+    else
+        return false;
+}
+#endif
+
+static bool calculate_delta(std::vector<FOC_ChangePoints_t>& cps, int previous_size, 
+        std::vector<FOC_Delta_t>& delta, float* std, std::vector<FOC_Reading_t>& grad)
+{
+    if (cps.size() <= previous_size)
+        return false;
+
+    FOC_Delta_t new_delta; memset(&new_delta, 0, sizeof(new_delta));
+    for (int i = 0; i < FOC_NUM_SENSORS; i++)
+        new_delta.std[i] = std[i];
+    for (int i = previous_size; i < cps.size(); i++) {
+        new_delta.belief = std::abs(grad.at(cps.at(i).index[0]).reading[0]);
+        for (int j = 1; j < FOC_NUM_SENSORS; j++) {
+            new_delta.toa[j] = ((float)(cps.at(i).index[0] - cps.at(i).index[j]))/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR;
+            new_delta.belief += std::abs(grad.at(cps.at(i).index[j]).reading[j]);
+        }
+        delta.push_back(new_delta);
+    }
+
+    return true;
+}
+
+static int get_dispersion_of_the_pair(std::vector<FOC_Edge_t>& edge_cps, int start)
+{
+    int p = 0;
+    for (int i = start; i < start+FOC_NUM_SENSORS-1; i++)
+        p += abs(edge_cps.at(i).index_time - edge_cps.at(i+1).index_time);
+    return p;
+}
+
+static bool are_change_points_of_different_sensors(std::vector<FOC_Edge_t>& edge_cps, int start)
+{
+    if (edge_cps.size() < start + FOC_NUM_SENSORS)
+        return false;
+
+    bool are_different_sensors = true;
+    for (int idx_sensor = 0; idx_sensor < FOC_NUM_SENSORS-1; idx_sensor++) {
+        for (int i = start + idx_sensor + 1; i < start + FOC_NUM_SENSORS; i++) {
+            if (edge_cps.at(start+idx_sensor).index_sensor == edge_cps.at(i).index_sensor)
+                are_different_sensors = false;
+        }
+    }
+
+    return are_different_sensors;
+}
+
+static bool are_changepoints_overlapping(FOC_ChangePoints_t& a, FOC_ChangePoints_t& b)
+{
+    for (int i = 0; i < FOC_NUM_SENSORS; i++) {
+        for (int j = 0; j < FOC_NUM_SENSORS; j++) {
+            if (a.index[i] == b.index[j])
+                return true;
+        }
+    }
+
+    return false;
+}
+
+static bool check_if_its_new_cps(FOC_ChangePoints_t& cp, std::vector<FOC_ChangePoints_t>& cps)
+{
+    if (cps.size() < 1)
+        return true;
+
+    int num_trace_back = FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR/FOC_NUM_SENSORS;
+
+    for (int i = int(cps.size()) - num_trace_back >= 0 ? cps.size() - num_trace_back: 0; i < cps.size(); i++) {
+        if (are_changepoints_overlapping(cp, cps.at(i))) {
+            if (cps.at(i).disp > cp.disp) {
+                memcpy(&cps.at(i), &cp, sizeof(cp));
+                return false; // return false to prevent adding again
+            }
+            else
+                return false;
+        }
+    }
+
+    return true;
+}
+
+static void find_pairs_of_change_points(std::vector<FOC_Edge_t>& edge_cps, std::vector<FOC_ChangePoints_t>& cps)
+{
+    if (edge_cps.size() < FOC_NUM_SENSORS)
+        return;
+
+    FOC_ChangePoints_t new_cp;
+    bool is_best_pair;
+    int i = 0;
+    while (i <= edge_cps.size() - FOC_NUM_SENSORS) {
+        if (are_change_points_of_different_sensors(edge_cps, i)) { // find a pair, need to check if it is the best pair
+            is_best_pair = true;
+            for (int j = 1; j < FOC_NUM_SENSORS; j++) {
+                if (i+j <= edge_cps.size()-FOC_NUM_SENSORS) {
+                    if (are_change_points_of_different_sensors(edge_cps, i+j)) {
+                        if (get_dispersion_of_the_pair(edge_cps, i+j) < get_dispersion_of_the_pair(edge_cps, i)) {
+                            is_best_pair = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (is_best_pair) { // find best pair
+                for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+                    new_cp.index[edge_cps.at(i+idx).index_sensor] = edge_cps.at(i+idx).index_time;
+                new_cp.disp = get_dispersion_of_the_pair(edge_cps,i);
+                if (check_if_its_new_cps(new_cp, cps))
+                    cps.push_back(new_cp);
+                i = i+FOC_NUM_SENSORS;
+            }
+            else
+                i++;
+        }
+        else
+            i++;
+    }
+}
+
+static void reorganize_edge_to_a_vector(std::vector<FOC_Reading_t>& edge, int num, std::vector<FOC_Edge_t>& v) 
+{
+    v.clear();
+    FOC_Edge_t  new_edge_cp;
+    for (int i = edge.size() - num; i < edge.size(); i++) {
+        for (int idx = 0; idx < FOC_NUM_SENSORS; idx++) {
+            if (edge.at(i).reading[idx] != 0) {
+                new_edge_cp.reading = edge.at(i).reading[idx];
+                new_edge_cp.index_time = i;
+                new_edge_cp.index_sensor = idx;
+                v.push_back(new_edge_cp);
+            }
+        }
+    }
+}
+

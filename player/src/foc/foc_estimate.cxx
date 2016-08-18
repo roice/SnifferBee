@@ -195,10 +195,24 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
         new_out.direction[i] = temp_direction[i] / norm_direction;
 #else
 
+    
     memset(new_out.direction, 0, 3*sizeof(float));
     float temp_direct[3] = {0};
     estimate_horizontal_direction_according_to_tdoa(delta.back(), temp_direct);
-    rotate_vector(temp_direct, new_out.direction, raw.back().attitude[2], 0, 0);
+    rotate_vector(temp_direct, new_out.direction, raw.at(raw.size()-2*FOC_MOX_DAQ_FREQ).attitude[2], 0, 0);
+    new_out.belief = delta.back().belief;
+    
+
+    /*
+    memset(new_out.direction, 0, 3*sizeof(float));
+    float temp_direct[10][3];
+    memset(temp_direct, 0, sizeof(temp_direct));
+    for (int i = (int)delta.size() - 10 >= 0 ? delta.size() - 10 : 0; i < delta.size(); i++)
+        estimate_horizontal_direction_according_to_tdoa(delta.at(i), temp_direct[delta.size()-i-1]);
+    for (int i = 0; i < 10; i++)
+        for (int j = 0; j < 3; j++)
+            new_out.direction[j] += temp_direct[i][j]/10.0;
+    */
 #endif
 
     // save results
