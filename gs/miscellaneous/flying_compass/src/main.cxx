@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 #endif
     }
 
-    Record_Data(foc.data_wind, foc.data_raw, foc.data_denoise, foc.data_interp, foc.data_smooth, foc.data_diff, foc.data_delta, foc.data_est);
+    Record_Data(foc);
 
     return 0;
 }

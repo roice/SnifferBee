@@ -14,8 +14,8 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 # Project name
 set(PRJ_NAME Flying_Odor_Compass)
 # Debug version
-#set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
 # ===================================================
 
 #====================================================
@@ -88,6 +88,8 @@ add_library(${LIB_FOC_NAME}
     ../../../player/src/foc/foc_interp.cxx
     ../../../player/src/foc/foc_smooth.cxx
     ../../../player/src/foc/foc_diff.cxx
+    ../../../player/src/foc/foc_gradient.cxx
+    ../../../player/src/foc/foc_edge.cxx
     ../../../player/src/foc/foc_delta.cxx
     ../../../player/src/foc/foc_estimate.cxx
     ../../../player/src/foc/foc_wind.cxx
