@@ -13,6 +13,7 @@
  *       2o16-08-07 modified this file (Player)
  */
 
+#include <string.h>
 #include <FL/gl.h>
 #include "Player_Config.h"
 #include "ui/draw/draw_qr.h"

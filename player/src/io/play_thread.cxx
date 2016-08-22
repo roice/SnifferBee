@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <string.h>
 #include <unistd.h>
 #include <time.h>
 #include <math.h>
@@ -41,7 +42,7 @@ bool play_thread_init(void)
     hid_t file_id, dataset_id, dataspace_id;
     herr_t status;
 
-    if (std::strcmp(file_to_play.c_str(), "") == 0)
+    if (strcmp(file_to_play.c_str(), "") == 0)
         return false;
 
     // display which file to open
