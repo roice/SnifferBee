@@ -1,34 +1,71 @@
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
-from pylab import *
 
 fd = h5py.File('FOC_Record.h5', 'r+')
-grad = fd['/FOC/mox_gradient'][...]
-edge_max = fd['/FOC/mox_edge_max'][...]
-edge_min = fd['/FOC/mox_edge_min'][...]
-cp_max = fd['/FOC/mox_cp_max'][...]
-cp_min = fd['/FOC/mox_cp_min'][...]
-att = h5py.File('../data/Record_2016-08-03_17-30-06.h5', 'r+')['robot1/att'][...]
+diff_1 = fd['/FOC/mox_diff_1'][...][500:]
+diff_2 = fd['/FOC/mox_diff_2'][...][500:]
+diff_3 = fd['/FOC/mox_diff_3'][...][500:]
+diff_4 = fd['/FOC/mox_diff_4'][...][500:]
+edge_max_1 = fd['/FOC/mox_edge_max_1'][...][500:]
+edge_max_2 = fd['/FOC/mox_edge_max_2'][...][500:]
+edge_max_3 = fd['/FOC/mox_edge_max_3'][...][500:]
+edge_max_4 = fd['/FOC/mox_edge_max_4'][...][500:]
+edge_min_1 = fd['/FOC/mox_edge_min_1'][...][500:]
+edge_min_2 = fd['/FOC/mox_edge_min_2'][...][500:]
+edge_min_3 = fd['/FOC/mox_edge_min_3'][...][500:]
+edge_min_4 = fd['/FOC/mox_edge_min_4'][...][500:]
 
-print len(cp_max)
-print len(cp_min)
+fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4)
 
-set_printoptions(threshold='nan')
-print cp_max
+ax1.plot(diff_1[:,0], color='red')
+ax1.plot(diff_1[:,1], color='green')
+ax1.plot(diff_1[:,2], color='blue')
 
-fig, (ax1, ax2, ax3) = plt.subplots(nrows=3)
+ax2.plot(diff_2[:,0], color='red')
+ax2.plot(diff_2[:,1], color='green')
+ax2.plot(diff_2[:,2], color='blue')
 
-ax1.plot(grad[200:,0], color='red')
-ax1.plot(grad[200:,1], color='green')
-ax1.plot(grad[200:,2], color='blue')
+ax3.plot(diff_3[:,0], color='red')
+ax3.plot(diff_3[:,1], color='green')
+ax3.plot(diff_3[:,2], color='blue')
 
-ax2.plot(edge_min[200:,0], color='red')
-ax2.plot(edge_min[200:,1], color='green')
-ax2.plot(edge_min[200:,2], color='blue')
+ax4.plot(diff_4[:,0], color='red')
+ax4.plot(diff_4[:,1], color='green')
+ax4.plot(diff_4[:,2], color='blue')
 
-#ax3.stem(cp_max[:,0], edge_max[cp_max[:,0]])
+'''
+ax1.plot(edge_max_1[:,0], color='red')
+ax1.plot(edge_max_1[:,1], color='green')
+ax1.plot(edge_max_1[:,2], color='blue')
 
-#ax2.plot(att[:,2]*180./np.pi)
+ax2.plot(edge_max_2[:,0], color='red')
+ax2.plot(edge_max_2[:,1], color='green')
+ax2.plot(edge_max_2[:,2], color='blue')
+
+ax3.plot(edge_max_3[:,0], color='red')
+ax3.plot(edge_max_3[:,1], color='green')
+ax3.plot(edge_max_3[:,2], color='blue')
+
+ax4.plot(edge_max_4[:,0], color='red')
+ax4.plot(edge_max_4[:,1], color='green')
+ax4.plot(edge_max_4[:,2], color='blue')
+'''
+
+ax1.plot(edge_min_1[:,0], color='red')
+ax1.plot(edge_min_1[:,1], color='green')
+ax1.plot(edge_min_1[:,2], color='blue')
+
+ax2.plot(edge_min_2[:,0], color='red')
+ax2.plot(edge_min_2[:,1], color='green')
+ax2.plot(edge_min_2[:,2], color='blue')
+
+ax3.plot(edge_min_3[:,0], color='red')
+ax3.plot(edge_min_3[:,1], color='green')
+ax3.plot(edge_min_3[:,2], color='blue')
+
+ax4.plot(edge_min_4[:,0], color='red')
+ax4.plot(edge_min_4[:,1], color='green')
+ax4.plot(edge_min_4[:,2], color='blue')
 
 plt.show()

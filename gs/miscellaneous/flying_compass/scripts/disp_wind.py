@@ -4,7 +4,8 @@ import math
 import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter
 
-fd = h5py.File('../data/Record_2016-08-03_17-30-06.h5', 'r+')
+#fd = h5py.File('../data/Record_2016-08-03_17-30-06.h5', 'r+')
+fd = h5py.File('../data/Record_2016-08-19_16-45-13.h5', 'r+')
 wind = fd['robot1/wind'][...]
 
 direction = []
@@ -21,10 +22,10 @@ for i in range(len(wind)):
 
 fig = plt.figure(figsize=(8,6))
 ax = fig.add_subplot(111)
-'''
-ax.plot(wind[:,0], color='red')
-ax.plot(wind[:,1], color='yellow')
-ax.plot(wind[:,2], color='blue')
-'''
-ax.plot(np.asarray(direction)*180./np.pi)
+
+ax.plot(wind[:,0], color='r')
+ax.plot(wind[:,1], color='g')
+ax.plot(wind[:,2], color='b')
+
+
 plt.show()

@@ -7,89 +7,94 @@
 // index of latest differentiated reading
 static int index_in_reading = 0;
 
-static int diff_order = 2;
-static float x[4+1] = {0}, y = 0;// support upto 4-th order derivative
+static float x[FOC_DIFF_LAYERS][FOC_DIFF_LAYERS+1];
+static float y[FOC_DIFF_LAYERS];// support upto 4-th order derivative
 
-static firfilt_rrrf f[FOC_NUM_SENSORS];
+static firfilt_rrrf f[FOC_DIFF_LAYERS][FOC_NUM_SENSORS];
 
 /* Derivative + smoothing
  * Args:
- *      order   order of diff, 1 <= order <= 4, default: 2
+ *      out     difference vector array
  */
-void foc_diff_init(std::vector<FOC_Reading_t>& out, int order=2)
+void foc_diff_init(std::vector<FOC_Reading_t>* out)
 {
-    // check if args valid for differentiation
-    if (order < 1 || order > 4) {
-        fprintf(stderr, "error: diff order %d not valid.\n", order);
-        exit(1);
-    }
-
     // create filter from prototype
-    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-        f[idx] = firfilt_rrrf_create_kaiser(2*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, 0.5f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60.0, 0.0);
+    // len = 0.1 s, freq = 10 Hz
+    for (int order = 1; order <= FOC_DIFF_LAYERS; order++)
+        for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+            f[order-1][idx] = firfilt_rrrf_create_kaiser(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR/10, 10.0f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60.0, 0.0);
 
-    out.clear();
+    for (int i = 0; i < FOC_DIFF_LAYERS; i++)
+        out[i].clear();
 
-    diff_order = order;
+    // for alignment
+    FOC_Reading_t   d; memset(&d, 0, sizeof(d));
+    for (int order = 1; order <= FOC_DIFF_LAYERS; order++)
+        for (int i = 0; i < order; i++)
+            out[order-1].push_back(d);
+
+    memset(&x, 0, FOC_DIFF_LAYERS*(FOC_DIFF_LAYERS+1)*sizeof(float));
+    memset(&y, 0, FOC_DIFF_LAYERS*sizeof(float));
+
     index_in_reading = 0;
 }
 
 /* Differentiate signals
  * Args:
  *      in      input data
- *      out     output data 
+ *      out     output data, vector array
  * Return:
  *      false   an error happend
  *      true    diff successful
  */
-bool foc_diff_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Reading_t>& out)
+bool foc_diff_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Reading_t>* out)
 {
-    // check if args valid for differentiation
-    if (in.size() < diff_order+1)
-        return false; // not contain enough data to diff
-
     // check if there are new data to be diffed
     if (in.size() < index_in_reading + FOC_MOX_INTERP_FACTOR)
         return false;
 
     // diff
     FOC_Reading_t sp; sp.time = 0;
-    for (int i = index_in_reading; i < in.size(); i++)
+    for (int order = 1; order <= FOC_DIFF_LAYERS; order++)
     {
-        for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+        for (int i = index_in_reading; i < in.size(); i++)
         {
-            for (int j = 0; j < diff_order+1; j++)
+            for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
             {
-                if (i < diff_order) // first run
-                    continue;   // x[] should init 0
-                else
-                    x[j] = in.at(i-diff_order+j).reading[idx];
-            }
-            switch (diff_order) {
-                case 1:
-                    y = (x[1] - x[0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+                for (int j = 0; j < order+1; j++)
+                {
+                    if (i < order) // first run
+                        continue;   // x[order-1][] should init 0
+                    else
+                        x[order-1][j] = in.at(i-order+j).reading[idx];
+                }
+                switch (order) {
+                    case 1:
+                        y[order-1] = (x[order-1][1] - x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
                     break;
-                case 2:
-                    y = (x[2] - 2*x[1] + x[0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+                    case 2:
+                        y[order-1] = (x[order-1][2] - 2*x[order-1][1] + x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
                     break; 
-                case 3:
-                    y = (x[3] - 3*x[2] + 3*x[1] - x[0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+                    case 3:
+                        y[order-1] = (x[order-1][3] - 3*x[order-1][2] + 3*x[order-1][1] - x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
                     break;
-                case 4:
-                    y = (x[4] - 4*x[3] + 6*x[2] - 4*x[1] + x[0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+                    case 4:
+                        y[order-1] = (x[order-1][4] - 4*x[order-1][3] + 6*x[order-1][2] - 4*x[order-1][1] + x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
                     break;
-                default: // 2-nd
-                    y = (x[2] - 2*x[1] + x[0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+                    default: // 2-nd
+                        y[order-1] = (x[order-1][2] - 2*x[order-1][1] + x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
                     break;
+                }
+
+                // smooth
+                firfilt_rrrf_push(f[order-1][idx], y[order-1]);
+                firfilt_rrrf_execute(f[order-1][idx], &sp.reading[idx]);
+                //sp.reading[idx] = y[order-1];
             }
 
-            // smooth
-            firfilt_rrrf_push(f[idx], y);
-            firfilt_rrrf_execute(f[idx], &sp.reading[idx]);
+            // save results
+            out[order-1].push_back(sp);
         }
-
-        // save results
-        out.push_back(sp);
     }
 
     // update index

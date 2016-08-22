@@ -15,18 +15,23 @@
 #include "foc/flying_odor_compass.h"
 #include "record.h"
 
-#define FILE "../data/Record_2016-08-03_17-30-06.h5"
+//#define FILE "../data/Record_2016-08-03_17-30-06.h5"
+//#define FILE "../data/Record_2016-08-19_14-32-35.h5"
+//#define FILE "../data/Record_2016-08-19_16-36-49.h5"
+//#define FILE "../data/Record_2016-08-19_16-45-13.h5"
+//#define FILE "../data/Record_2016-08-19_16-52-27.h5"
+#define FILE "../data/Record_2016-08-19_16-56-45.h5"
 
 int main(int argc, char* argv[])
 {
     hid_t file_id, dataset_id, dataspace_id;
     herr_t status;
 
-    float sensor_reading[2000][3] = {0};
-    float position[2000][3] = {0};
-    float attitude[2000][3] = {0};
-    float wind[2000][3] = {0};
-    int count[2000] = {0};
+    float sensor_reading[100000][3] = {0};
+    float position[100000][3] = {0};
+    float attitude[100000][3] = {0};
+    float wind[100000][3] = {0};
+    int count[100000] = {0};
 
     file_id = H5Fopen(FILE, H5F_ACC_RDONLY, H5P_DEFAULT);
     dataset_id = H5Dopen2(file_id, "robot1/mox", H5P_DEFAULT);
@@ -47,7 +52,7 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    for (int i = 0; i < 600; i++)
+    for (int i = 25*60; i < 25*70; i++)
     {
         // read position
         memcpy(&input.position[0], &position[i][0], 3*sizeof(float));

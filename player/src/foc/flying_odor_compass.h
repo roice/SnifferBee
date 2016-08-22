@@ -18,16 +18,14 @@
 #define FOC_NUM_SENSORS         3
 #define FOC_RADIUS              0.1     // meter
 #define FOC_WIND_MIN            0.05    // m/s
-#define FOC_WIND_MAX            2.0     // m/s
+#define FOC_WIND_MAX            5.0     // m/s
 #define FOC_SIGNAL_DELAY        1       // seconds, int
 #define FOC_TIME_RECENT_INFO    3       // seconds, int
-#define FOC_MOX_DAQ_FREQ        10      // Hz, int
-#define FOC_MOX_INTERP_FACTOR   100      // samples/symbol, > 4, int
+#define FOC_MOX_DAQ_FREQ        25      // Hz, int
+#define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4, int
+#define FOC_DIFF_LAYERS         4       // layers of difference, 2 <= layers <=4
 #define FOC_MAX_PARTICLES       100     // max number of particles
 #define FOC_RECORD_LEN          600     // seconds of history recording, int
-
-//#define FOC_DELTA_METHOD_CROSS_CORRELATION      // get delta from cross correlation of signal deviations
-#define FOC_DELTA_METHOD_EDGE_DETECTION         // get delta from edge detection & clustering
 
 typedef struct {
     float mox_reading[FOC_NUM_SENSORS];
@@ -50,11 +48,12 @@ typedef struct {
 
 typedef struct {
     float toa[FOC_NUM_SENSORS]; // time of arrival
-    float std[FOC_NUM_SENSORS]; // standard deviation
-#ifdef FOC_DELTA_METHOD_EDGE_DETECTION
-    float belief;
-#endif
-} FOC_Delta_t; // delta time/varince (feature extracted from mox reading)
+    float abs[FOC_NUM_SENSORS]; // absolute, to calculate belief later
+} FOC_TDOA_t; // delta time/varince (feature extracted from mox reading)
+
+typedef struct {
+    float std[FOC_NUM_SENSORS];
+} FOC_STD_t;
 
 typedef struct {
     float pos[3];
@@ -66,7 +65,7 @@ typedef struct {
     float weight;
     std::vector<FOC_Puff_t>* plume; // virtual plume
     std::vector<FOC_Reading_t>* reading; // virtual reading induced by the virtual plume
-    FOC_Delta_t delta;
+    FOC_TDOA_t tdoa;
 } FOC_Particle_t;
 
 typedef struct {
@@ -96,22 +95,19 @@ class Flying_Odor_Compass
         Flying_Odor_Compass(void);
         bool update(FOC_Input_t&);
         // data
-        std::vector<FOC_Wind_t> data_wind;
-        std::vector<FOC_Input_t> data_raw;
-        std::vector<FOC_Reading_t> data_denoise;
-        std::vector<FOC_Reading_t> data_interp;
-        std::vector<FOC_Reading_t> data_smooth;
-#if defined(FOC_DELTA_METHOD_CROSS_CORRELATION) 
-        std::vector<FOC_Reading_t> data_diff;
-#elif defined(FOC_DELTA_METHOD_EDGE_DETECTION)
-        std::vector<FOC_Reading_t> data_gradient;
-        std::vector<FOC_Reading_t> data_edge_max;
-        std::vector<FOC_Reading_t> data_edge_min;
-        std::vector<FOC_ChangePoints_t> data_cp_max;
-        std::vector<FOC_ChangePoints_t> data_cp_min;
-#endif
-        std::vector<FOC_Delta_t> data_delta;
-        std::vector<FOC_Estimation_t> data_est;
+        std::vector<FOC_Wind_t>         data_wind;
+        std::vector<FOC_Input_t>        data_raw;
+        std::vector<FOC_Reading_t>      data_denoise;
+        std::vector<FOC_Reading_t>      data_interp;
+        std::vector<FOC_Reading_t>      data_smooth;
+        std::vector<FOC_Reading_t>      data_diff[FOC_DIFF_LAYERS];
+        std::vector<FOC_Reading_t>      data_edge_max[FOC_DIFF_LAYERS];
+        std::vector<FOC_Reading_t>      data_edge_min[FOC_DIFF_LAYERS];
+        std::vector<FOC_ChangePoints_t> data_cp_max[FOC_DIFF_LAYERS];
+        std::vector<FOC_ChangePoints_t> data_cp_min[FOC_DIFF_LAYERS];
+        std::vector<FOC_TDOA_t>         data_tdoa[FOC_DIFF_LAYERS];
+        std::vector<FOC_STD_t>          data_std;
+        std::vector<FOC_Estimation_t>   data_est;
     private:
         // unscented kalman filters
         

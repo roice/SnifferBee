@@ -138,9 +138,9 @@ add_library(${LIB_FOC_NAME}
     src/foc/foc_interp.cxx
     src/foc/foc_smooth.cxx
     src/foc/foc_diff.cxx
-    src/foc/foc_gradient.cxx
     src/foc/foc_edge.cxx
-    src/foc/foc_delta.cxx
+    src/foc/foc_std.cxx
+    src/foc/foc_tdoa.cxx
     src/foc/foc_estimate.cxx
     src/foc/foc_wind.cxx
     src/foc/wake_qr.cxx

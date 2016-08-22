@@ -6,6 +6,8 @@
 #include "foc/virtual_plume.h"
 #include "foc/vector_rotation.h"
 
+#if 0
+
 /* update puff pos & r
  * Args:
  *      pos_qr      position of quad-rotor
@@ -210,6 +212,8 @@ bool calculate_likelihood_of_virtual_delta(FOC_Delta_t& delta, std::vector<FOC_P
     return true;
 }
 
+#endif
+
 /* Estimate horizontal direction according to TOA
  * Args:
  *      delta       std & toa
@@ -229,7 +233,7 @@ bool calculate_likelihood_of_virtual_delta(FOC_Delta_t& delta, std::vector<FOC_P
  *      sign(sqrt(3)e_x + 3e_y) = sign(dt_lf)
  *      sign(-sqrt(3)e_x + 3e_y) = sign(dt_rf)
  */
-bool estimate_horizontal_direction_according_to_tdoa(FOC_Delta_t& delta, float* out)
+bool estimate_horizontal_direction_according_to_tdoa(FOC_TDOA_t& delta, float* out)
 {
     float e_x, e_y, dt_lf = delta.toa[1], dt_rf = delta.toa[2], speed;
     float sqrt_3 = sqrt(3);
@@ -275,8 +279,8 @@ bool estimate_horizontal_direction_according_to_tdoa(FOC_Delta_t& delta, float* 
         speed = sqrt_3*FOC_RADIUS/2.0*std::abs(e_x-sqrt_3*e_y)/std::abs(dt_rf); // cmath
 
     // check if wind speed is valid
-    if (speed > FOC_WIND_MAX or speed < FOC_WIND_MIN)
-        return false;
+    //if (speed > FOC_WIND_MAX or speed < FOC_WIND_MIN)
+    //    return false;
 
     // save result
     out[0] = e_x; //*speed;

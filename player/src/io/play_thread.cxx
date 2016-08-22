@@ -25,11 +25,11 @@ std::string file_to_play = "/Users/roice/workspace/ExPlat/SnifferBee/player/data
 
 Flying_Odor_Compass* foc = NULL;
 
-float sensor_reading[2000][3] = {0};
-float position[2000][3] = {0};
-float attitude[2000][3] = {0};
-float wind[2000][3] = {0};
-int count[2000] = {0};
+float sensor_reading[100000][3] = {0};
+float position[100000][3] = {0};
+float attitude[100000][3] = {0};
+float wind[100000][3] = {0};
+int count[100000] = {0};
 
 static pthread_t play_thread_handle;
 static bool exit_play_thread = false;
@@ -99,7 +99,7 @@ static void* player_loop(void* exit)
 
     printf("Begin reading file.\n");
 
-    for (int i = 0; i < 600; i++)
+    for (int i = 0; i < 4*60*25; i++)
     {
         // read position
         memcpy(&input.position[0], &position[i][0], 3*sizeof(float));

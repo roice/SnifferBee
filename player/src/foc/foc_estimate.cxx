@@ -38,7 +38,7 @@ void foc_estimate_source_direction_init(std::vector<FOC_Estimation_t>& out)
  *      in      standard deviation & time of arrival of signals of different sensors
  *      out     direction estimation
  */
-bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::vector<FOC_Delta_t>& delta, std::vector<FOC_Wind_t>& wind, std::vector<FOC_Estimation_t>& out)
+bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::vector<FOC_TDOA_t>* delta, std::vector<FOC_Wind_t>& wind, std::vector<FOC_Estimation_t>& out)
 {
     // signal delay FOC_SIGNAL_DELAY s after interpolation, and delta delay FOC_TIME_RECENT_INFO s after delta computation
     if (wind.size() < N_SAMPLES + N_DELAY or raw.size() < N_SAMPLES + N_DELAY)
@@ -48,6 +48,7 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     new_out.particles = new std::vector<FOC_Particle_t>;
     new_out.particles->reserve(FOC_MAX_PARTICLES);
  
+#if 0
 /* Phase 0: get average wind (actually disturbance) vector */
     double temp[3] = {0};
     float temp_wind[3] = {0};
@@ -147,7 +148,6 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
         // generate FOC_MAX_PARTICLES number of particles
         init_particles(rand_seed, FOC_MAX_PARTICLES, radius_particle_to_robot, rot_m_init, new_out);
 
-#if 0
 /* Phase 4: Release virtual plumes and get virtual mox readings */
     // traverse every particle
     for (int i = 0; i < new_out.particles->size(); i++) {
@@ -195,12 +195,22 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
         new_out.direction[i] = temp_direction[i] / norm_direction;
 #else
 
-    
-    memset(new_out.direction, 0, 3*sizeof(float));
+    static int prev_delta_size[FOC_DIFF_LAYERS] = {0};
+
     float temp_direct[3] = {0};
-    estimate_horizontal_direction_according_to_tdoa(delta.back(), temp_direct);
-    rotate_vector(temp_direct, new_out.direction, raw.at(raw.size()-2*FOC_MOX_DAQ_FREQ).attitude[2], 0, 0);
-    new_out.belief = delta.back().belief;
+    for (int order = 1; order <= FOC_DIFF_LAYERS; order++) {
+        for (int i = prev_delta_size[order-1]; i < delta[order-1].size(); i++) {
+            memset(new_out.direction, 0, 3*sizeof(float));
+            memset(temp_direct, 0, 3*sizeof(float));
+            if (!estimate_horizontal_direction_according_to_tdoa(delta[order-1].at(i), temp_direct))
+                continue;
+            rotate_vector(temp_direct, new_out.direction, raw.at(raw.size()-2*FOC_MOX_DAQ_FREQ).attitude[2], 0, 0);
+            new_out.valid = true;
+            out.push_back(new_out);
+        }
+        prev_delta_size[order-1] = delta[order-1].size();
+    }
+    return true;
     
 
     /*

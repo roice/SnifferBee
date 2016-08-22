@@ -27,7 +27,7 @@ static void draw_particles(std::vector<FOC_Particle_t>*);
 static void draw_wakes(std::vector<Wake_QR_ring_t>*);
 static void draw_virtual_plumes(std::vector<FOC_Particle_t>*);
 static void draw_est_direction(FOC_Estimation_t&, robot_state_t*);
-static void draw_filtered_est_direction(std::vector<FOC_Delta_t>&, std::vector<FOC_Estimation_t>&, robot_state_t*);
+static void draw_filtered_est_direction(std::vector<FOC_Estimation_t>&, robot_state_t*);
 
 void draw_foc(void)
 {
@@ -35,7 +35,7 @@ void draw_foc(void)
         return;
 
     std::vector<FOC_Estimation_t>& data_est = ((Flying_Odor_Compass*)play_thread_get_data())->data_est;
-    std::vector<FOC_Delta_t>& delta = ((Flying_Odor_Compass*)play_thread_get_data())->data_delta;
+    //std::vector<FOC_Delta_t>& delta = ((Flying_Odor_Compass*)play_thread_get_data())->data_delta;
 
     std::vector<Wake_QR_ring_t>* wake_rings = wake_qr_get_info_vortex_rings();
 
@@ -51,9 +51,9 @@ void draw_foc(void)
         // draw virtual plumes
         //draw_virtual_plumes(data_est.back().particles);
         // draw estimated direction
-        draw_est_direction(data_est.back(), robot_state);
+        //draw_est_direction(data_est.back(), robot_state);
         // draw filtered est direction
-        //draw_filtered_est_direction(delta, data_est, robot_state);
+        draw_filtered_est_direction(data_est, robot_state);
     }
 }
 
@@ -71,21 +71,21 @@ static void draw_est_direction(FOC_Estimation_t& est, robot_state_t* robot_state
 }
 
 
-static void draw_filtered_est_direction(std::vector<FOC_Delta_t>& delta, std::vector<FOC_Estimation_t>& data_est, robot_state_t* robot_state)
+static void draw_filtered_est_direction(std::vector<FOC_Estimation_t>& data_est, robot_state_t* robot_state)
 {
-    if (delta.size() < 10 or data_est.size() < 10)
+    if (data_est.size() < 200)
         return;
 
     float w;
     double direction[3] = {0};
     double norm_direction;
-    for (int i = data_est.size()-10; i < data_est.size(); i++) {
+    for (int i = data_est.size()-200; i < data_est.size(); i++) {
         //if (!data_est.at(i).valid)
         //    continue;
         //w = std::sqrt(delta.at(i).std[0]*delta.at(i).std[0] + delta.at(i).std[1]*delta.at(i).std[1] + delta.at(i).std[2]*delta.at(i).std[2]);
         for (int j = 0; j < 3; j++)
             //direction[j] += w*data_est.at(i).direction[j];
-            direction[j] += data_est.at(i).direction[j]*data_est.at(i).belief;
+            direction[j] += data_est.at(i).direction[j];//*data_est.at(i).belief;
     }
     norm_direction = std::sqrt(direction[0]*direction[0]+direction[1]*direction[1]+direction[2]*direction[2]);
     if (norm_direction == 0)

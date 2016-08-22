@@ -7,100 +7,19 @@
 
 #define     N   (FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)
 
-#if defined(FOC_DELTA_METHOD_CROSS_CORRELATION)
-/* Feature extraction
- * Args:
- *      out     features (time of arrival & standard deviation) extracted to output vector
- */
-void foc_delta_init(std::vector<FOC_Delta_t>& out)
-{
-    out.clear();
-}
-/* Feature extraction
- * Args:
- *      in      input mox signal (smoothed & differentiated)
- *      out     toa & std vector
- * Return:
- *      false   an error happend
- *      true    feature extraction successful
- */
-bool foc_delta_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Delta_t>& out)
-{
-    // check if args valid for differentiation
-    if (in.size() < N)
-        return false;
-
-    FOC_Delta_t new_out;
-
-    // standard deviation
-    double sum[FOC_NUM_SENSORS] = {0};
-    float mean[FOC_NUM_SENSORS] = {0};
-    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-    {
-        //for (int i = in.size() - N; i < in.size(); i++)
-        //    sum[idx] += in.at(i).reading[idx];
-        //mean[idx] = sum[idx]/N;
-        //sum[idx] = 0;
-        for (int i = in.size() - N; i < in.size(); i++)
-            sum[idx] += pow((in.at(i).reading[idx] - mean[idx]), 2);
-        new_out.std[idx] = sqrt(sum[idx]/N);
-    }
-
-    // time of arrival
-    float reading[FOC_NUM_SENSORS][N];
-    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-        for (int i = in.size() - N; i < in.size(); i++)
-            reading[idx][i+N-in.size()] = (in.at(i).reading[idx] - mean[idx]) / new_out.std[idx]; // normalize
-    float time[2*N-1];
-    for (int i = 1-N; i < N; i++)
-        time[i-1+N] = float(i)/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR; // time diff index
-    double xcorr[2*N-1]; double temp; int index;
-    for (int idx = 1; idx < FOC_NUM_SENSORS; idx++) // sensor_1, sensor_2, ... compare with sensor_0
-    {
-        // calculate correlation
-        for (int t = 1-N; t < N; t++)
-        {
-            temp = 0;
-            for (int i = 0; i < N; i++)
-            {
-                if (i+t < 0 || i+t >= N)
-                    continue;
-                else
-                    temp += reading[idx][i]*reading[0][i+t];
-            }
-            xcorr[t+N-1] = temp;
-        }
-        // find the index of max
-        temp = xcorr[0]; index = 0;
-        for (int i = 0; i < 2*N-1; i++)
-        {
-            if (xcorr[i] > temp) {
-                temp = xcorr[i];
-                index = i;
-            }
-        }
-        // get time diff
-        new_out.toa[idx] = time[index];
-    }
-
-    // save results
-    out.push_back(new_out);
-
-    return true;
-}
-
-#elif defined(FOC_DELTA_METHOD_EDGE_DETECTION)
 /* Feature extraction
  * Args:
  *      cp_max  change points extracted from non-maximum suppressed gradient
  *      cp_min  change points extracted from non-minimum suppressed gradient
  *      out     features (time of arrival & standard deviation) extracted to output vector
  */
-void foc_delta_init(std::vector<FOC_ChangePoints_t>& cp_max, std::vector<FOC_ChangePoints_t>& cp_min, std::vector<FOC_Delta_t>& out)
+void foc_tdoa_init(std::vector<FOC_ChangePoints_t>* cp_max, std::vector<FOC_ChangePoints_t>* cp_min, std::vector<FOC_TDOA_t>* out)
 {
-    cp_max.clear();
-    cp_min.clear();
-    out.clear();
+    for (int i = 0; i < FOC_DIFF_LAYERS; i++) {
+        cp_max[i].clear();
+        cp_min[i].clear();
+        out[i].clear();
+    }
 }
 /* Feature extraction
  * Args:
@@ -113,65 +32,55 @@ void foc_delta_init(std::vector<FOC_ChangePoints_t>& cp_max, std::vector<FOC_Cha
 
 static void reorganize_edge_to_a_vector(std::vector<FOC_Reading_t>&, int, std::vector<FOC_Edge_t>&);
 static void find_pairs_of_change_points(std::vector<FOC_Edge_t>&, std::vector<FOC_ChangePoints_t>&);
-static bool calculate_delta(std::vector<FOC_ChangePoints_t>&, int, std::vector<FOC_Delta_t>&, float*, std::vector<FOC_Reading_t>&);
+static bool calculate_delta(std::vector<FOC_ChangePoints_t>&, int, std::vector<FOC_TDOA_t>&, std::vector<FOC_Reading_t>&);
 
-bool foc_delta_update(std::vector<FOC_Reading_t>& grad, std::vector<FOC_Reading_t>& edge_max, std::vector<FOC_Reading_t>& edge_min, std::vector<FOC_ChangePoints_t>& cp_max, std::vector<FOC_ChangePoints_t>& cp_min, std::vector<FOC_Delta_t>& out)
+bool foc_tdoa_update(std::vector<FOC_Reading_t>* diff, std::vector<FOC_Reading_t>* edge_max, std::vector<FOC_Reading_t>* edge_min, std::vector<FOC_ChangePoints_t>* cp_max, std::vector<FOC_ChangePoints_t>* cp_min, std::vector<FOC_TDOA_t>* out)
 {
-    // check if args valid for differentiation
-    if (grad.size() < N or edge_max.size() < N or edge_min.size() < N)
-        return false;
-
-/* Calculate standard deviation according to gradient */
-    float std[FOC_NUM_SENSORS];
-    double sum[FOC_NUM_SENSORS] = {0};
-    float mean[FOC_NUM_SENSORS] = {0};
-    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-    {
-        //for (int i = in.size() - N; i < in.size(); i++)
-        //    sum[idx] += in.at(i).reading[idx];
-        //mean[idx] = sum[idx]/N;
-        //sum[idx] = 0;
-        for (int i = grad.size() - N; i < grad.size(); i++)
-            sum[idx] += std::abs(grad.at(i).reading[idx]); //pow((grad.at(i).reading[idx] - mean[idx]), 2);
-        std[idx] = sum[idx]/N; //sqrt(sum[idx]/N);
-    }
-
+    for (int i = 0; i < FOC_DIFF_LAYERS; i++)
+        // check if args valid for differentiation
+        if (diff[i].size() < N or edge_max[i].size() < N or edge_min[i].size() < N)
+            return false;
+     
 /* Calculate time difference of arrival according to non-extremum suppressioned gradient */
 
     static std::vector<FOC_Edge_t> edge_max_cps;
     static std::vector<FOC_Edge_t> edge_min_cps;
-    /* Phase 0: organize change points to a vector */
-    reorganize_edge_to_a_vector(edge_max, N, edge_max_cps);
-    reorganize_edge_to_a_vector(edge_min, N, edge_min_cps);
 
-    /* Phase 1: find contiguous change points of different mox sensors */
-    int cp_max_size = cp_max.size(); int cp_min_size = cp_min.size();
-    find_pairs_of_change_points(edge_max_cps, cp_max);
-    find_pairs_of_change_points(edge_min_cps, cp_min);
+    int cp_max_size, cp_min_size;
+    bool ret_max, ret_min, ret = false;
 
-    /* Phase 2: update delta */
-    if (calculate_delta(cp_max, cp_max_size, out, std, grad) or 
-            calculate_delta(cp_min, cp_min_size, out, std, grad))
-        return true;
-    else
-        return false;
+    for (int order = 1; order <= FOC_DIFF_LAYERS; order++) {
+        /* Phase 0: organize change points to a vector */
+        reorganize_edge_to_a_vector(edge_max[order-1], N, edge_max_cps);
+        reorganize_edge_to_a_vector(edge_min[order-1], N, edge_min_cps);
+
+        /* Phase 1: find contiguous change points of different mox sensors */
+        cp_max_size = cp_max[order-1].size(); cp_min_size = cp_min[order-1].size();
+        find_pairs_of_change_points(edge_max_cps, cp_max[order-1]);
+        find_pairs_of_change_points(edge_min_cps, cp_min[order-1]);
+
+        /* Phase 2: update delta */ 
+        ret_max = calculate_delta(cp_max[order-1], cp_max_size, out[order-1], diff[order-1]);
+        ret_min = calculate_delta(cp_min[order-1], cp_min_size, out[order-1], diff[order-1]);
+        if (ret_max or ret_min)
+            ret = true;
+    }
+
+    return ret;
 }
-#endif
 
 static bool calculate_delta(std::vector<FOC_ChangePoints_t>& cps, int previous_size, 
-        std::vector<FOC_Delta_t>& delta, float* std, std::vector<FOC_Reading_t>& grad)
+        std::vector<FOC_TDOA_t>& delta, std::vector<FOC_Reading_t>& grad)
 {
     if (cps.size() <= previous_size)
         return false;
 
-    FOC_Delta_t new_delta; memset(&new_delta, 0, sizeof(new_delta));
-    for (int i = 0; i < FOC_NUM_SENSORS; i++)
-        new_delta.std[i] = std[i];
+    FOC_TDOA_t new_delta; memset(&new_delta, 0, sizeof(new_delta));
     for (int i = previous_size; i < cps.size(); i++) {
-        new_delta.belief = std::abs(grad.at(cps.at(i).index[0]).reading[0]);
+        new_delta.abs[0] = std::abs(grad.at(cps.at(i).index[0]).reading[0]);
         for (int j = 1; j < FOC_NUM_SENSORS; j++) {
             new_delta.toa[j] = ((float)(cps.at(i).index[0] - cps.at(i).index[j]))/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR;
-            new_delta.belief += std::abs(grad.at(cps.at(i).index[j]).reading[j]);
+            new_delta.abs[j] = std::abs(grad.at(cps.at(i).index[j]).reading[j]);
         }
         delta.push_back(new_delta);
     }
@@ -289,3 +198,86 @@ static void reorganize_edge_to_a_vector(std::vector<FOC_Reading_t>& edge, int nu
     }
 }
 
+
+#if 0
+/* Feature extraction
+ * Args:
+ *      out     features (time of arrival & standard deviation) extracted to output vector
+ */
+void foc_delta_init(std::vector<FOC_Delta_t>& out)
+{
+    out.clear();
+}
+/* Feature extraction
+ * Args:
+ *      in      input mox signal (smoothed & differentiated)
+ *      out     toa & std vector
+ * Return:
+ *      false   an error happend
+ *      true    feature extraction successful
+ */
+bool foc_delta_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Delta_t>& out)
+{
+    // check if args valid for differentiation
+    if (in.size() < N)
+        return false;
+
+    FOC_Delta_t new_out;
+
+    // standard deviation
+    double sum[FOC_NUM_SENSORS] = {0};
+    float mean[FOC_NUM_SENSORS] = {0};
+    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+    {
+        //for (int i = in.size() - N; i < in.size(); i++)
+        //    sum[idx] += in.at(i).reading[idx];
+        //mean[idx] = sum[idx]/N;
+        //sum[idx] = 0;
+        for (int i = in.size() - N; i < in.size(); i++)
+            sum[idx] += pow((in.at(i).reading[idx] - mean[idx]), 2);
+        new_out.std[idx] = sqrt(sum[idx]/N);
+    }
+
+    // time of arrival
+    float reading[FOC_NUM_SENSORS][N];
+    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+        for (int i = in.size() - N; i < in.size(); i++)
+            reading[idx][i+N-in.size()] = (in.at(i).reading[idx] - mean[idx]) / new_out.std[idx]; // normalize
+    float time[2*N-1];
+    for (int i = 1-N; i < N; i++)
+        time[i-1+N] = float(i)/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR; // time diff index
+    double xcorr[2*N-1]; double temp; int index;
+    for (int idx = 1; idx < FOC_NUM_SENSORS; idx++) // sensor_1, sensor_2, ... compare with sensor_0
+    {
+        // calculate correlation
+        for (int t = 1-N; t < N; t++)
+        {
+            temp = 0;
+            for (int i = 0; i < N; i++)
+            {
+                if (i+t < 0 || i+t >= N)
+                    continue;
+                else
+                    temp += reading[idx][i]*reading[0][i+t];
+            }
+            xcorr[t+N-1] = temp;
+        }
+        // find the index of max
+        temp = xcorr[0]; index = 0;
+        for (int i = 0; i < 2*N-1; i++)
+        {
+            if (xcorr[i] > temp) {
+                temp = xcorr[i];
+                index = i;
+            }
+        }
+        // get time diff
+        new_out.toa[idx] = time[index];
+    }
+
+    // save results
+    out.push_back(new_out);
+
+    return true;
+}
+#endif
