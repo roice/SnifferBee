@@ -9,7 +9,10 @@ fd = h5py.File('FOC_Record.h5', 'r+')
 #edge_min = fd['/FOC/mox_edge_min'][...]
 #cp_max = fd['/FOC/mox_cp_max'][...]
 #cp_min = fd['/FOC/mox_cp_min'][...]
-direction = fd['/FOC/direction']
+direction = fd['/FOC/est_direction']
+belief = fd['/FOC/est_belief']
+dt = fd['/FOC/est_dt']
+#wind = fd['/FOC/wind']
 #att = h5py.File('../data/Record_2016-08-03_17-30-06.h5', 'r+')['robot1/att'][...]
 
 '''
@@ -25,43 +28,59 @@ colors = theta
 '''
 print len(direction)
 
+'''
 # for line plotting
 n = 100
-theta = np.asarray([i*2.*np.pi/n for i in range(100)])
+theta = np.asarray([(i-n)*np.pi/n for i in range(2*n)])
 r = np.zeros_like(theta)
 for i in range(len(direction)):
-    ang = math.atan2(-direction[i,0], direction[i,1]) + np.pi
+    if dt[i] < 20:
+        continue;
+    ang = math.atan2(-direction[i,0], direction[i,1])
     for j in range(len(theta)):
         if ang < theta[j]:
             r[j] += 1
             break
-
-sum_theta = 0
-sum_r = 0
-for i in range(len(theta)):
-    sum_theta += theta[i]*r[i]
-    sum_r += r[i]
-main_theta = sum_theta/sum_r
-main_r = sum_r/len(theta)
+'''
 
 
-main_theta = 0
+theta = []
+r_belief = []
+r_dt = []
 for i in range(len(direction)):
-    ang = math.atan2(direction[i,1], direction[i,0])
-    main_theta += ang
-main_theta /= len(direction)
+    if dt[i] < 10:
+        continue
+    ang = math.atan2(-direction[i,0], direction[i,1])
+    theta.append(ang)
+    r_belief.append(belief[i])
+    r_dt.append(dt[i])
+r_belief = np.asarray(r_belief)
+r_belief /= np.std(r_belief)
+r_dt = np.asarray(r_dt)
+#r_dt /= np.std(r_dt)
+
+sum_d_x = 0
+sum_d_y = 0
+for i in range(len(direction)):
+    if (dt[i]) < 10:
+        continue
+    sum_d_x += direction[i,0]#*belief[i]
+    sum_d_y += direction[i,1]#*belief[i]
+main_theta = math.atan2(-sum_d_x, sum_d_y)
 main_r = 100
+
 
 
 fig = plt.figure(figsize=(8,6))
 ax = fig.add_subplot(111, projection='polar')
 
-'''
-ax.scatter(theta, r, c=colors, s=area, cmap=plt.cm.hsv)
-ax.set_alpha(0.75)
-'''
 
-ax.plot(theta, r)
+ax.scatter(theta, r_dt, s=1, cmap=plt.cm.hsv)
+ax.set_alpha(0.75)
+
+
+
+#ax.plot(theta, r)
 
 ax.scatter(main_theta, main_r, s = 100)
 

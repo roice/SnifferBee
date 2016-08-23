@@ -23,6 +23,7 @@
 #include "ui/draw/draw_arrow.h"
 #include "foc/vector_rotation.h"
 
+static void draw_wind(std::vector<FOC_Input_t>&, std::vector<FOC_Wind_t>&);
 static void draw_particles(std::vector<FOC_Particle_t>*);
 static void draw_wakes(std::vector<Wake_QR_ring_t>*);
 static void draw_virtual_plumes(std::vector<FOC_Particle_t>*);
@@ -34,6 +35,8 @@ void draw_foc(void)
     if (!play_thread_get_data())
         return;
 
+    std::vector<FOC_Input_t>& data_raw = ((Flying_Odor_Compass*)play_thread_get_data())->data_raw;
+    std::vector<FOC_Wind_t>& data_wind = ((Flying_Odor_Compass*)play_thread_get_data())->data_wind;
     std::vector<FOC_Estimation_t>& data_est = ((Flying_Odor_Compass*)play_thread_get_data())->data_est;
     //std::vector<FOC_Delta_t>& delta = ((Flying_Odor_Compass*)play_thread_get_data())->data_delta;
 
@@ -41,6 +44,8 @@ void draw_foc(void)
 
     // get robot info
     robot_state_t* robot_state = robot_get_state();
+
+    draw_wind(data_raw, data_wind);
 
     if (data_est.size() > 0)
     {
@@ -55,6 +60,33 @@ void draw_foc(void)
         // draw filtered est direction
         draw_filtered_est_direction(data_est, robot_state);
     }
+}
+
+static void draw_wind(std::vector<FOC_Input_t>& raw, std::vector<FOC_Wind_t>& wind)
+{
+    if (raw.size() < 5*FOC_MOX_DAQ_FREQ or wind.size() < 5*FOC_MOX_DAQ_FREQ)
+        return;
+
+    double sum_temp[3] = {0}; float temp[3];
+    for (int i = wind.size() - 5*FOC_MOX_DAQ_FREQ; i < wind.size(); i++) {
+        memset(temp, 0, sizeof(temp));
+        rotate_vector(wind.at(i).wind, temp, raw.at(i).attitude[2], 0, 0);
+        for (int j = 0; j < 3; j++)
+            sum_temp[j] += temp[j];
+    }
+    double norm_temp = std::sqrt(sum_temp[0]*sum_temp[0]+sum_temp[1]*sum_temp[1]+sum_temp[2]*sum_temp[2]);
+    for (int j = 0; j < 3; j++)
+        sum_temp[j] /= norm_temp;
+
+    robot_state_t* robot_state = robot_get_state();
+
+    draw_arrow(robot_state->position[0],
+            robot_state->position[1],
+            robot_state->position[2],
+            robot_state->position[0] + sum_temp[0],
+            robot_state->position[1] + sum_temp[1],
+            robot_state->position[2] + sum_temp[2],
+            0.0, 1.0, 0.0);
 }
 
 static void draw_est_direction(FOC_Estimation_t& est, robot_state_t* robot_state)

@@ -64,7 +64,7 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     foc_interp_init(data_interp, FOC_MOX_INTERP_FACTOR, FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ, 60); // FOC_DELAY s delay, consistent with wind smoothing
 /* init FIR smoothing
  * h_len = FOC_SIGNAL_DELAY s * sampling_freq, fc = 1.0 Hz */
-    foc_smooth_init(data_smooth, FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, 1.0f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60, 0.0);
+    foc_smooth_init(data_smooth, FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, 2.0f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60, 0.0);
 /* init Differentiation */
     foc_diff_init(data_diff);
 /* init Edge finding */
@@ -144,6 +144,8 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
     if (!foc_delta_update(data_smooth, data_edge_max, data_edge_min, data_cp_max, data_cp_min, data_delta))
         return false;
 #endif
+
+
 /* Step 6: Estimate the direction the odor comes from 
  * Warning: This step is only suitable for 3 sensors (FOC_NUM_SENSORS = 3)*/
     if (!foc_estimate_source_direction_update(data_raw, data_tdoa, data_wind, data_est))

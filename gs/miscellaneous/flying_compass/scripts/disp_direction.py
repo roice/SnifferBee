@@ -1,13 +1,38 @@
 import h5py
 import numpy as np
+import math
 import matplotlib.pyplot as plt
+from scipy.ndimage.filters import gaussian_filter
 
 fd = h5py.File('FOC_Record.h5', 'r+')
-direction = fd['/FOC/direction'][...]
+direction = fd['/FOC/est_direction'][...]
+belief = fd['/FOC/est_belief'][...]
+wind_xy = fd['/FOC/est_wind_speed_xy'][...]
 
-fig = plt.figure(figsize=(8,6))
-ax = fig.add_subplot(111)
+d_x = direction[:,0]
+d_y = direction[:,1]
 
-ax.plot(direction)
+theta = []
+for i in range(len(direction)):
+    ang = math.atan2(-d_x[i], d_y[i])
+    theta.append(ang)
+theta = np.asarray(theta)
+#theta = gaussian_filter(np.asarray(theta), sigma=100)
+
+direction = []
+for i in range(len(wind_xy)):
+    direction.append(math.atan2(-wind_xy[i,0], wind_xy[i,1]))
+direction = np.asarray(direction)
+
+#theta = gaussian_filter(theta, sigma=50)
+direction = gaussian_filter(direction, sigma=50)
+
+s = gaussian_filter(theta, sigma=50)
+
+fig, (ax1, ax2, ax3) = plt.subplots(nrows=3)
+
+ax1.plot(theta*180./np.pi)
+ax2.plot(direction)
+ax3.plot(s*180./np.pi)
 
 plt.show()

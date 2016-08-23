@@ -6,7 +6,7 @@
 #include <vector>
 #include "flying_odor_compass.h"
 
-#define     N   (FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)
+#define     N   (FOC_TDOA_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)
 
 /* Feature extraction
  * Args:
@@ -82,6 +82,14 @@ static bool calculate_delta(std::vector<FOC_ChangePoints_t>& cps, int previous_s
         for (int j = 1; j < FOC_NUM_SENSORS; j++) {
             new_delta.toa[j] = ((float)(cps.at(i).index[0] - cps.at(i).index[j]))/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR;
             new_delta.abs[j] = std::abs(grad.at(cps.at(i).index[j]).reading[j]);
+            new_delta.index = cps.at(i).index[0];
+            new_delta.dt = 0;
+            for (int k = 0; k < FOC_NUM_SENSORS; k++) {
+                for (int m = 0; m < FOC_NUM_SENSORS; m++) {
+                    if (new_delta.dt < std::abs(cps.at(i).index[k] - cps.at(i).index[m]))
+                        new_delta.dt = std::abs(cps.at(i).index[k] - cps.at(i).index[m]);
+                }
+            }
         }
         delta.push_back(new_delta);
     }
@@ -130,7 +138,7 @@ static bool check_if_its_new_cps(FOC_ChangePoints_t& cp, std::vector<FOC_ChangeP
     if (cps.size() < 1)
         return true;
 
-    int num_trace_back = FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR/FOC_NUM_SENSORS;
+    int num_trace_back = FOC_TDOA_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR/FOC_NUM_SENSORS;
 
     for (int i = int(cps.size()) - num_trace_back >= 0 ? cps.size() - num_trace_back: 0; i < cps.size(); i++) {
         if (are_changepoints_overlapping(cp, cps.at(i))) {

@@ -56,22 +56,25 @@ for i in range(len(wind)):
     v.append(math.atan2(-sum_x, sum_y))
 v = np.asarray(v)
 
-fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(nrows=6)
+theta = []
+r = []
+for i in range(len(wind)):
+    theta.append(math.atan2(-wind[i,0], wind[i,1]))
+    r.append(wind[i,0]*wind[i,0]+wind[i,1]*wind[i,1])
 
-ax1.plot(wind[:,0], color='r')
-ax1.plot(wind[:,1], color='g')
-ax1.plot(wind[:,2], color='b')
+sum_x = 0
+sum_y = 0
+for i in range(len(wind)):
+    sum_x += wind[i,0]
+    sum_y += wind[i,1]
+main_theta = math.atan2(-sum_x, sum_y)
 
-ax2.plot(wind_f_x, color='r')
-ax2.plot(wind_f_y, color='g')
-ax2.plot(wind_f_z, color='b')
+fig = plt.figure(figsize=(8,6))
+ax = fig.add_subplot(111, projection='polar')
 
-ax3.plot(direction*180./np.pi)
+ax.scatter(theta, r, s=1, cmap=plt.cm.hsv)
+ax.set_alpha(0.75)
 
-ax4.plot(strength)
-
-ax5.plot(w_d*180./np.pi)
-
-ax6.plot(v*180./np.pi)
+ax.scatter(main_theta, 10000, s=100)
 
 plt.show()

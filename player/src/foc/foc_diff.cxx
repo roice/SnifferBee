@@ -9,7 +9,7 @@
 static int index_in_reading = 0;
 
 static float x[FOC_DIFF_LAYERS][FOC_DIFF_LAYERS+1];
-static float y[FOC_DIFF_LAYERS];// support upto 4-th order derivative
+static float y[FOC_DIFF_LAYERS];// support upto 6-th order derivative
 
 static firfilt_rrrf f[FOC_DIFF_LAYERS][FOC_NUM_SENSORS];
 
@@ -23,7 +23,7 @@ void foc_diff_init(std::vector<FOC_Reading_t>* out)
     // len = 0.1 s, freq = 10 Hz
     for (int order = 1; order <= FOC_DIFF_LAYERS; order++)
         for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-            f[order-1][idx] = firfilt_rrrf_create_kaiser(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR/10, 10.0f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60.0, 0.0);
+            f[order-1][idx] = firfilt_rrrf_create_kaiser(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, (order*1.0)/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60.0, 0.0);
 
     for (int i = 0; i < FOC_DIFF_LAYERS; i++)
         out[i].clear();
@@ -54,21 +54,17 @@ bool foc_diff_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Reading_t>*
     if (in.size() < index_in_reading + FOC_MOX_INTERP_FACTOR)
         return false;
 
-    // diff
+    // diff, 1 <= order <= 3
     FOC_Reading_t sp; sp.time = 0;
-    for (int order = 1; order <= FOC_DIFF_LAYERS; order++)
+    for (int order = 1; order <= (FOC_DIFF_LAYERS > 3 ? 3 : FOC_DIFF_LAYERS); order++)
     {
         for (int i = index_in_reading; i < in.size(); i++)
         {
+            if (i < order) continue; // first run, x[order-1][] should init 0
             for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
             {
                 for (int j = 0; j < order+1; j++)
-                {
-                    if (i < order) // first run
-                        continue;   // x[order-1][] should init 0
-                    else
-                        x[order-1][j] = in.at(i-order+j).reading[idx];
-                }
+                    x[order-1][j] = in.at(i-order+j).reading[idx];
                 switch (order) {
                     case 1:
                         y[order-1] = (x[order-1][1] - x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
@@ -79,9 +75,17 @@ bool foc_diff_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Reading_t>*
                     case 3:
                         y[order-1] = (x[order-1][3] - 3*x[order-1][2] + 3*x[order-1][1] - x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
                     break;
+                    /*
                     case 4:
                         y[order-1] = (x[order-1][4] - 4*x[order-1][3] + 6*x[order-1][2] - 4*x[order-1][1] + x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
                     break;
+                    case 5:
+                        y[order-1] = (x[order-1][5] - 5*x[order-1][4] + 10*x[order-1][3] - 10*x[order-1][2] + 5*x[order-1][1] - x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+                    break;
+                    case 6:
+                        y[order-1] = (x[order-1][6] - 6*x[order-1][5] + 15*x[order-1][4] - 20*x[order-1][3] + 15*x[order-1][2] - 6*x[order-1][1] + x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+                    break;
+                    */
                     default: // 2-nd
                         y[order-1] = (x[order-1][2] - 2*x[order-1][1] + x[order-1][0])*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
                     break;
@@ -90,11 +94,32 @@ bool foc_diff_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Reading_t>*
                 // smooth
                 firfilt_rrrf_push(f[order-1][idx], y[order-1]);
                 firfilt_rrrf_execute(f[order-1][idx], &sp.reading[idx]);
-                //sp.reading[idx] = y[order-1];
             }
-
             // save results
             out[order-1].push_back(sp);
+        }
+    }
+
+    // diff, order >= 4
+    if (FOC_DIFF_LAYERS > 3)
+    {
+        for (int order = 4; order <= FOC_DIFF_LAYERS; order++)
+        {
+            for (int i = index_in_reading; i < in.size(); i++)
+            {
+                if (i < order) continue;
+                for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+                {
+                    for (int j = 0; j < 2; j++)
+                        x[order-1][j] = out[order-2].at(i-1+j).reading[idx];
+                    y[order-1] = (x[order-1][1] - x[order-1][0]);
+                    // smooth
+                    firfilt_rrrf_push(f[order-1][idx], y[order-1]);
+                    firfilt_rrrf_execute(f[order-1][idx], &sp.reading[idx]);
+                }
+                // save results
+                out[order-1].push_back(sp);
+            }
         }
     }
 

@@ -20,10 +20,11 @@
 #define FOC_WIND_MIN            0.05    // m/s
 #define FOC_WIND_MAX            5.0     // m/s
 #define FOC_SIGNAL_DELAY        1       // seconds, int
-#define FOC_TIME_RECENT_INFO    3       // seconds, int
+#define FOC_TDOA_DELAY          2       // seconds, int
+#define FOC_TIME_RECENT_INFO    10      // seconds, int
 #define FOC_MOX_DAQ_FREQ        25      // Hz, int
 #define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4, int
-#define FOC_DIFF_LAYERS         4       // layers of difference, 2 <= layers <=4
+#define FOC_DIFF_LAYERS         6       // layers of difference, 2 <= layers
 #define FOC_MAX_PARTICLES       100     // max number of particles
 #define FOC_RECORD_LEN          600     // seconds of history recording, int
 
@@ -49,6 +50,8 @@ typedef struct {
 typedef struct {
     float toa[FOC_NUM_SENSORS]; // time of arrival
     float abs[FOC_NUM_SENSORS]; // absolute, to calculate belief later
+    int index; // index of first sensor in edge sequence
+    float dt;
 } FOC_TDOA_t; // delta time/varince (feature extracted from mox reading)
 
 typedef struct {
@@ -75,6 +78,7 @@ typedef struct {
     float wind_speed_filtered_xy[2];
     float direction[3]; // direction of gas source
     float belief;
+    float dt;
     bool valid; // this result is valid or not
 } FOC_Estimation_t;
 

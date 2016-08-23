@@ -30,30 +30,13 @@ void draw_robots(void)
     // get robot info
     robot_state_t* robot_state = robot_get_state();
 
-    float temp_wind[3];
-
     // TODO: multiple robots
     for (int idx_robot = 0; idx_robot < 1; idx_robot++)
     {// draw every robot
 
         /* draw robot according to its type, configures... */
         // draw quadrotor
-        draw_qr(robot_state);
-
-        // draw wind vector measurement/estimation
-        memset(temp_wind, 0, 3*sizeof(float));
-        rotate_vector(robot_state->wind, temp_wind, robot_state->attitude[2], robot_state->attitude[1], robot_state->attitude[0]);
-        draw_arrow(robot_state->position[0],
-            robot_state->position[1],
-            robot_state->position[2],
-            //robot_state->position[0] + 0.005*temp_wind[0],
-            //robot_state->position[1] + 0.005*temp_wind[1],
-            //robot_state->position[2] + 0.005*temp_wind[2],
-            robot_state->position[0] + 0.1*temp_wind[0],
-            robot_state->position[1] + 0.1*temp_wind[1],
-            robot_state->position[2] + 0.1*temp_wind[2],
-            0.0, 1.0, 0.0);
-        
+        draw_qr(robot_state);    
     }
 }
 

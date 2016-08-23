@@ -2,6 +2,7 @@
 #include <vector>
 #include "flying_odor_compass.h"
 #include "liquid.h"
+#include "vector_rotation.h"
 
 static firfilt_rrrf f_w[3]; // xyz, filter for wind
 
@@ -23,6 +24,8 @@ void foc_wind_smooth_update(FOC_Input_t& new_in, std::vector<FOC_Wind_t>& out)
     }
 
     // save result
-    memcpy(new_out.wind, new_in.wind, 3*sizeof(float));
+    //memcpy(new_out.wind, new_in.wind, 3*sizeof(float));
+    memset(new_out.wind, 0, sizeof(new_out.wind));
+    rotate_vector(new_in.wind, new_out.wind, new_in.attitude[2], 0, 0);
     out.push_back(new_out);
 }
