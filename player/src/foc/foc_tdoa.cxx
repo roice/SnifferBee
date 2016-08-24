@@ -86,8 +86,8 @@ static bool calculate_delta(std::vector<FOC_ChangePoints_t>& cps, int previous_s
             new_delta.dt = 0;
             for (int k = 0; k < FOC_NUM_SENSORS; k++) {
                 for (int m = 0; m < FOC_NUM_SENSORS; m++) {
-                    if (new_delta.dt < std::abs(cps.at(i).index[k] - cps.at(i).index[m]))
-                        new_delta.dt = std::abs(cps.at(i).index[k] - cps.at(i).index[m]);
+                    if (new_delta.dt < std::abs((float)(cps.at(i).index[k] - cps.at(i).index[m])))
+                        new_delta.dt = std::abs((float)(cps.at(i).index[k] - cps.at(i).index[m]));
                 }
             }
         }
