@@ -3,12 +3,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 fd = h5py.File('FOC_Record.h5', 'r+')
-diff_1 = fd['/FOC/mox_diff_1'][...][500:]
-diff_2 = fd['/FOC/mox_diff_2'][...][500:]
-diff_3 = fd['/FOC/mox_diff_3'][...][500:]
+diff_1 = fd['/FOC/mox_diff_1'][...]
+diff_2 = fd['/FOC/mox_diff_2'][...]
+diff_3 = fd['/FOC/mox_diff_3'][...]
+
+'''
 diff_4 = fd['/FOC/mox_diff_4'][...][500:]
 diff_5 = fd['/FOC/mox_diff_5'][...][500:]
 diff_6 = fd['/FOC/mox_diff_6'][...][500:]
+'''
+
 
 '''
 diff = diff[2000:6000,:]
@@ -33,6 +37,7 @@ ax3.plot(diff_3[:,0], color='r')
 ax3.plot(diff_3[:,1], color='g')
 ax3.plot(diff_3[:,2], color='b')
 
+'''
 ax4.plot(diff_4[:,0], color='r')
 ax4.plot(diff_4[:,1], color='g')
 ax4.plot(diff_4[:,2], color='b')
@@ -44,5 +49,6 @@ ax5.plot(diff_5[:,2], color='b')
 ax6.plot(diff_6[:,0], color='r')
 ax6.plot(diff_6[:,1], color='g')
 ax6.plot(diff_6[:,2], color='b')
+'''
 
 plt.show()

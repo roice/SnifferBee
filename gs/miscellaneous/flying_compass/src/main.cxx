@@ -17,11 +17,11 @@
 
 //#define FILE "../data/Record_2016-08-03_17-30-06.h5"
 //#define FILE "../data/Record_2016-08-19_14-32-35.h5"
-//#define FILE "../data/Record_2016-08-19_16-36-49.h5"
+#define FILE "../data/Record_2016-08-19_16-36-49.h5"
 //#define FILE "../data/Record_2016-08-19_16-45-13.h5"
 //#define FILE "../data/Record_2016-08-19_16-52-27.h5"
 //#define FILE "../data/Record_2016-08-19_16-56-45.h5"
-#define FILE "../data/Record_2016-08-23_15-28-25.h5"
+//#define FILE "../data/Record_2016-08-23_15-28-25.h5"
 
 int main(int argc, char* argv[])
 {
@@ -54,8 +54,8 @@ int main(int argc, char* argv[])
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
     //for (int i = 25*30; i < 25*40; i++)
-    //for (int i = 25*60*0; i < 25*60*4; i++)
-    for (int i = 25*40; i < 25*80; i++)
+    for (int i = 25*60*0; i < 25*60*2; i++)
+    //for (int i = 25*40; i < 25*45; i++)
     {
         // read position
         memcpy(&input.position[0], &position[i][0], 3*sizeof(float));

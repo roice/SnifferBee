@@ -21,7 +21,7 @@
 #define FOC_WIND_MAX            5.0     // m/s
 #define FOC_SIGNAL_DELAY        1       // seconds, int
 #define FOC_TDOA_DELAY          2       // seconds, int
-#define FOC_TIME_RECENT_INFO    10      // seconds, int
+#define FOC_TIME_RECENT_INFO    3       // seconds, int
 #define FOC_MOX_DAQ_FREQ        25      // Hz, int
 #define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4, int
 #define FOC_DIFF_LAYERS         6       // layers of difference, 2 <= layers
@@ -103,7 +103,7 @@ class Flying_Odor_Compass
         std::vector<FOC_Input_t>        data_raw;
         std::vector<FOC_Reading_t>      data_denoise;
         std::vector<FOC_Reading_t>      data_interp;
-        std::vector<FOC_Reading_t>      data_smooth;
+        std::vector<FOC_Reading_t>      data_smooth[FOC_DIFF_LAYERS+1];
         std::vector<FOC_Reading_t>      data_diff[FOC_DIFF_LAYERS];
         std::vector<FOC_Reading_t>      data_edge_max[FOC_DIFF_LAYERS];
         std::vector<FOC_Reading_t>      data_edge_min[FOC_DIFF_LAYERS];

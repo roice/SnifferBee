@@ -45,8 +45,9 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     data_raw.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_denoise.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_interp.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-    data_smooth.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-    for (int i = 0; i < FOC_DIFF_LAYERS; i++) {
+    for (int i = 0; i < FOC_DIFF_LAYERS+1; i++)
+        data_smooth[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+    for (int i = 0; i < FOC_DIFF_LAYERS; i++) { 
         data_diff[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
         data_edge_max[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
         data_edge_min[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
@@ -63,8 +64,8 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
 /* init FIR interpolation */
     foc_interp_init(data_interp, FOC_MOX_INTERP_FACTOR, FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ, 60); // FOC_DELAY s delay, consistent with wind smoothing
 /* init FIR smoothing
- * h_len = FOC_SIGNAL_DELAY s * sampling_freq, fc = 1.0 Hz */
-    foc_smooth_init(data_smooth, FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR, 2.0f/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR*2, 60, 0.0);
+ * h_len = FOC_SIGNAL_DELAY s * sampling_freq */
+    foc_smooth_init(data_smooth);
 /* init Differentiation */
     foc_diff_init(data_diff);
 /* init Edge finding */
@@ -115,7 +116,7 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
     if (!foc_smooth_update(data_interp, data_smooth))
         return false;
 
-/* Step 4: Derivative */
+/* Step 4: Differences */
     if (!foc_diff_update(data_smooth, data_diff))
         return false;
 

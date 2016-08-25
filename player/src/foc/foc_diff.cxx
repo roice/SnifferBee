@@ -6,6 +6,46 @@
 #include "liquid.h"
 
 // index of latest differentiated reading
+static int index_in_reading = 2*FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR; // skip FIR init fluctuation
+
+/* Difference of Gaussian */
+void foc_diff_init(std::vector<FOC_Reading_t>* out)
+{
+    for (int i = 0; i < FOC_DIFF_LAYERS; i++)
+        out[i].clear();
+
+    index_in_reading = 2*FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+}
+
+bool foc_diff_update(std::vector<FOC_Reading_t>* in, std::vector<FOC_Reading_t>* out)
+{
+    // check if there are new data to be diffed
+    if (in[0].size() < index_in_reading + FOC_MOX_INTERP_FACTOR) // in arrays have the same size
+        return false;
+
+    FOC_Reading_t sp; sp.time = 0;
+    for (int layer = 0; layer < FOC_DIFF_LAYERS; layer++)
+    {
+        for (int i = index_in_reading; i < in[layer].size(); i++)
+        {
+            for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+            {
+                sp.reading[idx] = in[layer].at(i).reading[idx] - in[layer+1].at(i).reading[idx];
+            }
+            out[layer].push_back(sp);
+        }
+    }
+
+    // update index, in arrays have the same size
+    index_in_reading = in[0].size();
+
+    return true;
+}
+
+/* Derivatives */
+#if 0
+
+// index of latest differentiated reading
 static int index_in_reading = 0;
 
 static float x[FOC_DIFF_LAYERS][FOC_DIFF_LAYERS+1];
@@ -128,3 +168,5 @@ bool foc_diff_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Reading_t>*
 
     return true;
 }
+
+#endif

@@ -109,19 +109,23 @@ bool foc_edge_update(std::vector<FOC_Reading_t>* in, std::vector<FOC_Reading_t>*
         memset(&g, 0, sizeof(g));
         for (i = index_in_reading[order-1]; i < in[order-1].size()-1; i++) {
             for (int idx = 0; idx < FOC_NUM_SENSORS; idx++) {
-                //g.reading[idx] = grad_max[idx][i-index_in_reading[order-1]];
+                g.reading[idx] = grad_max[idx][i-index_in_reading[order-1]];
+                /*
                 if (grad_max[idx][i-index_in_reading[order-1]] > 0)
                     g.reading[idx] = grad_max[idx][i-index_in_reading[order-1]];
                 else
                     g.reading[idx] = 0;
+                */
             }
             out_max[order-1].push_back(g);
             for (int idx = 0; idx < FOC_NUM_SENSORS; idx++) {
-                //g.reading[idx] = grad_min[idx][i-index_in_reading[order-1]];
+                g.reading[idx] = grad_min[idx][i-index_in_reading[order-1]];
+                /*
                 if (grad_min[idx][i-index_in_reading[order-1]] < 0)
                     g.reading[idx] = grad_min[idx][i-index_in_reading[order-1]];
                 else
                     g.reading[idx] = 0;
+                */
             }
             out_min[order-1].push_back(g);
         }

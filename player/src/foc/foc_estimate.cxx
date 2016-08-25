@@ -79,7 +79,7 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
         index_tdoa = tdoa[order-1].size() -1;
         while (index_tdoa >= 0) {
             if (tdoa[order-1].at(index_tdoa).index > tdoa[order-1].back().index - deep_traceback) {
-                if (tdoa[order-1].at(index_tdoa).dt < 5) {
+                if (tdoa[order-1].at(index_tdoa).dt < 0) {
                     index_tdoa --;
                     continue;
                 }
