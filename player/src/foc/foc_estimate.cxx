@@ -73,6 +73,8 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     float temp_hd[3], temp_hd_p[3];
     double temp_sum_hd[3] = {0}; double temp_norm_hd;
     memset(new_out.direction, 0, sizeof(new_out.direction));
+    std::vector<FOC_Vector_t>* hds = new std::vector<FOC_Vector_t>;
+    FOC_Vector_t new_hd_v = {0}; int temp_count = 0;
     for (int order = 1; order <= FOC_DIFF_LAYERS; order++) {
     //for (int order = 3; order <= 3; order++) {
         memset(temp_sum_hd, 0, sizeof(temp_sum_hd));
@@ -91,18 +93,34 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
                 }
                 rotate_vector(temp_hd_p, temp_hd, raw.at(tdoa[order-1].at(index_tdoa).index - FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR >= 0 ? (tdoa[order-1].at(index_tdoa).index - FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)/FOC_MOX_INTERP_FACTOR : 0).attitude[2], 0, 0);
                 for (int j = 0; j < 3; j++)
-                    temp_sum_hd[j] += temp_hd[j]*(std::abs(tdoa[order-1].at(index_tdoa).abs[0])+std::abs(tdoa[order-1].at(index_tdoa).abs[1])+std::abs(tdoa[order-1].at(index_tdoa).abs[2]));
+                    temp_sum_hd[j] += temp_hd[j];//*(std::abs(tdoa[order-1].at(index_tdoa).abs[0])+std::abs(tdoa[order-1].at(index_tdoa).abs[1])+std::abs(tdoa[order-1].at(index_tdoa).abs[2]));
+                // save temp_hd to calculate belief later
+                new_hd_v.x = temp_hd[0];
+                new_hd_v.y = temp_hd[1];
+                hds->push_back(new_hd_v);
+                //temp_sum_belief += std::abs(tdoa[order-1].at(index_tdoa).abs[0])+std::abs(tdoa[order-1].at(index_tdoa).abs[1])+std::abs(tdoa[order-1].at(index_tdoa).abs[2]);
             }
             index_tdoa --;
-        }
+        }    
         temp_norm_hd = std::sqrt(temp_sum_hd[0]*temp_sum_hd[0] + temp_sum_hd[1]*temp_sum_hd[1] + temp_sum_hd[2]*temp_sum_hd[2]);
         for (int j = 0; j < 3; j++)
-            new_out.direction[j] += temp_sum_hd[j] / temp_norm_hd;
-    } 
-    new_out.wind_speed_xy[0] = raw.back().wind[0];
-    new_out.wind_speed_xy[1] = raw.back().wind[1];
-    new_out.valid = true;
-    out.push_back(new_out);
+            new_out.direction[j] += temp_sum_hd[j] / temp_norm_hd; 
+    }
+    if (hds->size() > 0)
+    {
+        // calculate belief
+        for (int i = 0; i < hds->size(); i++)
+        {
+            if ( std::abs(std::acos((hds->at(i).x*new_out.direction[0]+hds->at(i).y*new_out.direction[1])/std::sqrt((hds->at(i).x*hds->at(i).x+hds->at(i).y*hds->at(i).y)*(new_out.direction[0]*new_out.direction[0]+new_out.direction[1]*new_out.direction[1])))) < 60.0*M_PI/180.0 )
+                temp_count ++;
+        }
+        new_out.belief = (float)temp_count / (float)hds->size();
+        new_out.wind_speed_xy[0] = raw.back().wind[0];
+        new_out.wind_speed_xy[1] = raw.back().wind[1];
+        new_out.valid = true;
+        out.push_back(new_out);
+    }
+    delete hds;
 #endif
     
     new_out.particles = new std::vector<FOC_Particle_t>;

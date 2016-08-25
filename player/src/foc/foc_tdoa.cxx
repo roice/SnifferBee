@@ -7,6 +7,7 @@
 #include "flying_odor_compass.h"
 
 #define     N   (FOC_TDOA_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)
+#define     MR_K    0.5     // matching reliability, 0.~1.
 
 /* Feature extraction
  * Args:
@@ -105,6 +106,14 @@ static int get_dispersion_of_the_pair(std::vector<FOC_Edge_t>& edge_cps, int sta
     return p;
 }
 
+static float get_strength_of_the_pair(std::vector<FOC_Edge_t>& edge_cps, int start)
+{
+    float p = 0;
+    for (int i = start; i < start+FOC_NUM_SENSORS; i++)
+        p += std::abs(edge_cps.at(i).reading);
+    return p;
+}
+
 static bool are_change_points_of_different_sensors(std::vector<FOC_Edge_t>& edge_cps, int start)
 {
     if (edge_cps.size() < start + FOC_NUM_SENSORS)
@@ -168,14 +177,22 @@ static void find_pairs_of_change_points(std::vector<FOC_Edge_t>& edge_cps, std::
             for (int j = 1; j < FOC_NUM_SENSORS; j++) {
                 if (i+j <= edge_cps.size()-FOC_NUM_SENSORS) {
                     if (are_change_points_of_different_sensors(edge_cps, i+j)) {
-                        if (get_dispersion_of_the_pair(edge_cps, i+j) < get_dispersion_of_the_pair(edge_cps, i)) {
+                        if (get_dispersion_of_the_pair(edge_cps, i+j) == 0)
+                            continue;
+                        if ((MR_K/((float)get_dispersion_of_the_pair(edge_cps, i+j))+(1.0-MR_K)*get_strength_of_the_pair(edge_cps, i+j)) > (MR_K/((float)get_dispersion_of_the_pair(edge_cps, i))+(1.0-MR_K)*get_strength_of_the_pair(edge_cps, i))) {
                             is_best_pair = false;
                             break;
                         }
                     }
                 }
             }
-            if (is_best_pair) { // find best pair
+            // non-extremum suppression
+            if (is_best_pair) {
+                if (get_strength_of_the_pair(edge_cps, i) < 0)
+                    is_best_pair = false;
+            }
+            // save best pair
+            if (is_best_pair) { // found best pair
                 for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
                     new_cp.index[edge_cps.at(i+idx).index_sensor] = edge_cps.at(i+idx).index_time;
                 new_cp.disp = get_dispersion_of_the_pair(edge_cps,i);

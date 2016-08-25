@@ -14,6 +14,8 @@ d_y = direction[:,1]
 
 theta = []
 for i in range(len(direction)):
+    if belief[i] < 0:
+        continue
     ang = math.atan2(-d_x[i], d_y[i])
     theta.append(ang)
 theta = np.asarray(theta)
@@ -29,10 +31,12 @@ direction = gaussian_filter(direction, sigma=50)
 
 s = gaussian_filter(theta, sigma=50)
 
-fig, (ax1, ax2, ax3) = plt.subplots(nrows=3)
+fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4)
 
 ax1.plot(theta*180./np.pi)
-ax2.plot(direction)
-ax3.plot(s*180./np.pi)
+
+ax2.plot(belief)
+ax3.plot(direction)
+ax4.plot(s*180./np.pi)
 
 plt.show()

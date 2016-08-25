@@ -48,7 +48,7 @@ theta = []
 r_belief = []
 r_dt = []
 for i in range(len(direction)):
-    if dt[i] < 10:
+    if dt[i] < 0:
         continue
     ang = math.atan2(-direction[i,0], direction[i,1])
     theta.append(ang)
@@ -62,7 +62,7 @@ r_dt = np.asarray(r_dt)
 sum_d_x = 0
 sum_d_y = 0
 for i in range(len(direction)):
-    if (dt[i]) < 10:
+    if (dt[i]) < 0:
         continue
     sum_d_x += direction[i,0]#*belief[i]
     sum_d_y += direction[i,1]#*belief[i]

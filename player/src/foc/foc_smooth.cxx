@@ -5,7 +5,7 @@
 #include "flying_odor_compass.h"
 #include "liquid.h"
 
-#define FOC_SMOOTH_BASE_FREQ    4.0     // Hz
+#define FOC_SMOOTH_BASE_FREQ    1.5     // Hz
 #define H_LEN   FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR    // filter length 
 
 static firfilt_rrrf f[FOC_DIFF_LAYERS+1][FOC_NUM_SENSORS];

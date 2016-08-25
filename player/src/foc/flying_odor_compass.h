@@ -20,7 +20,7 @@
 #define FOC_WIND_MIN            0.05    // m/s
 #define FOC_WIND_MAX            5.0     // m/s
 #define FOC_SIGNAL_DELAY        1       // seconds, int
-#define FOC_TDOA_DELAY          2       // seconds, int
+#define FOC_TDOA_DELAY          1       // seconds, int
 #define FOC_TIME_RECENT_INFO    3       // seconds, int
 #define FOC_MOX_DAQ_FREQ        25      // Hz, int
 #define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4, int
@@ -36,6 +36,12 @@ typedef struct {
     int count;
     double time;
 } FOC_Input_t; // data type input to FOC
+
+typedef struct {
+    float x;
+    float y;
+    float z;
+} FOC_Vector_t;
 
 typedef struct {
     float reading[FOC_NUM_SENSORS];
