@@ -12,8 +12,8 @@ ax1.plot(mox_reading[:,0], color='red')
 ax1.plot(mox_reading[:,1], color='yellow')
 ax1.plot(mox_reading[:,2], color='blue')
 
-ax2.plot(mox_ukf_out[:,0], color='red')
-ax2.plot(mox_ukf_out[:,1], color='yellow')
-ax2.plot(mox_ukf_out[:,2], color='blue')
+ax1.plot(mox_ukf_out[:,0], color='red')
+ax1.plot(mox_ukf_out[:,1], color='yellow')
+ax1.plot(mox_ukf_out[:,2], color='blue')
 
 plt.show()

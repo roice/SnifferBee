@@ -14,7 +14,7 @@ d_y = direction[:,1]
 
 theta = []
 for i in range(len(direction)):
-    if belief[i] < 0:
+    if belief[i] < 0.3:
         continue
     ang = math.atan2(-d_x[i], d_y[i])
     theta.append(ang)

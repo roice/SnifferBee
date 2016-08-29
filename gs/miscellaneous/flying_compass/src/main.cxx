@@ -23,8 +23,8 @@
 //#define FILE "../data/Record_2016-08-19_16-56-45.h5"
 //#define FILE "../data/Record_2016-08-23_15-28-25.h5"
 //#define FILE "../data/Record_2016-08-25_18-26-08.h5"
-#define FILE "../data/Record_2016-08-25_21-10-17.h5"
-//#define FILE "../data/Record_2016-08-25_21-17-16.h5"
+//#define FILE "../data/Record_2016-08-25_21-10-17.h5"
+#define FILE "../data/Record_2016-08-25_21-17-16.h5"
 
 int main(int argc, char* argv[])
 {
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     Flying_Odor_Compass foc;
     //for (int i = 25*30; i < 25*40; i++)
     for (int i = 25*60*0; i < 25*60*2; i++)
-    //for (int i = 25*60; i < 25*65; i++)
+    //for (int i = 25*60; i < 25*70; i++)
     {
         // read position
         memcpy(&input.position[0], &position[i][0], 3*sizeof(float));

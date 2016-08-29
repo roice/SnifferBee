@@ -45,18 +45,20 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     data_raw.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_denoise.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_interp.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-    for (int i = 0; i < FOC_DIFF_LAYERS+1; i++)
-        data_smooth[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-    for (int i = 0; i < FOC_DIFF_LAYERS; i++) { 
-        data_diff[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-        data_edge_max[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-        data_edge_min[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-        data_cp_max[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-        data_cp_min[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-        data_tdoa[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-    }
+    for (int i = 0; i < FOC_DIFF_GROUPS; i++)
+        for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP+1; j++)
+            data_smooth[i*(FOC_DIFF_LAYERS_PER_GROUP+1)+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+    for (int i = 0; i < FOC_DIFF_GROUPS; i++)
+        for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP; j++) { 
+            data_diff[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+            data_edge_max[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+            data_edge_min[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+            data_cp_max[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+            data_cp_min[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+            data_tdoa[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+        }
     data_std.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
-    data_est.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_DIFF_LAYERS);
+    data_est.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP);
 /* init wind filtering */
     foc_wind_smooth_init(data_wind); // FOC_DELAY s delay
 /* init UKF filtering */
@@ -70,10 +72,13 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     foc_diff_init(data_diff);
 /* init Edge finding */
     foc_edge_init(data_edge_max, data_edge_min);
+#if 0
 /* init feature extraction: std */
     foc_std_init(data_std);
+#endif
 /* init feature extraction: tdoa */
     foc_tdoa_init(data_cp_max, data_cp_min, data_tdoa);
+
 #if 0
 /* init gradient */
     foc_gradient_init(data_gradient);
@@ -98,7 +103,7 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 /* Step 0: Pre-processing */
     foc_wind_smooth_update(new_in, data_wind); // smooth wind data
 
-#if 0
+#if 1
 /* Step 1: Noise reduction through UKF filtering */
     FOC_Reading_t ukf_out = foc_noise_reduction_ukf_update(new_in);
     data_denoise.push_back(ukf_out); // save record
@@ -106,11 +111,13 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 /* Step 2: FIR interpolation (`zero-stuffing' upsampling + filtering) */
     if (!foc_interp_update(ukf_out, data_interp))
         return false;
-#endif
+//    data_interp.push_back(ukf_out);
+#else
     FOC_Reading_t new_rd;
     memcpy(&new_rd.reading, &new_in.mox_reading, FOC_NUM_SENSORS*sizeof(float));
     if (!foc_interp_update(new_rd, data_interp))
         return false;
+#endif
 
 /* Step 3: Smoothing through FIR filtering */
     if (!foc_smooth_update(data_interp, data_smooth))
@@ -125,8 +132,8 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
         return false;
 
 /* Step 6: Extracting features: standard deviation */
-    if (!foc_std_update(data_diff, data_std))
-        return false;
+//    if (!foc_std_update(data_diff, data_std))
+//        return false;
 
 /* Step 7: Extracting features: time diff */
     if (!foc_tdoa_update(data_diff, data_edge_max, data_edge_min, data_cp_max, data_cp_min, data_tdoa))

@@ -38,31 +38,31 @@ void foc_estimate_source_direction_init(std::vector<FOC_Estimation_t>& out)
  */
 bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::vector<FOC_TDOA_t>* tdoa, std::vector<FOC_Wind_t>& wind, std::vector<FOC_Estimation_t>& out)
 {
-    for (int i = 0; i < FOC_DIFF_LAYERS; i++)
-        if (tdoa[i].size() < 1) return false;
+    for (int i = 0; i < FOC_DIFF_GROUPS; i++)
+        for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP; j++)
+            if (tdoa[i*FOC_DIFF_LAYERS_PER_GROUP+j].size() < 1) return false;
 
     FOC_Estimation_t new_out;
 
 #if 0
-    static int prev_tdoa_size[FOC_DIFF_LAYERS] = {0};
+    static int prev_tdoa_size[FOC_DIFF_GROUPS][FOC_DIFF_LAYERS_PER_GROUP] = {0};
 
     float temp_direct[3] = {0};
-    for (int order = 1; order <= FOC_DIFF_LAYERS; order++) {
-    //for (int order = 1; order <= 2; order++) {
-        for (int i = prev_tdoa_size[order-1]; i < tdoa[order-1].size(); i++) {
-            memset(new_out.direction, 0, 3*sizeof(float));
-            memset(temp_direct, 0, 3*sizeof(float));
-            if (!estimate_horizontal_direction_according_to_tdoa(tdoa[order-1].at(i), temp_direct))
-            //if (!estimate_horizontal_direction_according_to_tdoa(tdoa[order-1].at(i), new_out.direction))
-                continue;
-            rotate_vector(temp_direct, new_out.direction, raw.at(raw.size()-FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ).attitude[2], 0, 0);
-            new_out.belief = std::abs(tdoa[order-1].at(i).abs[0])+std::abs(tdoa[order-1].at(i).abs[1])+std::abs(tdoa[order-1].at(i).abs[2]);
-            new_out.valid = true;
-            new_out.dt = tdoa[order-1].at(i).dt;
-            out.push_back(new_out);
+    for (int grp = 3; grp < FOC_DIFF_GROUPS; grp++)
+        for (int lyr = 0; lyr < FOC_DIFF_LAYERS_PER_GROUP; lyr++) {
+            for (int i = prev_tdoa_size[grp][lyr]; i < tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].size(); i++) {
+                memset(new_out.direction, 0, 3*sizeof(float));
+                memset(temp_direct, 0, 3*sizeof(float));
+                if (!estimate_horizontal_direction_according_to_tdoa(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(i), temp_direct))
+                    continue;
+                rotate_vector(temp_direct, new_out.direction, raw.at(raw.size()-FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ).attitude[2], 0, 0);
+                new_out.belief = std::abs(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(i).abs[0])+std::abs(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(i).abs[1])+std::abs(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(i).abs[2]);
+                new_out.valid = true;
+                new_out.dt = tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(i).dt;
+                out.push_back(new_out);
+            }
+            prev_tdoa_size[grp][lyr] = tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].size();
         }
-        prev_tdoa_size[order-1] = tdoa[order-1].size();
-    }
     return true;
 
 #else
@@ -75,23 +75,23 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     memset(new_out.direction, 0, sizeof(new_out.direction));
     std::vector<FOC_Vector_t>* hds = new std::vector<FOC_Vector_t>;
     FOC_Vector_t new_hd_v = {0}; int temp_count = 0;
-    for (int order = 1; order <= FOC_DIFF_LAYERS; order++) {
-    //for (int order = 3; order <= 3; order++) {
+    for (int grp = 0; grp < FOC_DIFF_GROUPS; grp++)
+    for (int lyr = 0; lyr < FOC_DIFF_LAYERS_PER_GROUP; lyr++) {
         memset(temp_sum_hd, 0, sizeof(temp_sum_hd));
-        index_tdoa = tdoa[order-1].size() -1;
+        index_tdoa = tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].size() -1;
         while (index_tdoa >= 0) {
-            if (tdoa[order-1].at(index_tdoa).index > tdoa[order-1].back().index - deep_traceback) {
-                if (tdoa[order-1].at(index_tdoa).dt < 0) {
+            if (tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa).index > tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].back().index - deep_traceback) {
+                if (tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa).dt < 0) {
                     index_tdoa --;
                     continue;
                 }
                 memset(temp_hd_p, 0, sizeof(temp_hd_p));
                 memset(temp_hd, 0, sizeof(temp_hd));
-                if (!estimate_horizontal_direction_according_to_tdoa(tdoa[order-1].at(index_tdoa), temp_hd_p)) {
+                if (!estimate_horizontal_direction_according_to_tdoa(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa), temp_hd_p)) {
                     index_tdoa --;
                     continue;
                 }
-                rotate_vector(temp_hd_p, temp_hd, raw.at(tdoa[order-1].at(index_tdoa).index - FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR >= 0 ? (tdoa[order-1].at(index_tdoa).index - FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)/FOC_MOX_INTERP_FACTOR : 0).attitude[2], 0, 0);
+                rotate_vector(temp_hd_p, temp_hd, raw.at(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa).index - FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR >= 0 ? (tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa).index - FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)/FOC_MOX_INTERP_FACTOR : 0).attitude[2], 0, 0);
                 for (int j = 0; j < 3; j++)
                     temp_sum_hd[j] += temp_hd[j];//*(std::abs(tdoa[order-1].at(index_tdoa).abs[0])+std::abs(tdoa[order-1].at(index_tdoa).abs[1])+std::abs(tdoa[order-1].at(index_tdoa).abs[2]));
                 // save temp_hd to calculate belief later

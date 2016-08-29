@@ -15,18 +15,19 @@
 
 #include <vector>
 
-#define FOC_NUM_SENSORS         3
-#define FOC_RADIUS              0.1     // meter
-#define FOC_WIND_MIN            0.05    // m/s
-#define FOC_WIND_MAX            5.0     // m/s
-#define FOC_SIGNAL_DELAY        1       // seconds, int
-#define FOC_TDOA_DELAY          1       // seconds, int
-#define FOC_TIME_RECENT_INFO    3       // seconds, int
-#define FOC_MOX_DAQ_FREQ        25      // Hz, int
-#define FOC_MOX_INTERP_FACTOR   10      // samples/symbol, > 4, int
-#define FOC_DIFF_LAYERS         6       // layers of difference, 2 <= layers
-#define FOC_MAX_PARTICLES       100     // max number of particles
-#define FOC_RECORD_LEN          600     // seconds of history recording, int
+#define FOC_NUM_SENSORS             3
+#define FOC_RADIUS                  0.1     // meter
+#define FOC_WIND_MIN                0.05    // m/s
+#define FOC_WIND_MAX                5.0     // m/s
+#define FOC_SIGNAL_DELAY            2       // seconds, int
+#define FOC_TDOA_DELAY              1       // seconds, int
+#define FOC_TIME_RECENT_INFO        3       // seconds, int
+#define FOC_MOX_DAQ_FREQ            25      // Hz, int
+#define FOC_MOX_INTERP_FACTOR       10      // samples/symbol, > 4, int
+#define FOC_DIFF_LAYERS_PER_GROUP   3       // layers of difference per group, 2 <= layers
+#define FOC_DIFF_GROUPS             6       // groups of difference
+#define FOC_MAX_PARTICLES           100     // max number of particles
+#define FOC_RECORD_LEN              600     // seconds of history recording, int
 
 typedef struct {
     float mox_reading[FOC_NUM_SENSORS];
@@ -109,13 +110,13 @@ class Flying_Odor_Compass
         std::vector<FOC_Input_t>        data_raw;
         std::vector<FOC_Reading_t>      data_denoise;
         std::vector<FOC_Reading_t>      data_interp;
-        std::vector<FOC_Reading_t>      data_smooth[FOC_DIFF_LAYERS+1];
-        std::vector<FOC_Reading_t>      data_diff[FOC_DIFF_LAYERS];
-        std::vector<FOC_Reading_t>      data_edge_max[FOC_DIFF_LAYERS];
-        std::vector<FOC_Reading_t>      data_edge_min[FOC_DIFF_LAYERS];
-        std::vector<FOC_ChangePoints_t> data_cp_max[FOC_DIFF_LAYERS];
-        std::vector<FOC_ChangePoints_t> data_cp_min[FOC_DIFF_LAYERS];
-        std::vector<FOC_TDOA_t>         data_tdoa[FOC_DIFF_LAYERS];
+        std::vector<FOC_Reading_t>      data_smooth[FOC_DIFF_GROUPS*(FOC_DIFF_LAYERS_PER_GROUP+1)];
+        std::vector<FOC_Reading_t>      data_diff[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
+        std::vector<FOC_Reading_t>      data_edge_max[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
+        std::vector<FOC_Reading_t>      data_edge_min[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
+        std::vector<FOC_ChangePoints_t> data_cp_max[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
+        std::vector<FOC_ChangePoints_t> data_cp_min[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
+        std::vector<FOC_TDOA_t>         data_tdoa[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
         std::vector<FOC_STD_t>          data_std;
         std::vector<FOC_Estimation_t>   data_est;
     private:

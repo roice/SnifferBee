@@ -29,8 +29,10 @@ void* sensor_reading_z[FOC_NUM_SENSORS]; // measurement
 
 void foc_noise_reduction_ukf_init(void)
 {
-    sensor_reading_var_process_noise = pow(0.85, 2);
-    sensor_reading_var_measurement_noise = 0.05*0.05;
+    //sensor_reading_var_process_noise = pow(0.85, 2);
+    //sensor_reading_var_measurement_noise = 0.05*0.05;
+    sensor_reading_var_process_noise = pow(3.0, 2);
+    sensor_reading_var_measurement_noise = 0.01*0.01;
     MOX_Sensor::State<T>** x = (MOX_Sensor::State<T>**)sensor_reading_state;
     MOX_Sensor::SystemModel<T>** sys = (MOX_Sensor::SystemModel<T>**)
         sensor_reading_sys;

@@ -17,11 +17,12 @@
  */
 void foc_tdoa_init(std::vector<FOC_ChangePoints_t>* cp_max, std::vector<FOC_ChangePoints_t>* cp_min, std::vector<FOC_TDOA_t>* out)
 {
-    for (int i = 0; i < FOC_DIFF_LAYERS; i++) {
-        cp_max[i].clear();
-        cp_min[i].clear();
-        out[i].clear();
-    }
+    for (int i = 0; i < FOC_DIFF_GROUPS; i++)
+        for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP; j++) {
+            cp_max[i*FOC_DIFF_LAYERS_PER_GROUP+j].clear();
+            cp_min[i*FOC_DIFF_LAYERS_PER_GROUP+j].clear();
+            out[i*FOC_DIFF_LAYERS_PER_GROUP+j].clear();
+        }
 }
 /* Feature extraction
  * Args:
@@ -38,12 +39,13 @@ static bool calculate_delta(std::vector<FOC_ChangePoints_t>&, int, std::vector<F
 
 bool foc_tdoa_update(std::vector<FOC_Reading_t>* diff, std::vector<FOC_Reading_t>* edge_max, std::vector<FOC_Reading_t>* edge_min, std::vector<FOC_ChangePoints_t>* cp_max, std::vector<FOC_ChangePoints_t>* cp_min, std::vector<FOC_TDOA_t>* out)
 {
-    for (int i = 0; i < FOC_DIFF_LAYERS; i++)
-        // check if args valid for differentiation
-        if (diff[i].size() < N or edge_max[i].size() < N or edge_min[i].size() < N)
-            return false;
+    for (int i = 0; i < FOC_DIFF_GROUPS; i++)
+        for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP; j++)
+            // check if args valid for differentiation
+            if (diff[i*FOC_DIFF_LAYERS_PER_GROUP+j].size() < N or edge_max[i*FOC_DIFF_LAYERS_PER_GROUP+j].size() < N or edge_min[i*FOC_DIFF_LAYERS_PER_GROUP+j].size() < N)
+                return false;
      
-/* Calculate time difference of arrival according to non-extremum suppressioned gradient */
+    /* Calculate time difference of arrival according to non-extremum suppressioned gradient */
 
     static std::vector<FOC_Edge_t> edge_max_cps;
     static std::vector<FOC_Edge_t> edge_min_cps;
@@ -51,22 +53,24 @@ bool foc_tdoa_update(std::vector<FOC_Reading_t>* diff, std::vector<FOC_Reading_t
     int cp_max_size, cp_min_size;
     bool ret_max, ret_min, ret = false;
 
-    for (int order = 1; order <= FOC_DIFF_LAYERS; order++) {
-        /* Phase 0: organize change points to a vector */
-        reorganize_edge_to_a_vector(edge_max[order-1], N, edge_max_cps);
-        reorganize_edge_to_a_vector(edge_min[order-1], N, edge_min_cps);
+    for (int grp = 0; grp < FOC_DIFF_GROUPS; grp++)
+        for (int lyr = 0; lyr < FOC_DIFF_LAYERS_PER_GROUP; lyr++) {
+            /* Phase 0: organize change points to a vector */
+            reorganize_edge_to_a_vector(edge_max[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr], N, edge_max_cps);
+            reorganize_edge_to_a_vector(edge_min[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr], N, edge_min_cps);
 
-        /* Phase 1: find contiguous change points of different mox sensors */
-        cp_max_size = cp_max[order-1].size(); cp_min_size = cp_min[order-1].size();
-        find_pairs_of_change_points(edge_max_cps, cp_max[order-1]);
-        find_pairs_of_change_points(edge_min_cps, cp_min[order-1]);
+            /* Phase 1: find contiguous change points of different mox sensors */
+            cp_max_size = cp_max[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].size();
+            cp_min_size = cp_min[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].size();
+            find_pairs_of_change_points(edge_max_cps, cp_max[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr]);
+            find_pairs_of_change_points(edge_min_cps, cp_min[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr]);
 
-        /* Phase 2: update delta */ 
-        ret_max = calculate_delta(cp_max[order-1], cp_max_size, out[order-1], diff[order-1]);
-        ret_min = calculate_delta(cp_min[order-1], cp_min_size, out[order-1], diff[order-1]);
-        if (ret_max or ret_min)
-            ret = true;
-    }
+            /* Phase 2: update delta */ 
+            ret_max = calculate_delta(cp_max[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr], cp_max_size, out[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr], diff[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr]);
+            ret_min = calculate_delta(cp_min[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr], cp_min_size, out[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr], diff[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr]);
+            if (ret_max or ret_min)
+                ret = true;
+        }
 
     return ret;
 }
@@ -98,11 +102,23 @@ static bool calculate_delta(std::vector<FOC_ChangePoints_t>& cps, int previous_s
     return true;
 }
 
-static int get_dispersion_of_the_pair(std::vector<FOC_Edge_t>& edge_cps, int start)
+static int get_time_dispersion_of_the_pair(std::vector<FOC_Edge_t>& edge_cps, int start)
 {
     int p = 0;
     for (int i = start; i < start+FOC_NUM_SENSORS-1; i++)
         p += abs(edge_cps.at(i).index_time - edge_cps.at(i+1).index_time);
+    return p;
+}
+
+static int get_strength_dispersion_of_the_pair(std::vector<FOC_Edge_t>& edge_cps, int start)
+{
+    float mean = 0;
+    for (int i = start; i < start+FOC_NUM_SENSORS; i++)
+        mean += std::abs(edge_cps.at(i).reading);
+    mean /= FOC_NUM_SENSORS;
+    float p = 0;
+    for (int i = start; i < start+FOC_NUM_SENSORS; i++)
+        p += std::abs(edge_cps.at(i).reading - mean);
     return p;
 }
 
@@ -177,9 +193,7 @@ static void find_pairs_of_change_points(std::vector<FOC_Edge_t>& edge_cps, std::
             for (int j = 1; j < FOC_NUM_SENSORS; j++) {
                 if (i+j <= edge_cps.size()-FOC_NUM_SENSORS) {
                     if (are_change_points_of_different_sensors(edge_cps, i+j)) {
-                        if (get_dispersion_of_the_pair(edge_cps, i+j) == 0)
-                            continue;
-                        if ((MR_K/((float)get_dispersion_of_the_pair(edge_cps, i+j))+(1.0-MR_K)*get_strength_of_the_pair(edge_cps, i+j)) > (MR_K/((float)get_dispersion_of_the_pair(edge_cps, i))+(1.0-MR_K)*get_strength_of_the_pair(edge_cps, i))) {
+                        if ((MR_K*((float)get_time_dispersion_of_the_pair(edge_cps, i+j))+(1.0-MR_K)*get_strength_dispersion_of_the_pair(edge_cps, i+j)) < (MR_K*((float)get_time_dispersion_of_the_pair(edge_cps, i))+(1.0-MR_K)*get_strength_dispersion_of_the_pair(edge_cps, i))) {
                             is_best_pair = false;
                             break;
                         }
@@ -195,7 +209,6 @@ static void find_pairs_of_change_points(std::vector<FOC_Edge_t>& edge_cps, std::
             if (is_best_pair) { // found best pair
                 for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
                     new_cp.index[edge_cps.at(i+idx).index_sensor] = edge_cps.at(i+idx).index_time;
-                new_cp.disp = get_dispersion_of_the_pair(edge_cps,i);
                 if (check_if_its_new_cps(new_cp, cps))
                     cps.push_back(new_cp);
                 i = i+FOC_NUM_SENSORS;

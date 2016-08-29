@@ -90,7 +90,7 @@ add_library(${LIB_FOC_NAME}
     ../../../player/src/foc/foc_diff.cxx
     ../../../player/src/foc/foc_edge.cxx 
     ../../../player/src/foc/foc_tdoa.cxx
-    ../../../player/src/foc/foc_std.cxx
+    #../../../player/src/foc/foc_std.cxx
     ../../../player/src/foc/foc_estimate.cxx
     ../../../player/src/foc/foc_wind.cxx
     ../../../player/src/foc/wake_qr.cxx
