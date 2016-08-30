@@ -24,7 +24,14 @@
 //#define FILE "../data/Record_2016-08-23_15-28-25.h5"
 //#define FILE "../data/Record_2016-08-25_18-26-08.h5"
 //#define FILE "../data/Record_2016-08-25_21-10-17.h5"
-#define FILE "../data/Record_2016-08-25_21-17-16.h5"
+//#define FILE "../data/Record_2016-08-25_21-17-16.h5"
+//#define FILE "../data/Record_2016-08-29_14-59-40.h5"
+//#define FILE "../data/Record_2016-08-29_17-09-52.h5"
+//#define FILE "../data/Record_2016-08-29_17-35-28.h5"
+//#define FILE "../data/Record_2016-08-29_18-29-01.h5"
+//#define FILE "../data/Record_2016-08-30_08-58-21.h5"
+//#define FILE "../data/Record_2016-08-30_09-08-46.h5"
+#define FILE "../data/Record_2016-08-30_10-50-54.h5"
 
 int main(int argc, char* argv[])
 {
@@ -58,7 +65,8 @@ int main(int argc, char* argv[])
     Flying_Odor_Compass foc;
     //for (int i = 25*30; i < 25*40; i++)
     for (int i = 25*60*0; i < 25*60*2; i++)
-    //for (int i = 25*60; i < 25*70; i++)
+    //for (int i = 25*240; i < 25*250; i++)
+    //for (int i = -200+550; i < -200+800; i++)
     {
         // read position
         memcpy(&input.position[0], &position[i][0], 3*sizeof(float));

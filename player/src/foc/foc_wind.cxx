@@ -24,7 +24,7 @@ void foc_wind_smooth_update(FOC_Input_t& new_in, std::vector<FOC_Wind_t>& out)
     }
 
     // save result
-    //memcpy(new_out.wind, new_in.wind, 3*sizeof(float));
+    memcpy(new_out.wind_p, new_in.wind, 3*sizeof(float));
     memset(new_out.wind, 0, sizeof(new_out.wind));
     rotate_vector(new_in.wind, new_out.wind, new_in.attitude[2], 0, 0);
     out.push_back(new_out);

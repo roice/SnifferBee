@@ -21,7 +21,7 @@
 #define FOC_WIND_MAX                5.0     // m/s
 #define FOC_SIGNAL_DELAY            2       // seconds, int
 #define FOC_TDOA_DELAY              1       // seconds, int
-#define FOC_TIME_RECENT_INFO        3       // seconds, int
+#define FOC_TIME_RECENT_INFO        1       // seconds, int
 #define FOC_MOX_DAQ_FREQ            25      // Hz, int
 #define FOC_MOX_INTERP_FACTOR       10      // samples/symbol, > 4, int
 #define FOC_DIFF_LAYERS_PER_GROUP   3       // layers of difference per group, 2 <= layers
@@ -50,7 +50,8 @@ typedef struct {
 } FOC_Reading_t; // mox reading data type processed in FOC
 
 typedef struct {
-    float wind[3];
+    float wind[3];      // e/n/u earth coordinate
+    float wind_p[3];    // plane coordinate
     float wind_filtered[3];
 } FOC_Wind_t;
 
@@ -80,11 +81,12 @@ typedef struct {
 
 typedef struct {
     std::vector<FOC_Particle_t>* particles; // particles, virtual sources
-    float wind_speed_xy[2]; // plane coord, x/y
-    float wind_speed_en[2]; // global coord, e/n
-    float wind_speed_filtered_xy[2];
+    float wind_p[3]; // plane coord, x/y
+    float wind[3]; // global coord, e/n
+    float wind_speed_filtered_xy[3];
     float direction[3]; // direction of gas source
-    float belief;
+    float clustering;   // degree of aggregation
+    float std[FOC_NUM_SENSORS];
     float dt;
     bool valid; // this result is valid or not
 } FOC_Estimation_t;
@@ -117,7 +119,7 @@ class Flying_Odor_Compass
         std::vector<FOC_ChangePoints_t> data_cp_max[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
         std::vector<FOC_ChangePoints_t> data_cp_min[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
         std::vector<FOC_TDOA_t>         data_tdoa[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
-        std::vector<FOC_STD_t>          data_std;
+        std::vector<FOC_STD_t>          data_std[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
         std::vector<FOC_Estimation_t>   data_est;
     private:
         // unscented kalman filters

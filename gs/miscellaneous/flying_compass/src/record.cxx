@@ -43,6 +43,16 @@ void Record_Data(Flying_Odor_Compass& foc)
     status = H5Sclose(dataspace_id); // Terminate access to the data space.
     free(data_pointer); // free space
     dataspace_id = H5Screate_simple(2, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "wind_p", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(foc.data_wind.at(idx).wind_p[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer);   // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it.
+    status = H5Sclose(dataspace_id); // Terminate access to the data space.
+    free(data_pointer); // free space
+    dataspace_id = H5Screate_simple(2, data_dims, NULL);
     dataset_id = H5Dcreate2(group_id, "wind_filtered", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
     data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
     for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
@@ -213,18 +223,22 @@ void Record_Data(Flying_Odor_Compass& foc)
     }
 
     // save data_std
-    data_dims[0] = foc.data_std.size();
-    data_dims[1] = FOC_NUM_SENSORS;
-    dataspace_id = H5Screate_simple(2, data_dims, NULL); 
-    dataset_id = H5Dcreate2(group_id, "mox_std", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
-    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
-    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
-        memcpy(&(data_pointer[idx*FOC_NUM_SENSORS]), &(foc.data_std.at(idx).std[0]), FOC_NUM_SENSORS*sizeof(float));
-    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+    for (int i = 0; i < FOC_DIFF_GROUPS; i++)
+    for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP; j++) {
+        data_dims[0] = foc.data_std[i*FOC_DIFF_LAYERS_PER_GROUP+j].size();
+        data_dims[1] = FOC_NUM_SENSORS;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        snprintf(ds_name, sizeof(ds_name), "mox_std_group_%d_layer_%d", i+1, j+1);
+        dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+        data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+        for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+            memcpy(&(data_pointer[idx*FOC_NUM_SENSORS]), &(foc.data_std[i*FOC_DIFF_LAYERS_PER_GROUP+j].at(idx).std[0]), FOC_NUM_SENSORS*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data_pointer); // write data
-    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
-    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
-    free(data_pointer); // free space
+        status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+        status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+        free(data_pointer); // free space
+    }
 
     // save data_tdoa
     for (int i = 0; i < FOC_DIFF_GROUPS; i++)
@@ -258,14 +272,14 @@ void Record_Data(Flying_Odor_Compass& foc)
         free(data_pointer); // free space
     }
 
-    // save data_est.wind_speed_xy
+    // save data_est.wind_p
     data_dims[0] = foc.data_est.size();
-    data_dims[1] = 2;
+    data_dims[1] = 3;
     dataspace_id = H5Screate_simple(2, data_dims, NULL); 
-    dataset_id = H5Dcreate2(group_id, "est_wind_speed_xy", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    dataset_id = H5Dcreate2(group_id, "est_wind_p", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
     data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
     for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
-        memcpy(&(data_pointer[idx*2]), &(foc.data_est.at(idx).wind_speed_xy[0]), 2*sizeof(float));
+        memcpy(&(data_pointer[idx*3]), &(foc.data_est.at(idx).wind_p[0]), 3*sizeof(float));
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data_pointer); // write data
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
@@ -273,23 +287,23 @@ void Record_Data(Flying_Odor_Compass& foc)
     free(data_pointer); // free space
     // save data_est.wind_speed_filtered_xy
     data_dims[0] = foc.data_est.size();
-    data_dims[1] = 2;
+    data_dims[1] = 3;
     dataspace_id = H5Screate_simple(2, data_dims, NULL); 
     dataset_id = H5Dcreate2(group_id, "est_wind_speed_filtered_xy", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
     data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
     for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
-        memcpy(&(data_pointer[idx*2]), &(foc.data_est.at(idx).wind_speed_filtered_xy[0]), 2*sizeof(float));
+        memcpy(&(data_pointer[idx*3]), &(foc.data_est.at(idx).wind_speed_filtered_xy[0]), 3*sizeof(float));
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data_pointer); // write data
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(data_pointer); // free space
-    // save data_est.wind_speed_en
+    // save data_est.wind
     dataspace_id = H5Screate_simple(2, data_dims, NULL);
-    dataset_id = H5Dcreate2(group_id, "est_wind_speed_en", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    dataset_id = H5Dcreate2(group_id, "est_wind", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
     data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
     for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
-        memcpy(&(data_pointer[idx*2]), &(foc.data_est.at(idx).wind_speed_en[0]), 2*sizeof(float));
+        memcpy(&(data_pointer[idx*3]), &(foc.data_est.at(idx).wind[0]), 3*sizeof(float));
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data_pointer); // write data
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
@@ -308,17 +322,30 @@ void Record_Data(Flying_Odor_Compass& foc)
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(data_pointer); // free space
-    // save data_est.belief
-    dataspace_id = H5Screate_simple(1, data_dims, NULL);
-    dataset_id = H5Dcreate2(group_id, "est_belief", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
-    data_pointer = (float*)malloc(data_dims[0]*sizeof(*data_pointer));
+    // save data_est.std
+    data_dims[0] = foc.data_est.size();
+    data_dims[1] = FOC_NUM_SENSORS;
+    dataspace_id = H5Screate_simple(2, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "est_std", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
     for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
-        memcpy(&(data_pointer[idx]), &(foc.data_est.at(idx).belief), sizeof(float));
+        memcpy(&(data_pointer[idx*FOC_NUM_SENSORS]), &(foc.data_est.at(idx).std[0]), FOC_NUM_SENSORS*sizeof(float));
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data_pointer); // write data
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(data_pointer); // free space
+    // save data_est.clustering
+    dataspace_id = H5Screate_simple(1, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "est_clustering", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx]), &(foc.data_est.at(idx).clustering), sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+    free(data_pointer); // free space 
     // save data_est.dt
     dataspace_id = H5Screate_simple(1, data_dims, NULL);
     dataset_id = H5Dcreate2(group_id, "est_dt", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set

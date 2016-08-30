@@ -640,7 +640,9 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
 #endif
 
     // LESO
-    float leso_err[2] = {error_p[0]-state[robot_index][0].z1, error_p[1]-state[robot_index][1].z1};
+    //float leso_err[2] = {error_p[0]-state[robot_index][0].z1, error_p[1]-state[robot_index][1].z1};
+    float leso_err[2] = {vel_p[0]-state[robot_index][0].z1, vel_p[1]-state[robot_index][1].z1};
+    //float leso_err[2] = {acc_p[0]-state[robot_index][0].z1, acc_p[1]-state[robot_index][1].z1};
 
     // Velocity-PID
     for (int i = 0; i < 2; i++) // 0 for roll, 1 for pitch

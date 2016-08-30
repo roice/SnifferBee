@@ -9,11 +9,18 @@ from scipy.ndimage.filters import gaussian_filter
 #fd = h5py.File('../data/Record_2016-08-19_16-52-27.h5', 'r+')
 fd = h5py.File('FOC_Record.h5', 'r+')
 wind = fd['/FOC/wind'][...]
+wind_p = fd['/FOC/wind_p'][...]
 
 '''
 wind_f_x = gaussian_filter(wind[:,0], sigma = 50)
 wind_f_y = gaussian_filter(wind[:,1], sigma = 50)
 wind_f_z = gaussian_filter(wind[:,2], sigma = 50)
+'''
+
+'''
+wind_f_x = wind_p[:,0]
+wind_f_y = wind_p[:,1]
+wind_f_z = wind_p[:,2]
 '''
 
 wind_f_x = wind[:,0]

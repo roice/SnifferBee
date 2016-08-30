@@ -79,13 +79,21 @@ static void draw_wind(std::vector<FOC_Input_t>& raw, std::vector<FOC_Wind_t>& wi
         sum_temp[j] /= norm_temp;
 
     robot_state_t* robot_state = robot_get_state();
-
+/*
     draw_arrow(robot_state->position[0],
             robot_state->position[1],
             robot_state->position[2],
             robot_state->position[0] + sum_temp[0],
             robot_state->position[1] + sum_temp[1],
             robot_state->position[2] + sum_temp[2],
+            0.0, 1.0, 0.0);
+*/
+    draw_arrow(robot_state->position[0],
+            robot_state->position[1],
+            robot_state->position[2],
+            robot_state->position[0] + 0.01*wind.back().wind[0],
+            robot_state->position[1] + 0.01*wind.back().wind[1],
+            robot_state->position[2] + 0.01*wind.back().wind[2],
             0.0, 1.0, 0.0);
 }
 

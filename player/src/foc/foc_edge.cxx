@@ -112,23 +112,23 @@ bool foc_edge_update(std::vector<FOC_Reading_t>* in, std::vector<FOC_Reading_t>*
         memset(&g, 0, sizeof(g));
         for (i = index_in_reading[grp][lyr]; i < in[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].size()-1; i++) {
             for (int idx = 0; idx < FOC_NUM_SENSORS; idx++) {
-                g.reading[idx] = grad_max[idx][i-index_in_reading[grp][lyr]];
-                /*
+                //g.reading[idx] = grad_max[idx][i-index_in_reading[grp][lyr]];
+                
                 if (grad_max[idx][i-index_in_reading[grp][lyr]] > 0)
                     g.reading[idx] = grad_max[idx][i-index_in_reading[grp][lyr]];
                 else
                     g.reading[idx] = 0;
-                */
+                
             }
             out_max[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].push_back(g);
             for (int idx = 0; idx < FOC_NUM_SENSORS; idx++) {
-                g.reading[idx] = grad_min[idx][i-index_in_reading[grp][lyr]];
-                /*
+                //g.reading[idx] = grad_min[idx][i-index_in_reading[grp][lyr]];
+                
                 if (grad_min[idx][i-index_in_reading[grp][lyr]] < 0)
                     g.reading[idx] = grad_min[idx][i-index_in_reading[grp][lyr]];
                 else
                     g.reading[idx] = 0;
-                */
+                
             }
             out_min[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].push_back(g);
         }

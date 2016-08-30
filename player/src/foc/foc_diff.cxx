@@ -6,7 +6,7 @@
 #include "liquid.h"
 
 // index of latest differentiated reading
-static int index_in_reading = 2*FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR; // skip FIR init fluctuation
+static int index_in_reading = FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR; // skip FIR init fluctuation
 
 /* Difference of Gaussian */
 void foc_diff_init(std::vector<FOC_Reading_t>* out)
@@ -15,7 +15,7 @@ void foc_diff_init(std::vector<FOC_Reading_t>* out)
         for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP; j++)
             out[i*FOC_DIFF_LAYERS_PER_GROUP+j].clear();
 
-    index_in_reading = 2*FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
+    index_in_reading = FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
 }
 
 bool foc_diff_update(std::vector<FOC_Reading_t>* in, std::vector<FOC_Reading_t>* out)
