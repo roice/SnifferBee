@@ -61,7 +61,8 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
         }
     return true;
 #else
-/* Step 1: estimate horizontal direction where the odor comes from */
+/* ===============  Step 1: Prepare to release particles  =====================
+ *  Step 1 Phase 1: estimate horizontal direction where the odor comes from */
     int deep_traceback = FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
     int index_tdoa;
     float temp_hd[3], temp_hd_p[3];
@@ -123,31 +124,7 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     new_out.particles = new std::vector<FOC_Particle_t>;
     new_out.particles->reserve(FOC_MAX_PARTICLES);
  
-#if 0
-/* Phase 0: get average wind (actually disturbance) vector */
-    double temp[3] = {0};
-    float temp_wind[3] = {0};
-    float wind_est[3] = {0};
-    // TODO: 3D
-    for (int i = raw.size()-N_DELAY-N_SAMPLES; i < raw.size()-N_DELAY; i++) {
-        memset(temp_wind, 0, 3*sizeof(float));
-        rotate_vector(raw.at(i).wind, temp_wind, raw.at(i).attitude[2], raw.at(i).attitude[1], raw.at(i).attitude[0]);
-        for (int j = 0; j < 2; j++)
-            temp[j] += temp_wind[j];
-    }
-    for (int i = 0; i < 2; i++)
-        wind_est[i] = temp[i]/N_SAMPLES;
-    if (wind_est[0] == 0. and wind_est[1] == 0. and wind_est[2] == 0.) {
-        new_out.valid = false;
-        out.push_back(new_out);
-        return false;
-    }
-    // convert wind disturbance info to wind info
-    for (int i = 0; i < 2; i++) {
-        wind_est[i] = wind_est[i]/100.0*0.5; // 100 -- 0.5 m/s
-    }
-
-/* Phase 1: compute the center of the recent trajectory of the robot */
+/*  Step 1 Phase 2: compute the center of the recent trajectory of the robot */
     float robot_traj_center[3];
     for (int i = 0; i < 3; i++) {
         for (int j = raw.size()-N_DELAY-N_SAMPLES; j < raw.size()-N_DELAY; j++)
@@ -268,7 +245,6 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     norm_direction = std::sqrt(temp_direction[0]*temp_direction[0]+temp_direction[1]*temp_direction[1]+temp_direction[2]*temp_direction[2]);
     for (int i = 0; i < 3; i++)
         new_out.direction[i] = temp_direction[i] / norm_direction;
-#else
 
     
     
@@ -283,7 +259,6 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
         for (int j = 0; j < 3; j++)
             new_out.direction[j] += temp_direct[i][j]/10.0;
     */
-#endif
 
 
     return true;
