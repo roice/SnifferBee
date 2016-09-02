@@ -9,7 +9,7 @@
 #include "foc/vector_rotation.h"
 
 // latest samples
-#define POSSIBLE_ANG_RANGE  180.0*M_PI/180.0  // possible angle range to resample/init particles
+#define POSSIBLE_ANG_RANGE      90.0*M_PI/180.0  // possible angle range to resample/init particles
 
 unsigned int rand_seed; // seed to generate random numbers
 float rand_fn[128];
@@ -24,6 +24,8 @@ void foc_estimate_source_direction_init(std::vector<FOC_Estimation_t>& out)
 { 
     // generate seed for random numbers
     rand_seed = time(NULL);
+
+    srand(rand_seed);
 
     // setup normal distributed random number generator
     r4_nor_setup ( rand_kn, rand_fn, rand_wn );
@@ -40,35 +42,15 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
 {
     FOC_Estimation_t new_out;
 
-#if 0
-    static int prev_tdoa_size[FOC_DIFF_GROUPS][FOC_DIFF_LAYERS_PER_GROUP] = {0};
-
-    float temp_direct[3] = {0};
-    for (int grp = 3; grp < FOC_DIFF_GROUPS; grp++)
-        for (int lyr = 0; lyr < FOC_DIFF_LAYERS_PER_GROUP; lyr++) {
-            for (int i = prev_tdoa_size[grp][lyr]; i < tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].size(); i++) {
-                memset(new_out.direction, 0, 3*sizeof(float));
-                memset(temp_direct, 0, 3*sizeof(float));
-                if (!estimate_horizontal_direction_according_to_tdoa(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(i), temp_direct))
-                    continue;
-                rotate_vector(temp_direct, new_out.direction, raw.back().attitude[2], 0, 0);
-                new_out.belief = std::abs(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(i).abs[0])+std::abs(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(i).abs[1])+std::abs(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(i).abs[2]);
-                new_out.valid = true;
-                new_out.dt = tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(i).dt;
-                out.push_back(new_out);
-            }
-            prev_tdoa_size[grp][lyr] = tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].size();
-        }
-    return true;
-#else
 /* ===============  Step 1: Prepare to release particles  =====================
  *  Step 1 Phase 1: estimate horizontal direction where the odor comes from */
+    float est_horizontal_odor_trans_direction[3] = {0};   // estimated horizontal odor transport direction, e/n
+    float est_horizontal_odor_std_deviation[FOC_NUM_SENSORS] = {0};   // standard deviations of odor sensors
+    float est_horizontal_odor_trans_direction_clustering = 0;   // clustering of odor trans direction
     int deep_traceback = FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
     int index_tdoa;
     float temp_hd[3], temp_hd_p[3];
-    double temp_sum_hd[3] = {0}; double temp_norm_hd;
-    memset(new_out.direction, 0, sizeof(new_out.direction));
-    memset(new_out.std, 0, sizeof(new_out.std));
+    double temp_sum_hd[3] = {0}; double temp_norm_hd = 0;
     std::vector<FOC_Vector_t>* hds = new std::vector<FOC_Vector_t>;
     FOC_Vector_t new_hd_v = {0}; int temp_count = 0;
     for (int grp = 3; grp < FOC_DIFF_GROUPS; grp++)
@@ -89,63 +71,69 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
                 }
                 rotate_vector(temp_hd_p, temp_hd, raw.at(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa).index/FOC_MOX_INTERP_FACTOR).attitude[2], 0, 0);
                 for (int j = 0; j < 3; j++)
-                    temp_sum_hd[j] += temp_hd[j];//*(std::abs(tdoa[order-1].at(index_tdoa).abs[0])+std::abs(tdoa[order-1].at(index_tdoa).abs[1])+std::abs(tdoa[order-1].at(index_tdoa).abs[2]));
+                    temp_sum_hd[j] += temp_hd[j];
                 // save temp_hd to calculate belief later
                 new_hd_v.x = temp_hd[0];
                 new_hd_v.y = temp_hd[1];
                 hds->push_back(new_hd_v);
-                //temp_sum_belief += std::abs(tdoa[order-1].at(index_tdoa).abs[0])+std::abs(tdoa[order-1].at(index_tdoa).abs[1])+std::abs(tdoa[order-1].at(index_tdoa).abs[2]);
             }
             index_tdoa --;
         }    
         temp_norm_hd = std::sqrt(temp_sum_hd[0]*temp_sum_hd[0] + temp_sum_hd[1]*temp_sum_hd[1] + temp_sum_hd[2]*temp_sum_hd[2]);
         for (int j = 0; j < 3; j++)
-            new_out.direction[j] += temp_sum_hd[j] / temp_norm_hd;
+            est_horizontal_odor_trans_direction[j] += temp_sum_hd[j] / temp_norm_hd;
         for (int j = 0; j < FOC_NUM_SENSORS; j++)
-            new_out.std[j] += std[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].back().std[j];
+            est_horizontal_odor_std_deviation[j] += std[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].back().std[j];
     }
     if (hds->size() > 0)
     {
         // calculate belief
         for (int i = 0; i < hds->size(); i++)
         {
-            if ( std::abs(std::acos((hds->at(i).x*new_out.direction[0]+hds->at(i).y*new_out.direction[1])/std::sqrt((hds->at(i).x*hds->at(i).x+hds->at(i).y*hds->at(i).y)*(new_out.direction[0]*new_out.direction[0]+new_out.direction[1]*new_out.direction[1])))) < 60.0*M_PI/180.0 )
+            if ( std::abs(std::acos((hds->at(i).x*est_horizontal_odor_trans_direction[0]+hds->at(i).y*est_horizontal_odor_trans_direction[1])/std::sqrt((hds->at(i).x*hds->at(i).x+hds->at(i).y*hds->at(i).y)*(est_horizontal_odor_trans_direction[0]*est_horizontal_odor_trans_direction[0]+est_horizontal_odor_trans_direction[1]*est_horizontal_odor_trans_direction[1])))) < 60.0*M_PI/180.0 )
                 temp_count ++;
         }
-        new_out.clustering = (float)temp_count / (float)hds->size();
-        new_out.wind[0] = wind.back().wind[0];
-        new_out.wind[1] = wind.back().wind[1];
-        new_out.valid = true;
-        out.push_back(new_out);
+        est_horizontal_odor_trans_direction_clustering = (float)temp_count / (float)hds->size();
+        delete hds;
     }
-    delete hds;
-#endif
-    
-    new_out.particles = new std::vector<FOC_Particle_t>;
-    new_out.particles->reserve(FOC_MAX_PARTICLES);
- 
+    else {
+        delete hds;
+        return false;
+    }
+    // save wind info into new_out
+    new_out.wind[0] = wind.back().wind[0];
+    new_out.wind[1] = wind.back().wind[1];
+
 /*  Step 1 Phase 2: compute the center of the recent trajectory of the robot */
-    float robot_traj_center[3];
+    float robot_traj_center[3] = {0};
     for (int i = 0; i < 3; i++) {
-        for (int j = raw.size()-N_DELAY-N_SAMPLES; j < raw.size()-N_DELAY; j++)
-            temp[i] += raw.at(j).position[i];
-        robot_traj_center[i] = temp[i]/N_SAMPLES;
+        for (int j = raw.size()-FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ; j < raw.size(); j++)
+            robot_traj_center[i] += raw.at(j).position[i];
+        robot_traj_center[i] /= FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ;
     }
 
-/* Phase 2: compute the max deviation of the robot trajectory, and compute the radius of the particles to the robot */
+/*  Step 1 Phase 3: compute the max deviation of the robot trajectory, and compute the radius of the particles to the robot */
     float robot_traj_deviation = 0; float temp_distance;
-    for (int j = raw.size()-N_DELAY-N_SAMPLES; j < raw.size()-N_DELAY; j++) {
-        temp_distance = raw.at(j).position[0]*raw.at(j).position[0] + raw.at(j).position[1]*raw.at(j).position[1] + raw.at(j).position[2]*raw.at(j).position[2];
-        if (temp_distance > robot_traj_deviation)
+    for (int j = raw.size()-FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ; j < raw.size(); j++) {
+        temp_distance = std::pow(raw.at(j).position[0]-robot_traj_center[0], 2) + std::pow(raw.at(j).position[1]-robot_traj_center[1], 2) + std::pow(raw.at(j).position[2]-robot_traj_center[2], 2);
+        if (temp_distance > robot_traj_deviation)   // find max deviation
             robot_traj_deviation = temp_distance;
     }
-    robot_traj_deviation = sqrt(temp_distance);
-    float radius_particle_to_robot = robot_traj_deviation; //+ 3*FOC_RADIUS; // 3 is empirical value
+    robot_traj_deviation = sqrt(robot_traj_deviation);
+    float radius_particle_to_robot = robot_traj_deviation + 3*FOC_RADIUS; // 3 is empirical value
+#ifdef FOC_ESTIMATE_DEBUG
+    new_out.radius_particle_to_robot = radius_particle_to_robot;
+#endif
 
-/* Phase 3: init particles / resample particles */
+/*  Step 1 Phase 4: calculate wind */
+    float wind_est[3];
+    for (int i = 0; i < 3; i++)
+        wind_est[i] = 0.01*wind.back().wind[i];
+
+/* ====================  Step 2: init particles / resample particles =================== */ 
     // compute rotation matrix to rotate unit_z to reverse direction of wind
     float unit_z[3] = {0., 0., 1.};
-    float wind_est_reverse[3] = {-wind_est[0], -wind_est[1], -wind_est[2]};
+    float wind_est_reverse[3] = {-wind.back().wind[0], -wind.back().wind[1], -wind.back().wind[2]};
     float rot_m_init[9]; // rotation matrix to generate new particles
     CalculateRotationMatrix(unit_z, wind_est_reverse, rot_m_init);
     // Resampling / init particles
@@ -153,11 +141,14 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     int num_new_particles_to_split;
     float rot_m_split[9]; // rotation matrix to split important particles
     double temp_weight = 0.0;
+    new_out.particles = new std::vector<FOC_Particle_t>;
+    new_out.particles->reserve(FOC_MAX_PARTICLES);
     if (out.size() > 0 and out.back().particles->size() > 0) { // not first execution
         // determine whether to resample
         for (int i = 0; i < out.back().particles->size(); i++) {
             temp_weight += std::pow(out.back().particles->at(i).weight, 2);
         }
+        /*
         if (int(1.0/temp_weight) < FOC_MAX_PARTICLES/2) { // need to resample
             // resample 
             for (int i = 0; i < out.back().particles->size(); i++) { 
@@ -170,7 +161,8 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
                         continue;
                     // in possibile range, survive at possibility max{N_s*w^i_k, 0.5}
                     possibility_to_survive = std::max(double(FOC_MAX_PARTICLES*out.back().particles->at(i).weight), 0.5);
-                    if (r4_uni(rand_seed) < possibility_to_survive)// goodluck
+                    //if (r4_uni(rand_seed) < possibility_to_survive)// goodluck
+                    if (((float)rand()/(float)RAND_MAX) < possibility_to_survive)
                         new_out.particles->push_back(out.back().particles->at(i));
                 }
                 else {
@@ -187,31 +179,31 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
                 }
             }
         }
+        */
         if (new_out.particles->size() < FOC_MAX_PARTICLES) // fill up particles
             init_particles(rand_seed, FOC_MAX_PARTICLES-new_out.particles->size(), radius_particle_to_robot, rot_m_init, new_out);
+    
         // normalize weights
         temp_weight = 0.0;
         for (int i = 0; i < new_out.particles->size(); i++)
             temp_weight += new_out.particles->at(i).weight;
         for (int i = 0; i < new_out.particles->size(); i++)
-            new_out.particles->at(i).weight = new_out.particles->at(i).weight/temp_weight;
+            new_out.particles->at(i).weight /= temp_weight;
     }
     else // first run
         // generate FOC_MAX_PARTICLES number of particles
         init_particles(rand_seed, FOC_MAX_PARTICLES, radius_particle_to_robot, rot_m_init, new_out);
 
-/* Phase 4: Release virtual plumes and get virtual mox readings */
+/* =================  Step 3: Calculate particle weights ======================
+ *  Step 3 Phase 1: Release virtual plumes */
     // traverse every particle
     for (int i = 0; i < new_out.particles->size(); i++) {
-        new_out.particles->at(i).reading->clear();
-        // traverse recent samples
-        for (int j = raw.size()-N_DELAY-N_SAMPLES; j < raw.size()-N_DELAY; j++) {
-            // release virtual plume
-            release_virtual_plume(new_out.particles->at(i).pos_r, raw.at(j).position, raw.at(j).attitude, wind_est, new_out.particles->at(i).plume);
-            // calculate virtual mox readings
-            calculate_virtual_mox_reading(new_out.particles->at(i).plume, new_out.particles->at(i).reading, raw.at(j).position, raw.at(j).attitude);
-        }
+        // release virtual plume
+        release_virtual_plume(new_out.particles->at(i).pos_r, raw.back().position, raw.back().attitude, wind_est, new_out.particles->at(i).plume);
+        // calculate tdoa
+        calculate_virtual_tdoa_and_std(new_out.particles->at(i).plume, raw.back().position, raw.back().attitude, new_out.particles->at(i));
     }
+#if 0
 /* Phase 5: calculate delta for virtual mox readings, and evaluate them to calculate weight */
     for (int i = 0; i < new_out.particles->size(); i++) { // traverse every particle
         // calculate virtual delta
@@ -245,9 +237,7 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     norm_direction = std::sqrt(temp_direction[0]*temp_direction[0]+temp_direction[1]*temp_direction[1]+temp_direction[2]*temp_direction[2]);
     for (int i = 0; i < 3; i++)
         new_out.direction[i] = temp_direction[i] / norm_direction;
-
-    
-    
+#endif
 
     /*
     memset(new_out.direction, 0, 3*sizeof(float));
@@ -260,11 +250,10 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
             new_out.direction[j] += temp_direct[i][j]/10.0;
     */
 
+    out.push_back(new_out);
 
     return true;
 }
-
-#if 0
 
 /* init particles
  * Args:
@@ -281,9 +270,10 @@ static void init_particles(unsigned int seed, int num, float radius_particle_to_
     FOC_Particle_t new_particle;
     float temp_pos[3];
     for (int i = 0; i < num; i++) {
-        float angle_z = r4_uni(seed)*POSSIBLE_ANG_RANGE; // particles are uniformly distributed
-        //float angle_z = M_PI/2.0;
-        float angle_xy = r4_uni(seed)*2*M_PI;
+        //float angle_z = r4_uni(seed)*POSSIBLE_ANG_RANGE; // particles are uniformly distributed
+        //float angle_xy = r4_uni(seed)*2*M_PI;
+        float angle_z = ((float)rand()/(float)RAND_MAX)*POSSIBLE_ANG_RANGE; // particles are uniformly distributed
+        float angle_xy = ((float)rand()/(float)RAND_MAX)*2*M_PI;
         temp_pos[0] = std::cos(angle_xy)*std::sin(angle_z)*radius_particle_to_robot;
         temp_pos[1] = std::sin(angle_xy)*std::sin(angle_z)*radius_particle_to_robot;
         temp_pos[2] = std::cos(angle_z)*radius_particle_to_robot;
@@ -292,8 +282,6 @@ static void init_particles(unsigned int seed, int num, float radius_particle_to_
         new_particle.weight = 1.0/FOC_MAX_PARTICLES;
         new_particle.plume = new std::vector<FOC_Puff_t>;
         new_particle.plume->reserve(N_PUFFS);
-        new_particle.reading = new std::vector<FOC_Reading_t>;
-        new_particle.reading->reserve(N_SAMPLES);
         new_out.particles->push_back(new_particle);
     }
 }
@@ -316,8 +304,8 @@ static void split_new_particles(unsigned int seed, float nor_std, int num, float
     float temp_pos[3];
     for (int i = 0; i < num; i++) {
         float angle_z = std::abs(r4_nor(seed, rand_kn, rand_fn, rand_wn))*nor_std*M_PI/180.0; // particles are uniformly distributed
-        //float angle_z = M_PI/2.0;
-        float angle_xy = r4_uni(seed)*2*M_PI;
+        //float angle_xy = r4_uni(seed)*2*M_PI;
+        float angle_xy = ((float)rand()/(float)RAND_MAX)*2*M_PI;
         temp_pos[0] = std::cos(angle_xy)*std::sin(angle_z)*radius_particle_to_robot;
         temp_pos[1] = std::sin(angle_xy)*std::sin(angle_z)*radius_particle_to_robot;
         temp_pos[2] = std::cos(angle_z)*radius_particle_to_robot;
@@ -326,8 +314,6 @@ static void split_new_particles(unsigned int seed, float nor_std, int num, float
         new_particle.weight = weight;
         new_particle.plume = new std::vector<FOC_Puff_t>;
         new_particle.plume->reserve(N_PUFFS);
-        new_particle.reading = new std::vector<FOC_Reading_t>;
-        new_particle.reading->reserve(N_SAMPLES);
         new_out.particles->push_back(new_particle);
     }
 }
@@ -383,7 +369,6 @@ static void CalculateRotationMatrix(float* vectorBefore, float* vectorAfter, flo
     rotationAngle = std::acos(DotProduct(vectorBefore, vectorAfter) / Normalize(vectorBefore) / Normalize(vectorAfter));
     GetRotationMatrix(rotationAngle, rotationAxis, rotationMatrix);
 }
-#endif
 
 
 #if 0

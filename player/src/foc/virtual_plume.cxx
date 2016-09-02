@@ -6,7 +6,7 @@
 #include "foc/virtual_plume.h"
 #include "foc/vector_rotation.h"
 
-#if 0
+#define     VIRTUAL_PLUME_DT    0.001   // second
 
 /* update puff pos & r
  * Args:
@@ -43,7 +43,7 @@ void release_virtual_plume(float* pos_r, float* pos_qr, float* att_qr, float* wi
         puff.pos[i] = pos_r[i] + pos_qr[i];
     for (int i = 0; i < N_PUFFS; i++) {
         // calculate puff pos and radius
-        update_puff_info(pos_qr, att_qr, wind, puff, 0.1);
+        update_puff_info(pos_qr, att_qr, wind, puff, VIRTUAL_PLUME_DT);
         // save puff info
         plume->push_back(puff);
     }
@@ -55,48 +55,166 @@ void release_virtual_plume(float* pos_r, float* pos_qr, float* att_qr, float* wi
  *      reading         virtual mox readings
  *      pos             position of quad-rotor
  *      att             attitude of quad-rotor
+ * TODO: multiple sensors, FOC_NUM_SENSORS > 3
  */
-void calculate_virtual_mox_reading(std::vector<FOC_Puff_t>* plume, std::vector<FOC_Reading_t>* reading, float* pos, float* att)
+void calculate_virtual_tdoa_and_std(std::vector<FOC_Puff_t>* plume, float* pos, float* att, std::vector<FOC_Particle_t>& particle)
 {
     if (!plume or plume->size() < 1)
         return;
-
-    // TODO: multiple sensors, FOC_NUM_SENSORS > 3
+ 
     // calculate position of sensors
     float pos_s[3][3] = {{0}, {0}, {0}};
     float temp_s[3][3] = { {0, FOC_RADIUS, 0},
         {FOC_RADIUS*(-0.8660254), FOC_RADIUS*(-0.5), 0},
         {FOC_RADIUS*0.8660254, FOC_RADIUS*(-0.5), 0} };
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) // relative position of sensors
         rotate_vector(temp_s[i], pos_s[i], att[2], att[1], att[0]);
+    for (int i = 0; i < 3; i++) // absolute position of sensors
+        for (int j = 0; j < 3; j++)
+            pos_s[i][j] += pos[j];
     
-    // calculate mox reading
-    //float inv_sigma[3] = {1.42857, 9.34579, 9.34579};
-    float inv_sigma[3] = {5.0, 5.0, 5.0};
-    float delta[3];
-    float power;
-    float conc;
-    FOC_Reading_t new_reading;
-    memset(&new_reading, 0, sizeof(FOC_Reading_t));
-    
-    // TODO: multiple sensors, FOC_NUM_SENSORS > 3
-    for (int idx = 0; idx < 3; idx++) {
-        conc = 0.0;
-        for (int i = 0; i < plume->size(); i++) {
-            power = 0.0;
-            // get delta
-            for (int k = 0; k < 3; k++)
-                delta[k] = pos_s[idx][k] - plume->at(i).pos[k];
-            for (int k = 0; k < 3; k++)
-                power += delta[k]*inv_sigma[k]*delta[k];
-            // calculate delta^T*sigma*delta
-            conc += 1.0/1.4076*std::exp(-power);
+    // calculate tdoa
+    float temp_dis[3] = {
+        std::sqrt(std::pow(plume->begin().pos[0]-pos_s[0][0], 2)+std::pow(plume->begin().pos[1]-pos_s[0][1], 2)+std::pow(plume->begin().pos[2]-pos_s[0][2])), 
+        std::sqrt(std::pow(plume->begin().pos[0]-pos_s[1][0], 2)+std::pow(plume->begin().pos[1]-pos_s[1][1], 2)+std::pow(plume->begin().pos[2]-pos_s[1][2])),
+        std::sqrt(std::pow(plume->begin().pos[0]-pos_s[2][0], 2)+std::pow(plume->begin().pos[1]-pos_s[2][1], 2)+std::pow(plume->begin().pos[2]-pos_s[2][2])) }; // FOC_NUM_SENSORS = 3
+    float temp_distance;
+    int temp_idx[3] = {0};
+    for (int i = 0; i < N_PUFFS; i++) {
+        for (int j = 0; j < 3; j++) { // FOC_NUM_SENSORS = 3
+            temp_distance = std::sqrt(std::pow(plume->at(i).pos[0]-pos_s[j][0], 2)+std::pow(plume->at(i).pos[1]-pos_s[j][1], 2)+std::pow(plume->at(i).pos[2]-pos_s[j][2]));
+            if (temp_distance < temp_dis[j]) {
+                temp_dis[j] = temp_distance;
+                temp_idx[j] = i;
+            }
         }
-        new_reading.reading[idx] = conc; 
     }
-    reading->push_back(new_reading);
+    for (int i = 0; i < 3; i++) {
+        particle.tdoa.toa[i] = temp_idx[0] - temp_idx[i];
+    }
+    
+    // calculate standard deviation
+    for (int i = 0; i < 3; i++)
+        particle.std.std[i] = std::exp(temp_dis[i]);
 }
 
+#if 0
+/* Calculate likelihood of particles according to virtual delta
+ * Args:
+ *      delta       measurement delta
+ *      particles   particles containing virtual delta
+ * Out:
+ *      false       measurement delta doesn't contain enough info
+ */
+bool calculate_likelihood_of_virtual_delta(FOC_Delta_t& delta, std::vector<FOC_Particle_t>* particles)
+{
+    float u[2];
+    if (!estimate_horizontal_direction_according_to_tdoa(delta, u))
+        return false;
+
+    if (particles->size() < 1)
+        return false;
+
+    float u_v[2];
+    float angle, cos_angle;
+    for (int i = 0; i < particles->size(); i++) {
+        if (!estimate_horizontal_direction_according_to_tdoa(particles->at(i).delta, u_v)) {
+            particles->at(i).weight = 0;
+            continue;
+        }
+
+        cos_angle = (u[0]*u_v[0]+u[1]*u_v[1])/std::sqrt((u[0]*u[0]+u[1]*u[1])*(u_v[0]*u_v[0]+u_v[1]*u_v[1]));
+        if (cos_angle >= 1.0)
+            angle = 0;
+        else if (cos_angle <= -1.0)
+            angle = M_PI;
+        else
+            angle = std::acos(cos_angle);
+        particles->at(i).weight = 1 - std::abs(angle)/M_PI;
+        if (particles->at(i).weight < 0)
+            particles->at(i).weight = 0;
+    }
+
+    return true;
+}
+#endif
+
+/* Estimate horizontal direction according to TOA
+ * Args:
+ *      delta       std & toa
+ *      out         direction, out = speed*e[2] = speed*{e_x, e_y}
+ * Return:
+ *      false       can't determine where the odor comes from
+ *      true
+ * Equations:
+ *                                      1
+ *      e_x = +/- --------------------------------------------------
+ *                 sqrt(1 + 1/3*((dt_lf+dt_rf)/(dt_lf-dt_rf))^2)
+ *                1      dt_lf+dt_rf
+ *      e_y = --------- ------------- e_x
+ *             sqrt(3)   dt_lf-dt_rf
+ *      e_x^2 + e_y^2 = 1
+ *      The sign of e_x & e_y is consist with dt_lf or dt_rf:
+ *      sign(sqrt(3)e_x + 3e_y) = sign(dt_lf)
+ *      sign(-sqrt(3)e_x + 3e_y) = sign(dt_rf)
+ */
+bool estimate_horizontal_direction_according_to_tdoa(FOC_TDOA_t& delta, float* out)
+{
+    float e_x, e_y, dt_lf = delta.toa[1], dt_rf = delta.toa[2], speed;
+    float sqrt_3 = sqrt(3);
+
+    // check if dt is valid
+    if (dt_lf == 0 and dt_rf == 0)
+        return false;
+
+    // calculate e_x & e_y
+    if (dt_lf == dt_rf) {
+        e_x = 0;
+        e_y = 1;
+    }
+    else {
+        float dt_add = dt_lf + dt_rf;
+        float dt_minus = dt_lf - dt_rf;
+        e_x = 1.0 / sqrt(1 + 1.0/3.0*pow(dt_add/dt_minus, 2));
+        e_y = 1.0/sqrt_3*dt_add/dt_minus*e_x;
+    }
+
+    // determine sign(e_x) & sign(e_y)
+    //if (absf(dt_lf) > absf(dt_rf)) { // math.h
+    if (std::abs(dt_lf) > std::abs(dt_rf)) { // cmath
+        if (std::signbit(sqrt_3*e_x+3*e_y)!=std::signbit(dt_lf)) {
+            e_x *= -1;
+            e_y *= -1;
+        }
+    }
+    else {
+        if (std::signbit(-sqrt_3*e_x+3*e_y)!=std::signbit(dt_rf)) {
+            e_x *= -1;
+            e_y *= -1;
+        }
+    }
+
+    // calculate wind speed
+    //if (absf(dt_lf) > absf(dt_rf)) // math.h
+    if (std::abs(dt_lf) > std::abs(dt_rf)) // cmath
+        //speed = sqrt_3*FOC_RADIUS/2.0*absf(e_x+sqrt_3*e_y)/absf(dt_lf); // math.h
+        speed = sqrt_3*FOC_RADIUS/2.0*std::abs(e_x+sqrt_3*e_y)/std::abs(dt_lf); // cmath
+    else
+        //speed = sqrt_3*FOC_RADIUS/2.0*absf(e_x-sqrt_3*e_y)/absf(dt_rf); // math.h
+        speed = sqrt_3*FOC_RADIUS/2.0*std::abs(e_x-sqrt_3*e_y)/std::abs(dt_rf); // cmath
+
+    // check if wind speed is valid
+    if (speed > FOC_WIND_MAX or speed < FOC_WIND_MIN)
+        return false;
+
+    // save result
+    out[0] = e_x; //*speed;
+    out[1] = e_y; //*speed; 
+
+    return true;
+}
+
+#if 0
 void calculate_virtual_delta(std::vector<FOC_Reading_t>* mox_reading, FOC_Delta_t& delta)
 {
     if (mox_reading->size() < 2)
@@ -172,119 +290,4 @@ void calculate_virtual_delta(std::vector<FOC_Reading_t>* mox_reading, FOC_Delta_
        delta.toa[idx] = time[index];
     }
 }
-
-/* Calculate likelihood of particles according to virtual delta
- * Args:
- *      delta       measurement delta
- *      particles   particles containing virtual delta
- * Out:
- *      false       measurement delta doesn't contain enough info
- */
-bool calculate_likelihood_of_virtual_delta(FOC_Delta_t& delta, std::vector<FOC_Particle_t>* particles)
-{
-    float u[2];
-    if (!estimate_horizontal_direction_according_to_tdoa(delta, u))
-        return false;
-
-    if (particles->size() < 1)
-        return false;
-
-    float u_v[2];
-    float angle, cos_angle;
-    for (int i = 0; i < particles->size(); i++) {
-        if (!estimate_horizontal_direction_according_to_tdoa(particles->at(i).delta, u_v)) {
-            particles->at(i).weight = 0;
-            continue;
-        }
-
-        cos_angle = (u[0]*u_v[0]+u[1]*u_v[1])/std::sqrt((u[0]*u[0]+u[1]*u[1])*(u_v[0]*u_v[0]+u_v[1]*u_v[1]));
-        if (cos_angle >= 1.0)
-            angle = 0;
-        else if (cos_angle <= -1.0)
-            angle = M_PI;
-        else
-            angle = std::acos(cos_angle);
-        particles->at(i).weight = 1 - std::abs(angle)/M_PI;
-        if (particles->at(i).weight < 0)
-            particles->at(i).weight = 0;
-    }
-
-    return true;
-}
-
 #endif
-
-/* Estimate horizontal direction according to TOA
- * Args:
- *      delta       std & toa
- *      out         direction, out = speed*e[2] = speed*{e_x, e_y}
- * Return:
- *      false       can't determine where the odor comes from
- *      true
- * Equations:
- *                                      1
- *      e_x = +/- --------------------------------------------------
- *                 sqrt(1 + 1/3*((dt_lf+dt_rf)/(dt_lf-dt_rf))^2)
- *                1      dt_lf+dt_rf
- *      e_y = --------- ------------- e_x
- *             sqrt(3)   dt_lf-dt_rf
- *      e_x^2 + e_y^2 = 1
- *      The sign of e_x & e_y is consist with dt_lf or dt_rf:
- *      sign(sqrt(3)e_x + 3e_y) = sign(dt_lf)
- *      sign(-sqrt(3)e_x + 3e_y) = sign(dt_rf)
- */
-bool estimate_horizontal_direction_according_to_tdoa(FOC_TDOA_t& delta, float* out)
-{
-    float e_x, e_y, dt_lf = delta.toa[1], dt_rf = delta.toa[2], speed;
-    float sqrt_3 = sqrt(3);
-
-    // check if dt is valid
-    if (dt_lf == 0 and dt_rf == 0)
-        return false;
-
-    // calculate e_x & e_y
-    if (dt_lf == dt_rf) {
-        e_x = 0;
-        e_y = 1;
-    }
-    else {
-        float dt_add = dt_lf + dt_rf;
-        float dt_minus = dt_lf - dt_rf;
-        e_x = 1.0 / sqrt(1 + 1.0/3.0*pow(dt_add/dt_minus, 2));
-        e_y = 1.0/sqrt_3*dt_add/dt_minus*e_x;
-    }
-
-    // determine sign(e_x) & sign(e_y)
-    //if (absf(dt_lf) > absf(dt_rf)) { // math.h
-    if (std::abs(dt_lf) > std::abs(dt_rf)) { // cmath
-        if (std::signbit(sqrt_3*e_x+3*e_y)!=std::signbit(dt_lf)) {
-            e_x *= -1;
-            e_y *= -1;
-        }
-    }
-    else {
-        if (std::signbit(-sqrt_3*e_x+3*e_y)!=std::signbit(dt_rf)) {
-            e_x *= -1;
-            e_y *= -1;
-        }
-    }
-
-    // calculate wind speed
-    //if (absf(dt_lf) > absf(dt_rf)) // math.h
-    if (std::abs(dt_lf) > std::abs(dt_rf)) // cmath
-        //speed = sqrt_3*FOC_RADIUS/2.0*absf(e_x+sqrt_3*e_y)/absf(dt_lf); // math.h
-        speed = sqrt_3*FOC_RADIUS/2.0*std::abs(e_x+sqrt_3*e_y)/std::abs(dt_lf); // cmath
-    else
-        //speed = sqrt_3*FOC_RADIUS/2.0*absf(e_x-sqrt_3*e_y)/absf(dt_rf); // math.h
-        speed = sqrt_3*FOC_RADIUS/2.0*std::abs(e_x-sqrt_3*e_y)/std::abs(dt_rf); // cmath
-
-    // check if wind speed is valid
-    //if (speed > FOC_WIND_MAX or speed < FOC_WIND_MIN)
-    //    return false;
-
-    // save result
-    out[0] = e_x; //*speed;
-    out[1] = e_y; //*speed; 
-
-    return true;
-}

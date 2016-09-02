@@ -29,6 +29,9 @@
 #define FOC_MAX_PARTICLES           100     // max number of particles
 #define FOC_RECORD_LEN              600     // seconds of history recording, int
 
+// display state of foc estimation
+#define FOC_ESTIMATE_DEBUG
+
 typedef struct {
     float mox_reading[FOC_NUM_SENSORS];
     float position[3];
@@ -75,20 +78,22 @@ typedef struct {
     float pos_r[3]; // relative position from particle to robot
     float weight;
     std::vector<FOC_Puff_t>* plume; // virtual plume
-    std::vector<FOC_Reading_t>* reading; // virtual reading induced by the virtual plume
-    FOC_TDOA_t tdoa;
+    FOC_TDOA_t  tdoa;
+    FOC_STD_t   std;
 } FOC_Particle_t;
 
 typedef struct {
     std::vector<FOC_Particle_t>* particles; // particles, virtual sources
-    float wind_p[3]; // plane coord, x/y
-    float wind[3]; // global coord, e/n
-    float wind_speed_filtered_xy[3];
+    float wind_p[3];    // plane coord, x/y
+    float wind[3];      // global coord, e/n
     float direction[3]; // direction of gas source
     float clustering;   // degree of aggregation
     float std[FOC_NUM_SENSORS];
     float dt;
     bool valid; // this result is valid or not
+#ifdef FOC_ESTIMATE_DEBUG
+    float radius_particle_to_robot;
+#endif
 } FOC_Estimation_t;
 
 typedef struct {

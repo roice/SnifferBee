@@ -24,7 +24,7 @@
 #include "foc/vector_rotation.h"
 
 static void draw_wind(std::vector<FOC_Input_t>&, std::vector<FOC_Wind_t>&);
-static void draw_particles(std::vector<FOC_Particle_t>*);
+static void draw_particles(std::vector<FOC_Input_t>&, std::vector<FOC_Particle_t>*);
 static void draw_wakes(std::vector<Wake_QR_ring_t>*);
 static void draw_virtual_plumes(std::vector<FOC_Particle_t>*);
 static void draw_est_direction(FOC_Estimation_t&, robot_state_t*);
@@ -50,7 +50,7 @@ void draw_foc(void)
     if (data_est.size() > 0)
     {
         // draw particles
-        //draw_particles(data_est.back().particles);
+        draw_particles(data_raw, data_est.back().particles);
         // draw qr wakes
         //draw_wakes(wake_rings);
         // draw virtual plumes
@@ -146,9 +146,9 @@ static void draw_filtered_est_direction(std::vector<FOC_Estimation_t>& data_est,
 }
 
 
-static void draw_particles(std::vector<FOC_Particle_t>* particles)
+static void draw_particles(std::vector<FOC_Input_t>& raw, std::vector<FOC_Particle_t>* particles)
 {
-    float pos[3];
+    float pos[3]; 
 
     if (particles != NULL and particles->size() > 0) {
 
@@ -156,9 +156,8 @@ static void draw_particles(std::vector<FOC_Particle_t>* particles)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         for (int i = 0; i < particles->size(); i++) // for each filament
         {
-            if (particles->at(i).plume->size() < 1)
-                continue;
-            memcpy(pos, particles->at(i).plume->front().pos, 3*sizeof(float));
+            for (int axis = 0; axis < 3; axis++)
+                pos[axis] = raw.back().position[axis] + particles->at(i).pos_r[axis];
             glPushMatrix();
             glTranslatef(pos[0], pos[2], -pos[1]);
             glPushAttrib(GL_LIGHTING_BIT);
