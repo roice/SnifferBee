@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 #include <cmath>
 #include <algorithm> // std::max
@@ -88,8 +89,7 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     if (hds->size() > 0)
     {
         // calculate belief
-        for (int i = 0; i < hds->size(); i++)
-        {
+        for (int i = 0; i < hds->size(); i++) {
             if ( std::abs(std::acos((hds->at(i).x*est_horizontal_odor_trans_direction[0]+hds->at(i).y*est_horizontal_odor_trans_direction[1])/std::sqrt((hds->at(i).x*hds->at(i).x+hds->at(i).y*hds->at(i).y)*(est_horizontal_odor_trans_direction[0]*est_horizontal_odor_trans_direction[0]+est_horizontal_odor_trans_direction[1]*est_horizontal_odor_trans_direction[1])))) < 60.0*M_PI/180.0 )
                 temp_count ++;
         }
@@ -148,7 +148,6 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
         for (int i = 0; i < out.back().particles->size(); i++) {
             temp_weight += std::pow(out.back().particles->at(i).weight, 2);
         }
-        /*
         if (int(1.0/temp_weight) < FOC_MAX_PARTICLES/2) { // need to resample
             // resample 
             for (int i = 0; i < out.back().particles->size(); i++) { 
@@ -179,7 +178,6 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
                 }
             }
         }
-        */
         if (new_out.particles->size() < FOC_MAX_PARTICLES) // fill up particles
             init_particles(rand_seed, FOC_MAX_PARTICLES-new_out.particles->size(), radius_particle_to_robot, rot_m_init, new_out);
     
@@ -195,39 +193,43 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
         init_particles(rand_seed, FOC_MAX_PARTICLES, radius_particle_to_robot, rot_m_init, new_out);
 
 /* =================  Step 3: Calculate particle weights ======================
- *  Step 3 Phase 1: Release virtual plumes */
+ *  Step 3 Phase 1: Release virtual plumes and calculate virtual tdoa & std */
     // traverse every particle
     for (int i = 0; i < new_out.particles->size(); i++) {
         // release virtual plume
         release_virtual_plume(new_out.particles->at(i).pos_r, raw.back().position, raw.back().attitude, wind_est, new_out.particles->at(i).plume);
-        // calculate tdoa
+        // calculate tdoa and std
         calculate_virtual_tdoa_and_std(new_out.particles->at(i).plume, raw.back().position, raw.back().attitude, new_out.particles->at(i));
     }
-#if 0
-/* Phase 5: calculate delta for virtual mox readings, and evaluate them to calculate weight */
+
+/*  Step 3 Phase 2: compare tdoa and std to get likelihood */
+    float temp_virtual_hd_p[3]; float temp_virtual_hd[3];
+    float temp_angle_virtual_real_hd;
     for (int i = 0; i < new_out.particles->size(); i++) { // traverse every particle
-        // calculate virtual delta
-        calculate_virtual_delta(new_out.particles->at(i).reading, new_out.particles->at(i).delta);
-    }
-    // evaluate virtual delta, to get likelihood
-    if (!calculate_likelihood_of_virtual_delta(delta.back(), new_out.particles)) {
-        new_out.valid = false;
-        out.push_back(new_out);
-        return false;
+        // calculate virtual horizontal source direction
+        memset(temp_virtual_hd_p, 0, sizeof(temp_virtual_hd_p));
+        memset(temp_virtual_hd, 0, sizeof(temp_virtual_hd));
+        if (!estimate_horizontal_direction_according_to_tdoa(new_out.particles->at(i).tdoa, temp_virtual_hd_p)) {
+            new_out.particles->at(i).weight = 0;
+            continue;
+        }
+        rotate_vector(temp_virtual_hd_p, temp_virtual_hd, raw.back().attitude[2], 0, 0);
+        // get angle between virtual horizontal odor direction and real one
+        temp_angle_virtual_real_hd = std::acos((temp_virtual_hd[0]*est_horizontal_odor_trans_direction[0] + temp_virtual_hd[1]*est_horizontal_odor_trans_direction[1] + temp_virtual_hd[2]*est_horizontal_odor_trans_direction[2])/std::sqrt((temp_virtual_hd[0]*temp_virtual_hd[0]+temp_virtual_hd[1]*temp_virtual_hd[1]+temp_virtual_hd[2]*temp_virtual_hd[2])*(est_horizontal_odor_trans_direction[0]*est_horizontal_odor_trans_direction[0]+est_horizontal_odor_trans_direction[1]*est_horizontal_odor_trans_direction[1]+est_horizontal_odor_trans_direction[2]*est_horizontal_odor_trans_direction[2])));
+        // get likelihood according to angle
+        new_out.particles->at(i).weight = 1.0 - std::abs(temp_angle_virtual_real_hd)/M_PI;
     }
 
-/* Phase 6: Update weights of particles */
+/*  Step 3 Phase 3: Update weights of particles */
     double sum_w = 0;
     for (int i = 0; i < new_out.particles->size(); i++)
         sum_w += new_out.particles->at(i).weight;
     if (sum_w == 0) { // no particles
-        new_out.valid = false;
-        out.push_back(new_out);
         return false;
     }
     for (int i = 0; i < new_out.particles->size(); i++)
         new_out.particles->at(i).weight /= sum_w;
-
+#if 0
 /* Phase 7: Calculate direction of gas source */
     double temp_direction[3] = {0};
     double norm_direction;

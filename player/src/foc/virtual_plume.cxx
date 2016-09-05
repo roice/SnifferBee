@@ -6,7 +6,7 @@
 #include "foc/virtual_plume.h"
 #include "foc/vector_rotation.h"
 
-#define     VIRTUAL_PLUME_DT    0.001   // second
+#define     VIRTUAL_PLUME_DT    0.01   // second
 
 /* update puff pos & r
  * Args:
@@ -57,7 +57,7 @@ void release_virtual_plume(float* pos_r, float* pos_qr, float* att_qr, float* wi
  *      att             attitude of quad-rotor
  * TODO: multiple sensors, FOC_NUM_SENSORS > 3
  */
-void calculate_virtual_tdoa_and_std(std::vector<FOC_Puff_t>* plume, float* pos, float* att, std::vector<FOC_Particle_t>& particle)
+void calculate_virtual_tdoa_and_std(std::vector<FOC_Puff_t>* plume, float* pos, float* att, FOC_Particle_t& particle)
 {
     if (!plume or plume->size() < 1)
         return;
@@ -74,15 +74,15 @@ void calculate_virtual_tdoa_and_std(std::vector<FOC_Puff_t>* plume, float* pos, 
             pos_s[i][j] += pos[j];
     
     // calculate tdoa
-    float temp_dis[3] = {
-        std::sqrt(std::pow(plume->begin().pos[0]-pos_s[0][0], 2)+std::pow(plume->begin().pos[1]-pos_s[0][1], 2)+std::pow(plume->begin().pos[2]-pos_s[0][2])), 
-        std::sqrt(std::pow(plume->begin().pos[0]-pos_s[1][0], 2)+std::pow(plume->begin().pos[1]-pos_s[1][1], 2)+std::pow(plume->begin().pos[2]-pos_s[1][2])),
-        std::sqrt(std::pow(plume->begin().pos[0]-pos_s[2][0], 2)+std::pow(plume->begin().pos[1]-pos_s[2][1], 2)+std::pow(plume->begin().pos[2]-pos_s[2][2])) }; // FOC_NUM_SENSORS = 3
-    float temp_distance;
+    double temp_dis[3] = {
+        std::sqrt(std::pow(plume->front().pos[0]-pos_s[0][0], 2)+std::pow(plume->front().pos[1]-pos_s[0][1], 2)+std::pow(plume->front().pos[2]-pos_s[0][2], 2)), 
+        std::sqrt(std::pow(plume->front().pos[0]-pos_s[1][0], 2)+std::pow(plume->front().pos[1]-pos_s[1][1], 2)+std::pow(plume->front().pos[2]-pos_s[1][2], 2)),
+        std::sqrt(std::pow(plume->front().pos[0]-pos_s[2][0], 2)+std::pow(plume->front().pos[1]-pos_s[2][1], 2)+std::pow(plume->front().pos[2]-pos_s[2][2], 2)) }; // FOC_NUM_SENSORS = 3
+    double temp_distance;
     int temp_idx[3] = {0};
     for (int i = 0; i < N_PUFFS; i++) {
         for (int j = 0; j < 3; j++) { // FOC_NUM_SENSORS = 3
-            temp_distance = std::sqrt(std::pow(plume->at(i).pos[0]-pos_s[j][0], 2)+std::pow(plume->at(i).pos[1]-pos_s[j][1], 2)+std::pow(plume->at(i).pos[2]-pos_s[j][2]));
+            temp_distance = std::sqrt(std::pow(plume->at(i).pos[0]-pos_s[j][0], 2)+std::pow(plume->at(i).pos[1]-pos_s[j][1], 2)+std::pow(plume->at(i).pos[2]-pos_s[j][2], 2));
             if (temp_distance < temp_dis[j]) {
                 temp_dis[j] = temp_distance;
                 temp_idx[j] = i;

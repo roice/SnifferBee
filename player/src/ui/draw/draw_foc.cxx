@@ -54,7 +54,7 @@ void draw_foc(void)
         // draw qr wakes
         //draw_wakes(wake_rings);
         // draw virtual plumes
-        //draw_virtual_plumes(data_est.back().particles);
+        draw_virtual_plumes(data_est.back().particles);
         // draw estimated direction
         //draw_est_direction(data_est.back(), robot_state);
         // draw filtered est direction
@@ -161,8 +161,9 @@ static void draw_particles(std::vector<FOC_Input_t>& raw, std::vector<FOC_Partic
             glPushMatrix();
             glTranslatef(pos[0], pos[2], -pos[1]);
             glPushAttrib(GL_LIGHTING_BIT);
-            SimMaterial_smoke(1.0-particles->at(i).weight);
-            glutSolidSphere(particles->at(i).weight, 8, 3);
+            SimMaterial_smoke(50.0*particles->at(i).weight);
+            //SimMaterial_smoke(1.0);
+            glutSolidSphere(0.1*particles->at(i).weight+0.01, 8, 3);
             glPopAttrib();
             glPopMatrix();
         }

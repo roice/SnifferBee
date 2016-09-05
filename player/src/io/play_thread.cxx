@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
 #include <math.h>
 #include <hdf5.h>
 /* thread */
@@ -89,6 +90,8 @@ void play_thread_stop(void)
 static void* player_loop(void* exit)
 {
     struct timespec req, rem;
+    struct timeval  tv;
+    unsigned long useconds;
 
     // loop interval
     req.tv_sec = 0;
@@ -102,6 +105,10 @@ static void* player_loop(void* exit)
 
     for (int i = 0; i < 4*60*25; i++)
     {
+        // get time
+        gettimeofday(&tv, NULL);
+        useconds = tv.tv_sec*1000000 + tv.tv_usec;
+
         // read position
         memcpy(&input.position[0], &position[i][0], 3*sizeof(float));
         // read attitude
@@ -143,7 +150,14 @@ static void* player_loop(void* exit)
         memcpy(robot_state->attitude, input.attitude, 3*sizeof(float));
         memcpy(robot_state->wind, input.wind, 3*sizeof(float));
 
-        nanosleep(&req, &rem); // 0.1 s
+        gettimeofday(&tv, NULL);
+        if (tv.tv_sec*1000000 + tv.tv_usec - useconds < 100000) {
+            // loop interval
+            req.tv_sec = 0;
+            req.tv_nsec = (100000 + useconds - tv.tv_sec*1000000 - tv.tv_usec)*1000;
+            nanosleep(&req, &rem);
+        }
+
         if (*((bool*)exit)) break;
     }
 
