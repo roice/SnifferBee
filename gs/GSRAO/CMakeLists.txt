@@ -93,13 +93,13 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/draw/DrawScene.cxx src/ui/draw/materials.cxx
     src/ui/draw/draw_arena.cxx src/ui/draw/draw_robots.cxx
     src/ui/draw/draw_qr.cxx src/ui/draw/draw_wave.cxx
-    src/ui/draw/draw_arrow.cxx
+    src/ui/draw/draw_arrow.cxx src/ui/draw/draw_wind.cxx
     # 3rdparty fltk widgets
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 # compile main file
 add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
     src/io/serial.cxx src/io/serial_spp.cxx src/io/serial_mbsp.cxx
-    src/io/record.cxx
+    src/io/serial_young.cxx src/io/record.cxx
     src/mocap/packet_client.cxx src/robot/robot.cxx src/robot/microbee.cxx
     src/method/method.cxx src/method/hover_measure.cxx src/method/back_forth_measure.cxx)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})

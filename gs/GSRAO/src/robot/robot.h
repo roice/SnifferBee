@@ -10,6 +10,7 @@
 #define ROBOT_H
 
 #include <vector>
+#include "io/serial.h"
 
 typedef enum {
     PIDALT = 0,
@@ -50,6 +51,9 @@ typedef struct {
     float enu[3];
     float heading;
     float wind[3];
+// for debug
+    float vel_p[3];
+    float leso_z3[3];
 } Robot_State_t;
 
 // robot record
@@ -62,6 +66,11 @@ typedef struct {
     float bat_volt; // battery voltage
     int count;
     double time;
+    // for debug
+    float vel_p[3];
+    float leso_z3[3];
+    // anemometers
+    float anemo_result[SERIAL_YOUNG_MAX_ANEMOMETERS][3];
 } Robot_Record_t;
 
 Robot_State_t* robot_get_state(void);

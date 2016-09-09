@@ -41,9 +41,10 @@ void draw_robots(void)
         draw_arrow(data->robot[idx_robot].enu[0],
             data->robot[idx_robot].enu[1],
             data->robot[idx_robot].enu[2],
-            data->robot[idx_robot].enu[0] + 0.01*robot_state[idx_robot].wind[0],
-            data->robot[idx_robot].enu[1] + 0.01*robot_state[idx_robot].wind[1],
-            data->robot[idx_robot].enu[2] + 0.01*robot_state[idx_robot].wind[2]);
+            data->robot[idx_robot].enu[0] + robot_state[idx_robot].wind[0],
+            data->robot[idx_robot].enu[1] + robot_state[idx_robot].wind[1],
+            data->robot[idx_robot].enu[2] + robot_state[idx_robot].wind[2],
+            0.0, 1.0, 0.0);
         
     }
 }

@@ -20,6 +20,8 @@ static GSRAO_Config_t settings;
 /* Restore settings from configuration file */
 void GSRAO_Config_restore(void)
 {
+    char path_name[256];
+
     /* check if there exists a config file */
     if(access("settings.cfg", 0))
     {// config file not exist
@@ -111,6 +113,12 @@ void GSRAO_Config_restore(void)
         settings.system.robot_panel_opened = pt.get<bool>("System.robot_panel_opened");
         settings.system.result_panel_opened = pt.get<bool>("System.result_panel_opened");
         settings.system.remoter_panel_opened = pt.get<bool>("System.remoter_panel_opened");
+        // Miscellaneous
+        for (int idx = 0; idx < SERIAL_YOUNG_MAX_ANEMOMETERS; idx++) {
+            snprintf(path_name, sizeof(path_name), "Miscellaneous.serial_port_path_anemometer_%d", idx+1);
+            settings.miscellaneous.anemometer_serial_port_path[idx] = pt.get<std::string>(path_name);
+        }
+        settings.miscellaneous.num_of_anemometers = pt.get<int>("Miscellaneous.num_of_anemometers");
     }
 }
 
@@ -196,6 +204,13 @@ void GSRAO_Config_save(void)
     pt.put("System.robot_panel_opened", settings.system.robot_panel_opened);
     pt.put("System.result_panel_opened", settings.system.result_panel_opened);
     pt.put("System.remoter_panel_opened", settings.system.remoter_panel_opened);
+    // Miscellaneous
+    char path_name[256];
+    for (int idx = 0; idx < SERIAL_YOUNG_MAX_ANEMOMETERS; idx++) {
+        snprintf(path_name, sizeof(path_name), "Miscellaneous.serial_port_path_anemometer_%d", idx+1);
+        pt.put(path_name, settings.miscellaneous.anemometer_serial_port_path[idx]);
+    }
+    pt.put("Miscellaneous.num_of_anemometers", settings.miscellaneous.num_of_anemometers);
     /* write */
     boost::property_tree::ini_parser::write_ini("settings.cfg", pt);
 }
@@ -248,6 +263,13 @@ void GSRAO_Config_init(void)
     settings.system.robot_panel_opened = false;
     settings.system.result_panel_opened = false;
     settings.system.remoter_panel_opened = false;
+    // miscellaneous
+    char path_name[256];
+    for (int i = 0; i < SERIAL_YOUNG_MAX_ANEMOMETERS; i++) {
+        snprintf(path_name, sizeof(path_name), "/dev/ttyUSB_GSRAO_ANEMOMETER_%d", i+1);
+        settings.miscellaneous.anemometer_serial_port_path[i] = path_name;
+    }
+    settings.miscellaneous.num_of_anemometers = 3;
 }
 
 /* get pointer of config data */

@@ -640,8 +640,8 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
 #endif
 
     // LESO
-    //float leso_err[2] = {error_p[0]-state[robot_index][0].z1, error_p[1]-state[robot_index][1].z1};
-    float leso_err[2] = {vel_p[0]-state[robot_index][0].z1, vel_p[1]-state[robot_index][1].z1};
+    float leso_err[2] = {error_p[0]-state[robot_index][0].z1, error_p[1]-state[robot_index][1].z1};
+    //float leso_err[2] = {vel_p[0]-state[robot_index][0].z1, vel_p[1]-state[robot_index][1].z1};
     //float leso_err[2] = {acc_p[0]-state[robot_index][0].z1, acc_p[1]-state[robot_index][1].z1};
 
     // Velocity-PID
@@ -680,9 +680,15 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
 //printf("error_p = [%f, %f], z1 = [%f, %f], z2 = [%f, %f], z3 = [%f, %f]\n", error_p[0], error_p[1], state[robot_index][0].z1, state[robot_index][1].z1, state[robot_index][0].z2, state[robot_index][1].z2, state[robot_index][0].z3, state[robot_index][1].z3);
 
     // save z3 to wind est
+    // wind vector = ground vector - flight/air vector
     Robot_State_t* robot_state = robot_get_state();
-    robot_state[robot_index].wind[0] = state[robot_index][0].z3;
-    robot_state[robot_index].wind[1] = state[robot_index][1].z3;
+    robot_state[robot_index].wind[0] = vel_p[0] - 0.007*state[robot_index][0].z3;
+    robot_state[robot_index].wind[1] = vel_p[1] - 0.007*state[robot_index][1].z3;
+    // for debug
+    robot_state[robot_index].vel_p[0] = vel_p[0];
+    robot_state[robot_index].vel_p[1] = vel_p[1];
+    robot_state[robot_index].leso_z3[0] = state[robot_index][0].z3;
+    robot_state[robot_index].leso_z3[1] = state[robot_index][1].z3;
 }
 
 static void microbee_yaw_control_adrc(float dt, int robot_index)

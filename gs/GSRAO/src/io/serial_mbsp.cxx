@@ -83,7 +83,7 @@ void mbsp_close(void)
         pthread_join(mbsp_thread_handle, NULL);
         // close serial port
         serial_close(fd);
-        printf("MicroBee Serial Protocol thread terminated\n");
+        printf("MicroBee Serial Protocol thread terminated.\n");
     }
 }
 
@@ -159,6 +159,14 @@ static void mbspEvaluateData(void)
                 memcpy(&(record.bat_volt), &(mb[mbsp_data.from-1].state.bat_volt), sizeof(float));
                 record.time = mb[mbsp_data.from-1].time;
                 memcpy(record.wind, robot_state[mbsp_data.from-1].wind, 3*sizeof(float));
+                // for debug
+                memcpy(record.vel_p, robot_state[mbsp_data.from-1].vel_p, 3*sizeof(float));
+                memcpy(record.leso_z3, robot_state[mbsp_data.from-1].leso_z3, 3*sizeof(float));
+                // for anemometers
+                Anemometer_Data_t* wind_state = sonic_anemometer_get_wind_state();
+                memcpy(record.anemo_result[0], wind_state[0].speed, 3*sizeof(float));
+                memcpy(record.anemo_result[1], wind_state[1].speed, 3*sizeof(float));
+                memcpy(record.anemo_result[2], wind_state[2].speed, 3*sizeof(float));
                 robot_rec[mbsp_data.from-1].push_back(record);
                 break;
             }

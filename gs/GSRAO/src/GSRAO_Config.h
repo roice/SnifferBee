@@ -15,6 +15,7 @@
 
 #include <string>
 #include "robot/robot.h"
+#include "io/serial.h"
 
 typedef struct {
     /* width, length and height */
@@ -42,6 +43,11 @@ typedef struct {
     bool remoter_panel_opened;
 }GSRAO_Config_System_t;
 
+typedef struct {
+    int num_of_anemometers;
+    std::string anemometer_serial_port_path[SERIAL_YOUNG_MAX_ANEMOMETERS];
+} GSRAO_Config_Miscellaneous_t;
+
 /* configuration struct */
 typedef struct {
     /* Arena */
@@ -52,6 +58,7 @@ typedef struct {
     GSRAO_Config_Robot_t robot;
     /* Miscellaneous */
     GSRAO_Config_System_t system;
+    GSRAO_Config_Miscellaneous_t miscellaneous;
 }GSRAO_Config_t;
 
 void GSRAO_Config_restore(void);

@@ -25,6 +25,7 @@
 
 static void draw_wind(std::vector<FOC_Input_t>&, std::vector<FOC_Wind_t>&);
 static void draw_particles(std::vector<FOC_Input_t>&, std::vector<FOC_Particle_t>*);
+static void draw_main_particles(std::vector<FOC_Particle_t>*);
 static void draw_wakes(std::vector<Wake_QR_ring_t>*);
 static void draw_virtual_plumes(std::vector<FOC_Particle_t>*);
 static void draw_est_direction(FOC_Estimation_t&, robot_state_t*);
@@ -50,7 +51,8 @@ void draw_foc(void)
     if (data_est.size() > 0)
     {
         // draw particles
-        draw_particles(data_raw, data_est.back().particles);
+        //draw_particles(data_raw, data_est.back().particles);
+        draw_main_particles(data_est.back().hist_particles);
         // draw qr wakes
         //draw_wakes(wake_rings);
         // draw virtual plumes
@@ -145,6 +147,26 @@ static void draw_filtered_est_direction(std::vector<FOC_Estimation_t>& data_est,
             0.0, 0.0, 1.0);
 }
 
+static void draw_main_particles(std::vector<FOC_Particle_t>* particles)
+{
+    if (particles != NULL and particles->size() > 0) {
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        for (int i = 0; i < particles->size(); i++) // for each filament
+        {
+            glPushMatrix();
+            glTranslatef(particles->at(i).pos_r[0], particles->at(i).pos_r[2], -particles->at(i).pos_r[1]);
+            glPushAttrib(GL_LIGHTING_BIT);
+            SimMaterial_smoke(50.0*particles->at(i).weight);
+            //SimMaterial_smoke(1.0);
+            glutSolidSphere(0.1*particles->at(i).weight+0.01, 8, 3);
+            glPopAttrib();
+            glPopMatrix();
+        }
+        glDisable(GL_BLEND);
+    }
+}
 
 static void draw_particles(std::vector<FOC_Input_t>& raw, std::vector<FOC_Particle_t>* particles)
 {

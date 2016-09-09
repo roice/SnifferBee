@@ -57,6 +57,9 @@ struct ConfigDlg_Widgets { // for parameter saving
     Fl_Input* ppmcnt_serial_port;
     // serial port receiving data
     Fl_Input* dnet_serial_port;
+    // serial port receiving anemometer data
+    Fl_Choice* num_of_anemometers;
+    Fl_Input* anemo_serial_port[SERIAL_YOUNG_MAX_ANEMOMETERS];
 };
 class ConfigDlg : public Fl_Window
 {
@@ -73,6 +76,7 @@ private:
     static void save_value_to_configs(ConfigDlg_Widgets*);
     // function to get runtime configs to set value of widgets
     static void get_value_from_configs(ConfigDlg_Widgets*);
+    static void cb_change_num_of_anemometers(Fl_Widget*, void*);
 };
 
 void ConfigDlg::cb_close(Fl_Widget* w, void* data) {
@@ -103,6 +107,19 @@ void ConfigDlg::cb_change_num_of_robots(Fl_Widget* w, void* data)
         ws->mocap_model_name_of_robot[i]->activate();
 }
 
+void ConfigDlg::cb_change_num_of_anemometers(Fl_Widget* w, void* data)
+{
+    struct ConfigDlg_Widgets *ws = (struct ConfigDlg_Widgets*)data;
+
+    // deactivate & activate corresponding serial port input box
+    if (ws->num_of_anemometers->value())
+        for (int i = 0; i < ws->num_of_anemometers->value(); i++)
+            ws->anemo_serial_port[i]->activate();
+    if (ws->num_of_anemometers->value() < SERIAL_YOUNG_MAX_ANEMOMETERS)
+        for (int i = ws->num_of_anemometers->value(); i < SERIAL_YOUNG_MAX_ANEMOMETERS; i++)
+            ws->anemo_serial_port[i]->deactivate();
+}
+
 void ConfigDlg::save_value_to_configs(ConfigDlg_Widgets* ws) {
     GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
 
@@ -115,6 +132,12 @@ void ConfigDlg::save_value_to_configs(ConfigDlg_Widgets* ws) {
     //configs->mocap.netcard = ws->mocap_netcard->value(); // save netcard num
     for (char i = 0; i < 4; i++) // 4 robots max
         configs->mocap.model_name_of_robot[i] = ws->mocap_model_name_of_robot[i]->menu()[ws->mocap_model_name_of_robot[i]->value()].label(); // save rigid body index
+
+    // Anemometers
+    configs->miscellaneous.num_of_anemometers = ws->num_of_anemometers->value();
+    if (ws->num_of_anemometers->value() > 0)
+        for (int i = 0; i < ws->num_of_anemometers->value(); i++)
+            configs->miscellaneous.anemometer_serial_port_path[i] = ws->anemo_serial_port[i]->value();
 }
 
 void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
@@ -140,6 +163,19 @@ void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
             ws->mocap_model_name_of_robot[i]->activate();
         else
             ws->mocap_model_name_of_robot[i]->deactivate();
+    }
+
+    // Anemometers
+    ws->num_of_anemometers->value(configs->miscellaneous.num_of_anemometers);
+    if (ws->num_of_anemometers->value()) {
+        for (int i = 0; i < ws->num_of_anemometers->value(); i++) {
+            ws->anemo_serial_port[i]->value(configs->miscellaneous.anemometer_serial_port_path[i].c_str());
+        }
+    }
+    if (ws->num_of_anemometers->value() < SERIAL_YOUNG_MAX_ANEMOMETERS) {
+        for (int i = ws->num_of_anemometers->value(); i < SERIAL_YOUNG_MAX_ANEMOMETERS; i++) {
+            ws->anemo_serial_port[i]->deactivate();
+        }
     }
 }
 
@@ -265,31 +301,29 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             flow->color(0xe0ffff00); // light blue
             flow->selection_color(0xe0ffff00); // light blue
 
-            // Mean wind velocity
-            Fl_Box *m_wind = new Fl_Box(t_x+10, t_y+25+10, 370, 130,"Mean Wind Vel");
-            m_wind->box(FL_PLASTIC_UP_FRAME);
-            m_wind->labelsize(16);
-            m_wind->labelfont(FL_COURIER_BOLD_ITALIC);
-            m_wind->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
-            // Mean wind velocity x/y/z components
-            Fl_Value_Slider *m_wind_x = new Fl_Value_Slider(t_x+10+30,t_y+25+10+30,300,25,"X");
-            Fl_Value_Slider *m_wind_y = new Fl_Value_Slider(t_x+10+30,t_y+25+10+60,300,25,"Y");
-            Fl_Value_Slider *m_wind_z = new Fl_Value_Slider(t_x+10+30,t_y+25+10+90,300,25,"Z");
-            m_wind_x->labelsize(16);
-            m_wind_y->labelsize(16);
-            m_wind_z->labelsize(16);
-            m_wind_x->type(FL_HOR_NICE_SLIDER);
-            m_wind_y->type(FL_HOR_NICE_SLIDER);
-            m_wind_z->type(FL_HOR_NICE_SLIDER);
-            m_wind_x->align(Fl_Align(FL_ALIGN_LEFT));
-            m_wind_y->align(Fl_Align(FL_ALIGN_LEFT));
-            m_wind_z->align(Fl_Align(FL_ALIGN_LEFT));
-            m_wind_x->bounds(0, 10); // 0~10 m/s
-            m_wind_y->bounds(0, 10);
-            m_wind_z->bounds(0, 10);
-            new Fl_Box(t_x+10+30+300,t_y+25+10+30, 30, 25, "m/s");
-            new Fl_Box(t_x+10+30+300,t_y+25+10+60, 30, 25, "m/s");
-            new Fl_Box(t_x+10+30+300,t_y+25+10+90, 30, 25, "m/s");
+            // Serial port receiving anemometer data
+            Fl_Box *anemometer_box = new Fl_Box(t_x+10, t_y+25+10, 370, 350,"Serial Ports of Anemometers");
+            anemometer_box->box(FL_PLASTIC_UP_FRAME);
+            anemometer_box->labelsize(16);
+            anemometer_box->labelfont(FL_COURIER_BOLD_ITALIC);
+            anemometer_box->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
+            // number of anemometers
+            ws.num_of_anemometers = new Fl_Choice(t_x+10+200, t_y+25+10+20, 100, 25,"Number of anemometers ");
+            ws.num_of_anemometers->add("0");
+            ws.num_of_anemometers->add("1");
+            ws.num_of_anemometers->add("2");
+            ws.num_of_anemometers->add("3");
+            ws.num_of_anemometers->add("4");
+            ws.num_of_anemometers->add("5");
+            ws.num_of_anemometers->add("6");
+            ws.num_of_anemometers->add("7");
+            ws.num_of_anemometers->add("8");
+            ws.num_of_anemometers->add("9");
+            ws.num_of_anemometers->add("10");
+            ws.num_of_anemometers->callback(cb_change_num_of_anemometers, (void*)&ws);
+            for (int i = 0; i < SERIAL_YOUNG_MAX_ANEMOMETERS; i++) {
+                ws.anemo_serial_port[i] = new Fl_Input(t_x+10+100, t_y+25+10+50+30*i, 200, 25, "Serial Port ");
+            }
         }
         flow->end();
         // Tab Plume
@@ -873,6 +907,26 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 robot_shutdown();
                 return;
             }
+            
+            // Init Anemometer thread
+            std::string* path_anemometer_ports = sonic_anemometer_get_port_paths();
+            for (int idx = 0; idx < configs->miscellaneous.num_of_anemometers; idx++) {
+                path_anemometer_ports[idx] = configs->miscellaneous.anemometer_serial_port_path[idx].c_str();
+            }
+            if (!sonic_anemometer_young_init(configs->miscellaneous.num_of_anemometers, path_anemometer_ports))
+            {
+                widgets->msg_zone->label("Anemometer serial port init failed!");
+                widgets->msg_zone->labelcolor(FL_RED);
+                ((Fl_Button*)w)->value(0);
+                // close spp, mbsp, mocap, robot
+                method_stop(); // stop method
+                robot_shutdown();
+                spp_close();
+                mbsp_close();
+                mocap_client_close(); 
+                return;
+            }
+
             // add timers for repeated tasks (such as data display)
             Fl::add_timeout(0.5, cb_repeated_tasks_2hz, (void*)&hs);
             Fl::add_timeout(0.1, cb_repeated_tasks_10hz, (void*)&hs);
@@ -908,10 +962,11 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     widgets->pause->activate(); widgets->pause->clear();
 
     // close Link with robots and Motion Capture System
-    method_stop(); // stop method
-    robot_shutdown(); // shutdown robots
-    spp_close(); // close serial link with PPM encoder
-    mbsp_close(); // close serial link with DATA receiver
+    sonic_anemometer_young_close(); // close link with anemometers
+    method_stop();      // stop method
+    robot_shutdown();   // shutdown robots
+    spp_close();        // close serial link with PPM encoder
+    mbsp_close();       // close serial link with DATA receiver
     mocap_client_close(); // close udp net link with motion capture system
     Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
     Fl::remove_timeout(cb_repeated_tasks_10hz); // remove timeout callback for repeated tasks

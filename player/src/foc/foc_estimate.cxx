@@ -202,7 +202,7 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
         calculate_virtual_tdoa_and_std(new_out.particles->at(i).plume, raw.back().position, raw.back().attitude, new_out.particles->at(i));
     }
 
-/*  Step 3 Phase 2: compare tdoa and std to get likelihood */
+/* // calculate tdoa and std Step 3 Phase 2: Compare tdoa and std to get likelihood */
     float temp_virtual_hd_p[3]; float temp_virtual_hd[3];
     float temp_angle_virtual_real_hd;
     for (int i = 0; i < new_out.particles->size(); i++) { // traverse every particle
@@ -229,6 +229,30 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     }
     for (int i = 0; i < new_out.particles->size(); i++)
         new_out.particles->at(i).weight /= sum_w;
+
+/* =======================  Step 4: Maintain main particles ============================== */ 
+    // calculate main particle
+    FOC_Particle_t  temp_main_particle;
+    int temp_main_p_index = 0;
+    for (int i = 0; i < new_out.particles->size(); i++) {
+        if (new_out.particles->at(i).weight > new_out.particles->at(temp_main_p_index).weight) {
+            temp_main_p_index = i;
+        }
+    }
+    memcpy(&temp_main_particle, &(new_out.particles->at(temp_main_p_index)), sizeof(FOC_Particle_t));
+    for (int i = 0; i < 3; i++)
+        temp_main_particle.pos_r[i] += raw.back().position[i];
+    // inherit history particles
+    new_out.hist_particles = new std::vector<FOC_Particle_t>;
+    new_out.hist_particles->reserve(FOC_MAX_HIST_PARTICLES);
+    if (out.size() > 0 and out.back().hist_particles->size() > 0) {
+        for (int i = out.back().hist_particles->size() < FOC_MAX_HIST_PARTICLES ? 0 : 1; i < out.back().hist_particles->size(); i++) {
+            new_out.hist_particles->push_back(out.back().hist_particles->at(i));
+        }
+    }
+    // add new particle
+    new_out.hist_particles->push_back(temp_main_particle);
+
 #if 0
 /* Phase 7: Calculate direction of gas source */
     double temp_direction[3] = {0};

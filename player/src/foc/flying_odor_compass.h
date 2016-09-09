@@ -26,8 +26,9 @@
 #define FOC_MOX_INTERP_FACTOR       10      // samples/symbol, > 4, int
 #define FOC_DIFF_LAYERS_PER_GROUP   3       // layers of difference per group, 2 <= layers
 #define FOC_DIFF_GROUPS             6       // groups of difference
-#define FOC_MAX_PARTICLES           100     // max number of particles
-#define FOC_RECORD_LEN              1000     // seconds of history recording, int
+#define FOC_MAX_PARTICLES           200     // max number of particles
+#define FOC_MAX_HIST_PARTICLES      100     // max history particles
+#define FOC_RECORD_LEN              1000    // seconds of history recording, int
 
 // display state of foc estimation
 #define FOC_ESTIMATE_DEBUG
@@ -84,6 +85,7 @@ typedef struct {
 
 typedef struct {
     std::vector<FOC_Particle_t>* particles; // particles, virtual sources
+    std::vector<FOC_Particle_t>* hist_particles;
     float wind_p[3];    // plane coord, x/y
     float wind[3];      // global coord, e/n
     float direction[3]; // direction of gas source
