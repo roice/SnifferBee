@@ -5,7 +5,7 @@
 # Author: Roice(LUO Bing)
 # Date:   
 #         2016-04-16 Create this file
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
 #====================================================
 # ================ User can Access ==================
@@ -28,8 +28,8 @@ project(${PRJ_NAME})
 # if compile on Mac OSX, the "-framework Cocoa" flag should be added
 if(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa -framework OpenGL -framework GLUT")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa -framework OpenGL -framework GLUT")
     message("Compile on APPLE MACOSX")
 elseif(UNIX)
     message("Compile on UNIX")
@@ -62,6 +62,9 @@ include(${FLTK_USE_FILE})
 #---- External HDF5 related, for data recording
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
 include_directories(${HDF5_INCLUDE_DIRS})
+#---- External Eigen library
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/scripts)
+find_package(Eigen3 REQUIRED)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #============== Build the project ================
@@ -71,12 +74,16 @@ include_directories(${HDF5_INCLUDE_DIRS})
 
 #---- source files include path settings ----
 # add source directory into include path
-#   add root dir to search for header files of RAOS projects
+#   add root dir to search for header files of GSRAO projects
 include_directories(${PROJECT_SOURCE_DIR}/src)
+#   add kalman filter headers
+include_directories(${PROJECT_SOURCE_DIR}/src/mocap/kf)
 #   add cblas dir to search for cblas.h header for linear algebra
 include_directories(${PROJECT_SOURCE_DIR}/../../3rdparty/blas/CBLAS/include)
 #   add ziggurat source file to generate normal distribution random numbers
 include_directories(${PROJECT_SOURCE_DIR}/../../3rdparty/ziggurat)
+#   add eigen header dir
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 #---- library files path settings ----
 # add library dir into lib path
@@ -100,8 +107,10 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
 add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
     src/io/serial.cxx src/io/serial_spp.cxx src/io/serial_mbsp.cxx
     src/io/serial_young.cxx src/io/record.cxx
-    src/mocap/packet_client.cxx src/robot/robot.cxx src/robot/microbee.cxx
+    src/mocap/packet_client.cxx src/mocap/mocap_noise_reduction.cxx
+    src/robot/robot.cxx src/robot/microbee.cxx
     src/method/method.cxx src/method/hover_measure.cxx src/method/back_forth_measure.cxx)
+target_compile_features(${PRJ_NAME} PRIVATE cxx_constexpr)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})
 
 #---- start linking ----

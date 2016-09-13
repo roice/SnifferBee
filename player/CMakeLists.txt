@@ -148,7 +148,7 @@ add_library(${LIB_FOC_NAME}
     src/foc/vector_rotation.cxx
     ../3rdparty/ziggurat/ziggurat.cpp
     )
-target_compile_features(foc PRIVATE cxx_constexpr)
+target_compile_features(${LIB_FOC_NAME} PRIVATE cxx_constexpr)
 # link external liquid-dsp library
 target_link_libraries(${LIB_FOC_NAME} liquid)
 # compile main file

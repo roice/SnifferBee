@@ -10,6 +10,8 @@
 #ifndef RECORD_H
 #define RECORD_H
 
+#define RECORD_ROBOT_DEBUG_INFO
+
 void GSRAO_Save_Data(void);
 
 #endif

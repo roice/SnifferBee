@@ -51,9 +51,6 @@ typedef struct {
     float enu[3];
     float heading;
     float wind[3];
-// for debug
-    float vel_p[3];
-    float leso_z3[3];
 } Robot_State_t;
 
 // robot record
@@ -66,18 +63,31 @@ typedef struct {
     float bat_volt; // battery voltage
     int count;
     double time;
-    // for debug
-    float vel_p[3];
-    float leso_z3[3];
-    // anemometers
-    float anemo_result[SERIAL_YOUNG_MAX_ANEMOMETERS][3];
 } Robot_Record_t;
+
+typedef struct {
+    float enu[3];
+    float att[3];
+    float vel[3];
+    float acc[3];
+    float vel_p[3];
+    float acc_p[3];
+    float throttle;
+    float roll;
+    float pitch;
+    float yaw;
+    float leso_z1[3];   // roll pitch throttle
+    float leso_z2[3];
+    float leso_z3[3];
+} Robot_Debug_Record_t;
 
 Robot_State_t* robot_get_state(void);
 
 Robot_Ref_State_t* robot_get_ref_state(void);
 
 std::vector<Robot_Record_t>* robot_get_record(void);
+
+std::vector<Robot_Debug_Record_t>* robot_get_debug_record(void);
 
 bool robot_init(int);
 void robot_shutdown(void);

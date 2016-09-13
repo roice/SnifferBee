@@ -19,6 +19,7 @@ static Robot_Ref_State_t robot_ref_state[4]; // 4 robots max
 static Robot_State_t robot_state[4] = {{0},{0},{0},{0}};
 
 std::vector<Robot_Record_t> robot_record[4]; // 4 robots max
+std::vector<Robot_Debug_Record_t> robot_debug_record[4]; // 4 robots max
 
 //#define DEBUG_HANDHELD_DEVICE
 
@@ -72,4 +73,9 @@ Robot_State_t* robot_get_state(void)
 std::vector<Robot_Record_t>* robot_get_record(void)
 {
     return robot_record;
+}
+
+std::vector<Robot_Debug_Record_t>* robot_get_debug_record(void)
+{
+    return robot_debug_record;
 }

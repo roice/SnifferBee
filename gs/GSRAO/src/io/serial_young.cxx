@@ -44,8 +44,8 @@ static pthread_t    young_read_thread_handle[SERIAL_YOUNG_MAX_ANEMOMETERS];
 static pthread_t    young_write_thread_handle;
 static bool     exit_young_thread = false;
 Thread_Arguments_t  young_thread_args[SERIAL_YOUNG_MAX_ANEMOMETERS];
-Anemometer_Data_t   wind_state[SERIAL_YOUNG_MAX_ANEMOMETERS];
-std::vector<Anemometer_Data_t> wind_data[SERIAL_YOUNG_MAX_ANEMOMETERS];
+Anemometer_Data_t   wind_data[SERIAL_YOUNG_MAX_ANEMOMETERS];
+std::vector<Anemometer_Data_t> wind_record[SERIAL_YOUNG_MAX_ANEMOMETERS];
 std::string path_ports[SERIAL_YOUNG_MAX_ANEMOMETERS];
 static Young_Binary_Frame_t young_frame[SERIAL_YOUNG_MAX_ANEMOMETERS];
 
@@ -132,12 +132,14 @@ static void youngProcessFrame(char* buf, int len, int index)
                 young_frame[index].V3 = (((unsigned short)(young_frame[index].frame[12]) << 8) & 0xff00) | ((unsigned short)(young_frame[index].frame[13]) & 0x00ff);
                 young_frame[index].V4 = (((unsigned short)(young_frame[index].frame[14]) << 8) & 0xff00) | ((unsigned short)(young_frame[index].frame[15]) & 0x00ff);
                 // save data
-                wind_state[index].speed[0] = (float)young_frame[index].u / 100.0;   // convert to m/s
-                wind_state[index].speed[1] = (float)young_frame[index].v / 100.0;
-                wind_state[index].speed[2] = (float)young_frame[index].w / 100.0;
-                wind_state[index].temperature = (float)young_frame[index].T / 100.0 - 273.15; // convert to degree centigrade
+                wind_data[index].speed[0] = (float)young_frame[index].u / 100.0;   // convert to m/s
+                wind_data[index].speed[1] = (float)young_frame[index].v / 100.0;
+                wind_data[index].speed[2] = (float)young_frame[index].w / 100.0;
+                wind_data[index].temperature = (float)young_frame[index].T / 100.0 - 273.15; // convert to degree centigrade
+                // save record
+                wind_record[index].push_back(wind_data[index]);
 
-//printf("anemometer %d , speed = [ %f, %f, %f ], temperature = %f.\n", index, wind_state[index].speed[0], wind_state[index].speed[1], wind_state[index].speed[2], wind_state[index].temperature);
+//printf("anemometer %d , speed = [ %f, %f, %f ], temperature = %f.\n", index, wind_data[index].speed[0], wind_data[index].speed[1], wind_data[index].speed[2], wind_data[index].temperature);
 
             }
             young_frame[index].pointer = 0;
@@ -181,12 +183,12 @@ std::string* sonic_anemometer_get_port_paths(void)
     return path_ports;
 }
 
-std::vector<Anemometer_Data_t>* sonic_anemometer_get_wind_data(void)
+std::vector<Anemometer_Data_t>* sonic_anemometer_get_wind_record(void)
 {
-    return wind_data;
+    return wind_record;
 }
 
-Anemometer_Data_t* sonic_anemometer_get_wind_state(void)
+Anemometer_Data_t* sonic_anemometer_get_wind_data(void)
 {
-    return wind_state;
+    return wind_data;
 }

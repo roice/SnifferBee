@@ -175,6 +175,7 @@ static void* microbee_control_loop(void* args)
 /* Step 1: Take off */ 
     // arm, throttle min, yaw max
     SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+#if 1
     rc_data[idx_robot].throttle = 1000;
     rc_data[idx_robot].roll = 1500;
     rc_data[idx_robot].pitch = 1500;
@@ -185,7 +186,7 @@ static void* microbee_control_loop(void* args)
         nanosleep(&req, &rem); // 1 s
     // recover yaw to middle
     rc_data[idx_robot].yaw = 1500;
-
+#endif
 /* Step 2: Fly */
     // loop interval
     req.tv_sec = 0;
@@ -593,6 +594,9 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
     pidProfile_t*   pidProfile = configs->robot.pidProfile;
     adrcProfile_t*   adrcProfile = configs->robot.adrcProfile;
 
+    // get rc_data
+    SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+
     // get east/north
     float pos[2], pos_ref[2], vel[2]; // e/n
     MocapData_t* data = mocap_get_data(); // get mocap data
@@ -620,15 +624,17 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
     error_p[1] = cblas_sdot(2, error_enu, 1, heading_e_front, 1); // for pitch
 
     // convert velocity to robot's coordinate
-    float vel_p[2];
+    float vel_p[3];
     vel_p[0] = cblas_sdot(2, vel, 1, heading_e_right, 1); // for roll
     vel_p[1] = cblas_sdot(2, vel, 1, heading_e_front, 1); // for pitch
+    vel_p[2] = data->robot[robot_index].vel[2];
 
     // convert acceleration to robot's coordinate
-    float acc_p[2];
+    float acc_p[3];
     float* acc = &(data->robot[robot_index].acc[0]); // current e/n acc
     acc_p[0] = cblas_sdot(2, acc, 1, heading_e_right, 1); // for roll
     acc_p[1] = cblas_sdot(2, acc, 1, heading_e_front, 1); // for pitch
+    acc_p[2] = data->robot[robot_index].acc[2];
 
 #if 0
     printf("heading angle is %f\n", heading_angle);
@@ -663,8 +669,7 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
         // D
         result -= constrain(pidProfile[robot_index].D[PIDPOSR]*acc_p[i], -100, 100); // limit
 
-        // update roll/pitch value
-        SPP_RC_DATA_t* rc_data = spp_get_rc_data();
+        // update roll/pitch value 
         if (i == 0)
             rc_data[robot_index].roll = constrain(1500 + result, 1000, 2000);
         else if (i == 1)
@@ -685,10 +690,25 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
     robot_state[robot_index].wind[0] = vel_p[0] - 0.007*state[robot_index][0].z3;
     robot_state[robot_index].wind[1] = vel_p[1] - 0.007*state[robot_index][1].z3;
     // for debug
-    robot_state[robot_index].vel_p[0] = vel_p[0];
-    robot_state[robot_index].vel_p[1] = vel_p[1];
-    robot_state[robot_index].leso_z3[0] = state[robot_index][0].z3;
-    robot_state[robot_index].leso_z3[1] = state[robot_index][1].z3;
+    Robot_Debug_Record_t    new_dbg_rec;
+    std::vector<Robot_Debug_Record_t>* robot_debug_rec = robot_get_debug_record();
+    memcpy(new_dbg_rec.enu, data->robot[robot_index].enu, 3*sizeof(float));
+    memcpy(new_dbg_rec.att, data->robot[robot_index].att, 3*sizeof(float));
+    memcpy(new_dbg_rec.vel, data->robot[robot_index].vel, 3*sizeof(float));
+    memcpy(new_dbg_rec.acc, data->robot[robot_index].acc, 3*sizeof(float));
+    memcpy(new_dbg_rec.vel_p, vel_p, 3*sizeof(float));
+    memcpy(new_dbg_rec.acc_p, acc_p, 3*sizeof(float));
+    new_dbg_rec.throttle = rc_data[robot_index].throttle;
+    new_dbg_rec.roll = rc_data[robot_index].roll - 1500;
+    new_dbg_rec.pitch = rc_data[robot_index].pitch - 1500;
+    new_dbg_rec.yaw = rc_data[robot_index].yaw - 1500;
+    new_dbg_rec.leso_z1[0] = state[robot_index][0].z1;
+    new_dbg_rec.leso_z1[1] = state[robot_index][1].z1;
+    new_dbg_rec.leso_z2[0] = state[robot_index][0].z2;
+    new_dbg_rec.leso_z2[1] = state[robot_index][1].z2;
+    new_dbg_rec.leso_z3[0] = state[robot_index][0].z3;
+    new_dbg_rec.leso_z3[1] = state[robot_index][1].z3;
+    robot_debug_rec[robot_index].push_back(new_dbg_rec);
 }
 
 static void microbee_yaw_control_adrc(float dt, int robot_index)

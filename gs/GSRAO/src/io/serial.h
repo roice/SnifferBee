@@ -2,6 +2,7 @@
 #define SERIAL_H
 
 #include <string>
+#include <vector>
 
 /* serial.cxx */
 int serial_open(const char* port);
@@ -37,6 +38,7 @@ typedef struct {
 bool sonic_anemometer_young_init(int, std::string*);
 void sonic_anemometer_young_close(void);
 std::string* sonic_anemometer_get_port_paths(void);
-Anemometer_Data_t* sonic_anemometer_get_wind_state(void);
+Anemometer_Data_t* sonic_anemometer_get_wind_data(void);
+std::vector<Anemometer_Data_t>* sonic_anemometer_get_wind_record(void);
 
 #endif

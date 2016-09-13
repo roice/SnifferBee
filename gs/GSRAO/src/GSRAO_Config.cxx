@@ -252,7 +252,7 @@ void GSRAO_Config_init(void)
         settings.robot.adrcProfile[i].w0[ADRCALT] = 21;
         settings.robot.adrcProfile[i].kp[ADRCALT] = 49;
         settings.robot.adrcProfile[i].kd[ADRCALT] = 14;
-        settings.robot.adrcProfile[i].w0[ADRCPOS] = 12;
+        settings.robot.adrcProfile[i].w0[ADRCPOS] = 18;
         settings.robot.adrcProfile[i].kp[ADRCPOS] = 16;
         settings.robot.adrcProfile[i].kd[ADRCPOS] = 8;
         settings.robot.adrcProfile[i].w0[ADRCMAG] = 20;

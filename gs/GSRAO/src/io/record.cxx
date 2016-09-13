@@ -15,8 +15,7 @@
 #include <time.h>
 #include "robot/robot.h"
 #include "io/serial.h" // macro MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
-
-#define RECORD_DEBUG_INFO
+#include "io/record.h" // macro RECORD_ROBOT_DEBUG_INFO
 
 void GSRAO_Save_Data(void)
 {
@@ -37,7 +36,8 @@ void GSRAO_Save_Data(void)
     file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     /* get records */
-    std::vector <Robot_Record_t>* robot_rec = robot_get_record();
+    std::vector<Robot_Record_t>* robot_rec = robot_get_record();
+    std::vector<Robot_Debug_Record_t>* robot_debug_rec = robot_get_debug_record();
 
     double* time_seq;
     float* data;
@@ -214,18 +214,27 @@ void GSRAO_Save_Data(void)
         // free space
         free(data);
 
-#ifdef RECORD_DEBUG_INFO
-        // robot vel_p
-        data_dims[0] = robot_rec[i].size();
-        data_dims[1] = 3; // vel_p[3]
+        /* close group "robot0~robot4" */
+        status = H5Gclose(group_id);
+
+#ifdef RECORD_ROBOT_DEBUG_INFO
+
+        /* Create a group named "robot1/debug~robot4/debug" in the file */
+        snprintf(gr_name, 32, "robot%d/debug", i+1);
+        group_id = H5Gcreate2(file_id, gr_name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+
+        // robot enu
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 3;
         dataspace_id = H5Screate_simple(2, data_dims, NULL);
         // create data set
-        dataset_id = H5Dcreate2(group_id, "vel_p", H5T_NATIVE_FLOAT, dataspace_id,
+        dataset_id = H5Dcreate2(group_id, "enu", H5T_NATIVE_FLOAT, dataspace_id,
                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         // write data
         data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
         for (int idx = 0; idx < data_dims[0]; idx++)
-            memcpy(&(data[idx*3]), &(robot_rec[i].at(idx).vel_p[0]), 3*sizeof(float)); // vel_p
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).enu[0]), 3*sizeof(float));
         status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data);
         /* End access to the dataset and release resources used by it. */
@@ -235,8 +244,148 @@ void GSRAO_Save_Data(void)
         // free space
         free(data);
 
-        // robot z3
-        data_dims[0] = robot_rec[i].size();
+        // robot att
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "att", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).att[0]), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        // robot vel
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "vel", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).vel[0]), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        // robot acc
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "acc", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).acc[0]), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        // robot vel_p
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "vel_p", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).vel_p[0]), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        // robot acc_p
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "acc_p", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).acc_p[0]), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        // robot leso_z1
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "leso_z1", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).leso_z1[0]), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        // robot leso_z2
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "leso_z2", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).leso_z2[0]), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        // robot leso_z3
+        data_dims[0] = robot_debug_rec[i].size();
         data_dims[1] = 3; // leso_z3[3]
         dataspace_id = H5Screate_simple(2, data_dims, NULL);
         // create data set
@@ -245,7 +394,7 @@ void GSRAO_Save_Data(void)
         // write data
         data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
         for (int idx = 0; idx < data_dims[0]; idx++)
-            memcpy(&(data[idx*3]), &(robot_rec[i].at(idx).leso_z3[0]), 3*sizeof(float)); // leso_z3
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).leso_z3[0]), 3*sizeof(float)); // leso_z3
         status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data);
         /* End access to the dataset and release resources used by it. */
@@ -255,34 +404,121 @@ void GSRAO_Save_Data(void)
         // free space
         free(data);
 
-        char ds_name[128];
-        for (int anemo_idx = 0; anemo_idx < 3; anemo_idx++) {
-            // anemometer
-            data_dims[0] = robot_rec[i].size();
-            data_dims[1] = 3;
-            dataspace_id = H5Screate_simple(2, data_dims, NULL);
-            // create data set
-            snprintf(ds_name, 128, "anemometer_%d", anemo_idx+1);
-            dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id,
+        // robot throttle
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 1;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "throttle", H5T_NATIVE_FLOAT, dataspace_id,
                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-            // write data
-            data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
-            for (int idx = 0; idx < data_dims[0]; idx++)
-                memcpy(&(data[idx*3]), &(robot_rec[i].at(idx).anemo_result[anemo_idx][0]), 3*sizeof(float)); // leso_z3
-            status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx]), &(robot_debug_rec[i].at(idx).throttle), sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data);
-            /* End access to the dataset and release resources used by it. */
-            status = H5Dclose(dataset_id);
-            /* Terminate access to the data space. */ 
-            status = H5Sclose(dataspace_id);
-            // free space
-            free(data);
-        }
-#endif
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
 
-        /* close group "robot0~robot4" */
+        // robot roll
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 1;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "roll", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx]), &(robot_debug_rec[i].at(idx).roll), sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        // robot pitch
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 1;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "pitch", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx]), &(robot_debug_rec[i].at(idx).pitch), sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        // robot yaw
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 1;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "yaw", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx]), &(robot_debug_rec[i].at(idx).yaw), sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        /* close group "robot0/debug ~ robot4/debug" */
         status = H5Gclose(group_id);
+
+#endif
     }
+
+    /* Create a group named "anemometers" in the file */
+    group_id = H5Gcreate2(file_id, "anemometers", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    std::vector<Anemometer_Data_t>* anemo_record = sonic_anemometer_get_wind_record();
+
+    char ds_name[128];
+    for (int anemo_idx = 0; anemo_idx < 3; anemo_idx++) {
+        // anemometer
+        data_dims[0] = anemo_record[anemo_idx].size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        snprintf(ds_name, 128, "%d", anemo_idx+1);
+        dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id,
+                    H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(anemo_record[anemo_idx].at(idx).speed[0]), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                    H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+    }
+    /* close group "anemometers" */
+    status = H5Gclose(group_id);
 
     /* Terminate access to the file. */
     status = H5Fclose(file_id);

@@ -22,9 +22,10 @@
 #include <pthread.h>
 /* GSRAO */
 #include "mocap/packet_client.h"
+#include "mocap/mocap_noise_reduction.h"
 
-#define MAX_NAMELENGTH              256
-#define MAX_PACKETSIZE				100000	// max size of packet (actual packet size is dynamic)
+#define MAX_NAMELENGTH          256
+#define MAX_PACKETSIZE			100000	// max size of packet (actual packet size is dynamic)
 #define MULTICAST_ADDRESS		"239.255.42.99"     // IANA, local network
 #define PORT_DATA  			    1511
 
@@ -73,7 +74,7 @@ bool mocap_client_init(const char* local_address) {
 
     // setup mocap request
     bool no_mocap_request = true;
-    for (char i = 0; i < 4; i++) // 4 robots max
+    for (int i = 0; i < 4; i++) // 4 robots max
     {
         if (mocap_req.rigid_body_id[i] > 0)
             no_mocap_request = false;
@@ -87,6 +88,10 @@ bool mocap_client_init(const char* local_address) {
 */
     /* clear mocap_data */
     memset(&mocap_data, 0, sizeof(mocap_data));
+
+    /* init kalman filter */
+    for (int i = 0; i < 4; i++)
+        mocap_noise_reduction_ukf_init(i);
 
     /* create thread to receive packets */
     exit_mocap_client_thread = false;
@@ -175,16 +180,23 @@ void mocap_set_request(std::string* model_name)
 void mocap_xyz_to_enu(MocapData_t* data)
 {
     float enu[3], vel[3], acc[3], ang_speed[3]; // temp
+    static float pre_enu[3] = {0}, pre_vel[3] = {0};
 
     for (char i = 0; i < 4; i++) // 4 robots max
     {
         // get current position, velocity, and acc
         enu[0] = data->robot[i].pos[0]; // east  x
         enu[1] = -data->robot[i].pos[2]; // north -z
-        enu[2] = data->robot[i].pos[1]; // up    y
-        vel[0] = (enu[0] - data->robot[i].enu[0])/data->dlatency; // m/s
-        vel[1] = (enu[1] - data->robot[i].enu[1])/data->dlatency;
-        vel[2] = (enu[2] - data->robot[i].enu[2])/data->dlatency;
+        enu[2] = data->robot[i].pos[1]; // up    y 
+
+        // filter velocity
+        Mocap_3D_Vector_t   vel_raw;
+        vel_raw.v[0] = (enu[0] - data->robot[i].enu[0])/data->dlatency; // m/s
+        vel_raw.v[1] = (enu[1] - data->robot[i].enu[1])/data->dlatency; // m/s
+        vel_raw.v[2] = (enu[2] - data->robot[i].enu[2])/data->dlatency; // m/s
+        Mocap_3D_Vector_t   vel_filtered = mocap_noise_reduction_ukf_update(i, vel_raw);
+        memcpy(vel, vel_filtered.v, 3*sizeof(float));
+
         acc[0] = (vel[0] - data->robot[i].vel[0])/data->dlatency; // m/s^2
         acc[1] = (vel[1] - data->robot[i].vel[1])/data->dlatency;
         acc[2] = (vel[2] - data->robot[i].vel[2])/data->dlatency;

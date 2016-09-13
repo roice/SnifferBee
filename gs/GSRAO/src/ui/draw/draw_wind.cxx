@@ -25,14 +25,14 @@ void draw_anemometer_results(void)
     int num_anemo = configs->miscellaneous.num_of_anemometers;
 
     // get anemometer results
-    Anemometer_Data_t* wind_state = sonic_anemometer_get_wind_state();
+    Anemometer_Data_t* wind_data = sonic_anemometer_get_wind_data();
 
     float v[3];
     float sum_v[3] = {0};
     float pos[SERIAL_YOUNG_MAX_ANEMOMETERS][3] = {{0, -1.8, 1.3}, {0.6, 0, 1.3}, {-0.6, 0, 1.3}};
     for (int i = 0; i < num_anemo; i ++) {
         for (int j = 0; j < 3; j++) {
-            v[j] = wind_state[i].speed[j];
+            v[j] = wind_data[i].speed[j];
             sum_v[j] += v[j];
         }
         draw_arrow(pos[i][0], pos[i][1], pos[i][2], pos[i][0] + v[0], pos[i][1] + v[1], pos[i][2] + v[2], 0.0, 0.0, 1.0);
