@@ -39,6 +39,7 @@ void setup() {
   Blink(LED_PIN, 2);                    // show it's alive
   // Init soft serial
   mySerial.begin(SERIAL_BAUD_RATE);
+  mySerial.println("Hello Roice");  // not working until adding this line, confusing~
 }
 
 void loop() {
