@@ -3,7 +3,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-fd = h5py.File("Record_2016-09-13_10-43-40.h5", 'r+')
+fd = h5py.File("Record_2016-09-13_14-30-24.h5", 'r+')
 enu = fd['robot1/debug/enu'][...]
 vel = fd['robot1/debug/vel'][...]
 acc = fd['robot1/debug/acc'][...]
@@ -21,7 +21,7 @@ z3 = fd['robot1/debug/leso_z3'][...]
 
 fig, axes = plt.subplots(nrows=5)
 
-
+'''
 axes[0].plot(enu)
 
 axes[1].plot(vel)
@@ -31,9 +31,9 @@ axes[2].plot(acc)
 axes[3].plot(vel_p)
 
 axes[4].plot(acc_p)
-
-
 '''
+
+
 axes[0].plot(throttle)
 
 axes[1].plot(roll)
@@ -41,7 +41,7 @@ axes[1].plot(roll)
 axes[2].plot(pitch)
 
 axes[3].plot(yaw)
-'''
+
 
 '''
 axes[0].plot(z1)

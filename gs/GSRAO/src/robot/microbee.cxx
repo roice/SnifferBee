@@ -24,7 +24,7 @@
 #include "cblas.h"
 
 #ifndef MICROBEE_LANDING_THRESHOLD
-#define MICROBEE_LANDING_THRESHOLD 0.1 // shutdown when bee lands neer ground
+#define MICROBEE_LANDING_THRESHOLD 0.06 // shutdown when bee lands neer ground
 #endif
 
 typedef struct {
@@ -532,9 +532,17 @@ static void microbee_roll_pitch_control_adrc(float dt, int robot_index)
     error_p[1] = cblas_sdot(2, error_enu, 1, heading_e_front, 1); // for pitch
 
     // convert velocity to robot's coordinate
-    float vel_p[2];
+    float vel_p[3];
     vel_p[0] = cblas_sdot(2, vel, 1, heading_e_right, 1); // for roll
     vel_p[1] = cblas_sdot(2, vel, 1, heading_e_front, 1); // for pitch
+    vel_p[2] = data->robot[robot_index].vel[2];
+
+    // convert acceleration to robot's coordinate
+    float acc_p[3];
+    float* acc = &(data->robot[robot_index].acc[0]); // current e/n acc
+    acc_p[0] = cblas_sdot(2, acc, 1, heading_e_right, 1); // for roll
+    acc_p[1] = cblas_sdot(2, acc, 1, heading_e_front, 1); // for pitch
+    acc_p[2] = data->robot[robot_index].acc[2];
 
     /* position control, roll & pitch */
     float target_vel[2];
@@ -687,8 +695,10 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
     // save z3 to wind est
     // wind vector = ground vector - flight/air vector
     Robot_State_t* robot_state = robot_get_state();
-    robot_state[robot_index].wind[0] = vel_p[0] - 0.007*state[robot_index][0].z3;
-    robot_state[robot_index].wind[1] = vel_p[1] - 0.007*state[robot_index][1].z3;
+    robot_state[robot_index].wind[0] = 0.007*state[robot_index][0].z3;
+    robot_state[robot_index].wind[1] = 0.007*state[robot_index][1].z3;
+    //robot_state[robot_index].wind[0] = vel_p[0] - 0.007*state[robot_index][0].z3;
+    //robot_state[robot_index].wind[1] = vel_p[1] - 0.007*state[robot_index][1].z3;
     // for debug
     Robot_Debug_Record_t    new_dbg_rec;
     std::vector<Robot_Debug_Record_t>* robot_debug_rec = robot_get_debug_record();

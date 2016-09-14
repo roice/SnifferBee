@@ -3,7 +3,24 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from scipy import interpolate
-from scipy.ndimage.filters import gaussian_filter
+
+def multipl(a,b):
+    sumofab=0.0
+    for i in range(len(a)):
+        temp=a[i]*b[i]
+        sumofab+=temp
+    return sumofab
+
+def corrcoef(x,y):
+    n=len(x)
+    sum1=sum(x)
+    sum2=sum(y)
+    sumofxy=multipl(x,y)
+    sumofx2 = sum([pow(i,2) for i in x])
+    sumofy2 = sum([pow(j,2) for j in y])
+    num=sumofxy-(float(sum1)*float(sum2)/n)
+    den=math.sqrt((sumofx2-float(sum1**2)/n)*(sumofy2-float(sum2**2)/n))
+    return num/den
 
 def rotate_vector(vector, yaw, pitch, roll):
     """docstring for rotate_vector"""
@@ -19,7 +36,6 @@ def rotate_vector(vector, yaw, pitch, roll):
     R_zyx = np.dot(np.dot(R_z, R_y), R_x)
     out = np.dot(R_zyx, vector)
     return out
-
 
 fd = h5py.File("Record_2016-09-14_10-18-05.h5", 'r+')
 enu = fd['/robot1/debug/enu'][...]
@@ -157,26 +173,19 @@ for i in range(len(vel_p)):
     z3.append(out)
 z3 = np.asarray(z3)
 
-alpha = 0.007
+# calculate the best alpha, to get the best correlation between
+# (vel - alpha*z3) and anemo
 
-fig, axes = plt.subplots(nrows=6)
+alpha_list = []
+coef_list = []
+for temp_alpha in np.linspace(0.000001, 0.0001, 100):
+    alpha_list.append(temp_alpha)
+    coef_list.append(0.5*corrcoef(vel[:,0]-temp_alpha*z3[:,0], anemo[:,0])+0.5*corrcoef(vel[:,1]-temp_alpha*z3[:,1], anemo[:,1]))
 
-axes[0].plot(vel_p[:,0], color = 'red')
-axes[0].plot(z1_roll_p, color = 'blue')
+print alpha_list[coef_list.index(min(coef_list))]
 
-axes[1].plot(vel_p[:,1], color = 'red')
-axes[1].plot(z1_pitch_p, color = 'blue')
+fig, axes = plt.subplots(nrows=2)
 
-axes[2].plot(vel_p[:,2], color = 'red')
-axes[2].plot(z1_throttle_p, color = 'blue')
-
-axes[3].plot(anemo[:,0], color = 'red')
-axes[3].plot(vel[:,0]-alpha*z3[:,0], color = 'blue')
-
-axes[4].plot(anemo[:,1], color = 'red')
-axes[4].plot(vel[:,1]-alpha*z3[:,1], color = 'blue')
-
-axes[5].plot(anemo[:,2], color = 'red')
-axes[5].plot(vel[:,2]-alpha*z3[:,2], color = 'blue')
+axes[0].plot(alpha_list, coef_list)
 
 plt.show()
