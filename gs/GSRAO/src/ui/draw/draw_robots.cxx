@@ -45,7 +45,6 @@ void draw_robots(void)
             data->robot[idx_robot].enu[1] + robot_state[idx_robot].wind[1],
             data->robot[idx_robot].enu[2] + robot_state[idx_robot].wind[2],
             0.0, 1.0, 0.0);
-        
     }
 }
 

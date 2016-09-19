@@ -19,6 +19,7 @@
 #include "robot/microbee.h"
 #include "robot/robot.h"
 #include "io/serial.h"
+#include "common/vector_rotation.h"
 #include "GSRAO_Config.h"
 /* CBLAS */
 #include "cblas.h"
@@ -199,7 +200,8 @@ static void* microbee_control_loop(void* args)
         previous_time = current_time;
 
         // position control update
-        microbee_pos_control(dtime, idx_robot);
+        //microbee_pos_control(dtime, idx_robot);
+        microbee_pos_control(1.0/50.0, idx_robot);
 
         // 50 Hz
         nanosleep(&req, &rem); // 20 ms
@@ -653,11 +655,6 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
     printf("error_enu is [%f, %f] m\n", error_enu[0], error_enu[1]);
 #endif
 
-    // LESO
-    float leso_err[2] = {error_p[0]-state[robot_index][0].z1, error_p[1]-state[robot_index][1].z1};
-    //float leso_err[2] = {vel_p[0]-state[robot_index][0].z1, vel_p[1]-state[robot_index][1].z1};
-    //float leso_err[2] = {acc_p[0]-state[robot_index][0].z1, acc_p[1]-state[robot_index][1].z1};
-
     // Velocity-PID
     for (int i = 0; i < 2; i++) // 0 for roll, 1 for pitch
     {
@@ -682,10 +679,28 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
             rc_data[robot_index].roll = constrain(1500 + result, 1000, 2000);
         else if (i == 1)
             rc_data[robot_index].pitch = constrain(1500 + result, 1000, 2000);
+    }
 
-        // LESO
+    // LESO
+    float leso_err[2] = {pos[0]-state[robot_index][0].z1, pos[1]-state[robot_index][1].z1};
+    //float leso_err[2] = {vel_p[0]-state[robot_index][0].z1, vel_p[1]-state[robot_index][1].z1};
+    //float leso_err[2] = {acc_p[0]-state[robot_index][0].z1, acc_p[1]-state[robot_index][1].z1};
+    
+    // empirical value to convert rc volume to acc
+    float   factor_rc_to_acc = 0.03;
+
+    // convert rc result to earth coord
+    float rc_result_p[3] = { (float)rc_data[robot_index].roll - 1500, (float)rc_data[robot_index].pitch - 1500, 0 };
+    float rc_result[3] = {0};
+    rotate_vector(rc_result_p, rc_result, data->robot[robot_index].att[2], 0, 0);
+
+    // LESO update
+//printf("z1 = [ %f, %f ], z2 = [ %f, %f ], z3 = [ %f, %f ]\n", state[robot_index][0].z1, state[robot_index][1].z1, state[robot_index][0].z2, state[robot_index][1].z2, state[robot_index][0].z3, state[robot_index][1].z3);
+
+    for (int i = 0; i < 2; i++) // 0 for roll, 1 for pitch
+    {
         state[robot_index][i].z1 += dt*(state[robot_index][i].z2 + 3*adrcProfile[robot_index].w0[ADRCPOS]*leso_err[i]);
-        state[robot_index][i].z2 += dt*(state[robot_index][i].z3 + 3*pow(adrcProfile[robot_index].w0[ADRCPOS],2)*leso_err[i] + result);
+        state[robot_index][i].z2 += dt*(state[robot_index][i].z3 + 3*pow(adrcProfile[robot_index].w0[ADRCPOS],2)*leso_err[i] + factor_rc_to_acc*rc_result[i]);
         state[robot_index][i].z3 += dt*(pow(adrcProfile[robot_index].w0[ADRCPOS],3)*leso_err[i]);
     }
 
@@ -694,12 +709,14 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
 
     // save z3 to wind est
     // wind vector = ground vector - flight/air vector
+    float factor_z3_to_wind = 1.0/4.0;
     Robot_State_t* robot_state = robot_get_state();
-    robot_state[robot_index].wind[0] = 0.007*state[robot_index][0].z3;
-    robot_state[robot_index].wind[1] = 0.007*state[robot_index][1].z3;
+    robot_state[robot_index].wind[0] = vel[0]-factor_z3_to_wind*state[robot_index][0].z3;
+    robot_state[robot_index].wind[1] = vel[1]-factor_z3_to_wind*state[robot_index][1].z3;
     //robot_state[robot_index].wind[0] = vel_p[0] - 0.007*state[robot_index][0].z3;
     //robot_state[robot_index].wind[1] = vel_p[1] - 0.007*state[robot_index][1].z3;
     // for debug
+    Anemometer_Data_t* wind_data = sonic_anemometer_get_wind_data();
     Robot_Debug_Record_t    new_dbg_rec;
     std::vector<Robot_Debug_Record_t>* robot_debug_rec = robot_get_debug_record();
     memcpy(new_dbg_rec.enu, data->robot[robot_index].enu, 3*sizeof(float));
@@ -711,13 +728,16 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
     new_dbg_rec.throttle = rc_data[robot_index].throttle;
     new_dbg_rec.roll = rc_data[robot_index].roll - 1500;
     new_dbg_rec.pitch = rc_data[robot_index].pitch - 1500;
-    new_dbg_rec.yaw = rc_data[robot_index].yaw - 1500;
+    new_dbg_rec.yaw = rc_data[robot_index].yaw;
     new_dbg_rec.leso_z1[0] = state[robot_index][0].z1;
     new_dbg_rec.leso_z1[1] = state[robot_index][1].z1;
     new_dbg_rec.leso_z2[0] = state[robot_index][0].z2;
     new_dbg_rec.leso_z2[1] = state[robot_index][1].z2;
     new_dbg_rec.leso_z3[0] = state[robot_index][0].z3;
     new_dbg_rec.leso_z3[1] = state[robot_index][1].z3;
+    memcpy(new_dbg_rec.anemometer[0], wind_data[0].speed, 3*sizeof(float));
+    memcpy(new_dbg_rec.anemometer[1], wind_data[1].speed, 3*sizeof(float));
+    memcpy(new_dbg_rec.anemometer[2], wind_data[2].speed, 3*sizeof(float));
     robot_debug_rec[robot_index].push_back(new_dbg_rec);
 }
 

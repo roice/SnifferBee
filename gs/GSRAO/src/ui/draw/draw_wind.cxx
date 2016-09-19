@@ -29,7 +29,7 @@ void draw_anemometer_results(void)
 
     float v[3];
     float sum_v[3] = {0};
-    float pos[SERIAL_YOUNG_MAX_ANEMOMETERS][3] = {{0, -1.8, 1.3}, {0.6, 0, 1.3}, {-0.6, 0, 1.3}};
+    float pos[SERIAL_YOUNG_MAX_ANEMOMETERS][3] = {{0, -1.8, 1.3}, {1.0, 0, 1.3}, {-1.0, 0, 1.3}};
     for (int i = 0; i < num_anemo; i ++) {
         for (int j = 0; j < 3; j++) {
             v[j] = wind_data[i].speed[j];

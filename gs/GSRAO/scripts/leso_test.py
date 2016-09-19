@@ -1,11 +1,16 @@
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 
 dt = 0.01   # s
-m = 1.0     # kg
-noise = (np.random.rand(10000) - 0.5)*0.2
-disturb = np.random.rand(10000) - 0.5  # N
+m = 0.1     # kg
+noise = (np.random.rand(10000) - 0.5)*0.1
+#disturb = np.random.rand(10000) - 0.5  # N
 #disturb = np.ones(10000)
+disturb = []
+for i in range(10000):
+    disturb.append(math.sin(i*np.pi/100.0)+0.2)
+disturb = np.asarray(disturb)
 
 temp_u = 0
 temp_vel = 0
@@ -48,14 +53,17 @@ for i in range(len(y)):
     z2.append(temp_z2)
     z3.append(temp_z3)
 
-fig, axes = plt.subplots(nrows=3, figsize=(10, 10))
+fig, axes = plt.subplots(nrows=4, figsize=(10, 10))
 
 axes[0].plot(y, color = 'blue')
 axes[0].plot(z1, color = 'green')
 
-axes[1].plot(disturb, color = 'red')
-axes[1].plot(z3, color = 'green')
+axes[1].plot(y, color = 'blue')
+axes[1].plot(z2, color = 'green')
 
-axes[2].plot(u, color = 'blue')
+axes[2].plot(disturb, color = 'red')
+axes[2].plot(z3, color = 'green')
+
+axes[3].plot(u, color = 'blue')
 
 plt.show()

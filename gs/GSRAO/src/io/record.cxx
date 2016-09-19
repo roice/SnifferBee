@@ -24,6 +24,7 @@ void GSRAO_Save_Data(void)
     hsize_t data_dims[2];
 
     char gr_name[32];
+    char ds_name[128];
     
     // create file, if the file already exists, the current contents will be 
     // deleted so that the application can rewrite the file with new data.
@@ -484,7 +485,30 @@ void GSRAO_Save_Data(void)
         // free space
         free(data);
 
-        /* close group "robot0/debug ~ robot4/debug" */
+        for (int anemo_idx = 0; anemo_idx < 3; anemo_idx++) {
+            // anemometer
+            data_dims[0] = robot_debug_rec[i].size();
+            data_dims[1] = 3;
+            dataspace_id = H5Screate_simple(2, data_dims, NULL);
+            // create data set
+            snprintf(ds_name, 128, "anemometer_%d", anemo_idx+1);
+            dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id,
+                    H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            // write data
+            data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+            for (int idx = 0; idx < data_dims[0]; idx++)
+                memcpy(&(data[idx*3]), robot_debug_rec[i].at(idx).anemometer[anemo_idx], 3*sizeof(float));
+            status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                    H5P_DEFAULT, data);
+            /* End access to the dataset and release resources used by it. */
+            status = H5Dclose(dataset_id);
+            /* Terminate access to the data space. */ 
+            status = H5Sclose(dataspace_id);
+            // free space
+            free(data);
+        }
+
+        /* close group "robot1/debug ~ robot4/debug" */
         status = H5Gclose(group_id);
 
 #endif
@@ -493,8 +517,7 @@ void GSRAO_Save_Data(void)
     /* Create a group named "anemometers" in the file */
     group_id = H5Gcreate2(file_id, "anemometers", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     std::vector<Anemometer_Data_t>* anemo_record = sonic_anemometer_get_wind_record();
-
-    char ds_name[128];
+ 
     for (int anemo_idx = 0; anemo_idx < 3; anemo_idx++) {
         // anemometer
         data_dims[0] = anemo_record[anemo_idx].size();

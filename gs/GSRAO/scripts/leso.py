@@ -21,7 +21,7 @@ def rotate_vector(vector, yaw, pitch, roll):
     return out
 
 
-fd = h5py.File("Record_2016-09-14_10-18-05.h5", 'r+')
+fd = h5py.File("Record_2016-09-19_22-46-55.h5", 'r+')
 enu = fd['/robot1/debug/enu'][...]
 att = fd['/robot1/debug/att'][...]
 vel = fd['/robot1/debug/vel'][...]
@@ -35,10 +35,11 @@ yaw = fd['/robot1/debug/yaw'][...]
 leso_z1 = fd['/robot1/debug/leso_z1'][...]
 leso_z2 = fd['/robot1/debug/leso_z2'][...]
 leso_z3 = fd['/robot1/debug/leso_z3'][...]
-anemo_1 = fd['/anemometers/1'][...]
-anemo_2 = fd['/anemometers/2'][...]
-anemo_3 = fd['/anemometers/3'][...]
+anemo_1 = fd['/robot1/debug/anemometer_1'][...]
+anemo_2 = fd['/robot1/debug/anemometer_2'][...]
+anemo_3 = fd['/robot1/debug/anemometer_3'][...]
 
+'''
 # interpolate anemo to the same length of vel_p
 t_50Hz = np.linspace(0, 10, len(vel_p))
 t_32Hz = np.linspace(0, 10, len(anemo_1))
@@ -62,6 +63,7 @@ f = interpolate.interp1d(t_32Hz, anemo_3[:,1], kind='slinear')
 anemo_3_y = f(t_50Hz)
 f = interpolate.interp1d(t_32Hz, anemo_3[:,2], kind='slinear')
 anemo_3_z = f(t_50Hz)
+'''
 
 # interpolate anemo to get wind speed at robot's position
 anemo = []
@@ -76,107 +78,147 @@ for i in range(len(vel_p)):
     w1 /= sum_w
     w2 /= sum_w
     w3 /= sum_w
-    temp_anemo_x = anemo_1_x[i]*w1 + anemo_2_x[i]*w2 + anemo_3_x[i]*w3
-    temp_anemo_y = anemo_1_y[i]*w1 + anemo_2_y[i]*w2 + anemo_3_y[i]*w3
-    temp_anemo_z = anemo_1_z[i]*w1 + anemo_2_z[i]*w2 + anemo_3_z[i]*w3
+    temp_anemo_x = anemo_1[i,0]*w1 + anemo_2[i,0]*w2 + anemo_3[i,0]*w3
+    temp_anemo_y = anemo_1[i,1]*w1 + anemo_2[i,1]*w2 + anemo_3[i,1]*w3
+    temp_anemo_z = anemo_1[i,2]*w1 + anemo_2[i,2]*w2 + anemo_3[i,2]*w3
     anemo.append([ temp_anemo_x, temp_anemo_y, temp_anemo_z ])
 anemo = np.asarray(anemo)
 
-d_roll = [0.]
-for i in range(len(roll[:,0])-1):
-    d_roll.append(roll[i+1,0]-roll[i,0])
-d_pitch = [0.]
-for i in range(len(pitch[:,0])-1):
-    d_pitch.append(pitch[i+1,0]-pitch[i,0])
-d_throttle = [0.]
-for i in range(len(throttle[:,0])-1):
-    d_throttle.append(throttle[i+1,0]-throttle[i,0])
+roll_pitch = []
+for i in range(len(roll)):
+    temp_v = rotate_vector(np.asarray([ roll[i,0], pitch[i,0], 0. ]), att[i,0], 0., 0.)
+    roll_pitch.append(temp_v)
+roll_pitch = np.asarray(roll_pitch)
+
+delay = 0.0    # s
+delayed_roll_pitch = []
+for i in range(len(roll_pitch)):
+    if (i < int(delay*50.0)):
+        delayed_roll_pitch.append([0., 0.])
+    else:
+        delayed_roll_pitch.append([ roll_pitch[i-int(delay*50.0),0], roll_pitch[i-int(delay*50.0),1] ])
+delayed_roll_pitch = np.asarray(delayed_roll_pitch)
+
 
 # LESO
+scale_u = 0.03
 dt = 1.0/50.0   # 50 Hz
-w0 = 18.0
+w0 = 10.0
 temp_z1 = 0.
 temp_z2 = 0.
 temp_z3 = 0.
-z1_roll_p = []
-z2_roll_p = []
-z3_roll_p = []
-for i in range(len(vel_p)):
-    leso_err = vel_p[i,0] - temp_z1
+z1_roll = []
+z2_roll = []
+z3_roll = []
+for i in range(len(enu)):
+    leso_err = enu[i,0] - temp_z1
     temp_z1 += dt*(temp_z2 + 3*w0*leso_err)
-    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + d_roll[i])
+    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + scale_u*roll_pitch[i,0])
     temp_z3 += dt*(pow(w0, 3)*leso_err)
-    z1_roll_p.append(temp_z1)
-    z2_roll_p.append(temp_z2)
-    z3_roll_p.append(temp_z3)
-z1_roll_p = np.asarray(z1_roll_p)
-z2_roll_p = np.asarray(z2_roll_p)
-z3_roll_p = np.asarray(z3_roll_p)
-
-temp_z1 = 0.
-temp_z2 = 0.
-temp_z3 = 0.
-z1_pitch_p = []
-z2_pitch_p = []
-z3_pitch_p = []
-for i in range(len(vel_p)):
-    leso_err = vel_p[i,1] - temp_z1
-    temp_z1 += dt*(temp_z2 + 3*w0*leso_err)
-    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + d_pitch[i])
-    temp_z3 += dt*(pow(w0, 3)*leso_err)
-    z1_pitch_p.append(temp_z1)
-    z2_pitch_p.append(temp_z2)
-    z3_pitch_p.append(temp_z3)
-z1_pitch_p = np.asarray(z1_pitch_p)
-z2_pitch_p = np.asarray(z2_pitch_p)
-z3_pitch_p = np.asarray(z3_pitch_p)
+    z1_roll.append(temp_z1)
+    z2_roll.append(temp_z2)
+    z3_roll.append(temp_z3)
+z1_roll = np.asarray(z1_roll)
+z2_roll = np.asarray(z2_roll)
+z3_roll = np.asarray(z3_roll)
 
 temp_z1 = 0.
 temp_z2 = 0.
 temp_z3 = 0.
-z1_throttle_p = []
-z2_throttle_p = []
-z3_throttle_p = []
-for i in range(len(vel_p)):
-    leso_err = vel_p[i,2] - temp_z1
+z1_pitch = []
+z2_pitch = []
+z3_pitch = []
+for i in range(len(enu)):
+    leso_err = enu[i,1] - temp_z1
     temp_z1 += dt*(temp_z2 + 3*w0*leso_err)
-    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + d_throttle[i])
+    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + scale_u*delayed_roll_pitch[i,1])
     temp_z3 += dt*(pow(w0, 3)*leso_err)
-    z1_throttle_p.append(temp_z1)
-    z2_throttle_p.append(temp_z2)
-    z3_throttle_p.append(temp_z3)
-z1_throttle_p = np.asarray(z1_throttle_p)
-z2_throttle_p = np.asarray(z2_throttle_p)
-z3_throttle_p = np.asarray(z3_throttle_p)
+    z1_pitch.append(temp_z1)
+    z2_pitch.append(temp_z2)
+    z3_pitch.append(temp_z3)
+z1_pitch = np.asarray(z1_pitch)
+z2_pitch = np.asarray(z2_pitch)
+z3_pitch = np.asarray(z3_pitch)
 
-# convert z3 from plane coordinate to earth coordinate
-z3 = []
-for i in range(len(vel_p)):
-    v_p = np.asarray([z3_roll_p[i], z3_pitch_p[i], z3_throttle_p[i]])
-    out = rotate_vector(v_p, att[i,2], 0, 0)
-    z3.append(out)
-z3 = np.asarray(z3)
+temp_z1 = 0.
+temp_z2 = 0.
+temp_z3 = 0.
+z1_throttle = []
+z2_throttle = []
+z3_throttle = []
+for i in range(len(enu)):
+    leso_err = enu[i,2] - temp_z1
+    temp_z1 += dt*(temp_z2 + 3*w0*leso_err)
+    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + scale_u*throttle[i,0])
+    temp_z3 += dt*(pow(w0, 3)*leso_err)
+    z1_throttle.append(temp_z1)
+    z2_throttle.append(temp_z2)
+    z3_throttle.append(temp_z3)
+z1_throttle = np.asarray(z1_throttle)
+z2_throttle = np.asarray(z2_throttle)
+z3_throttle = np.asarray(z3_throttle)
 
-alpha = 0.007
+direction = []
+for i in range(len(z3_roll)):
+    direction.append(math.atan2(z3_pitch[i], z3_roll[i]))
+direction = np.asarray(direction)
 
-fig, axes = plt.subplots(nrows=6)
+factor_wind_acc = 6.0
 
-axes[0].plot(vel_p[:,0], color = 'red')
-axes[0].plot(z1_roll_p, color = 'blue')
+print "factor of wind vs vel is " + str(np.std(z3_roll[100:])/np.std(vel[100:,0]))
+print "factor of wind vs vel is " + str(np.std(z3_pitch[100:])/np.std(vel[100:,1]))
 
-axes[1].plot(vel_p[:,1], color = 'red')
-axes[1].plot(z1_pitch_p, color = 'blue')
+fig, axes = plt.subplots(nrows=2)
 
-axes[2].plot(vel_p[:,2], color = 'red')
-axes[2].plot(z1_throttle_p, color = 'blue')
+'''
+axes[0].plot(vel[:,1], color = 'red')
+axes[0].plot(z3_pitch/factor_wind_acc, color = 'blue')
+axes[0].plot(vel[:,1]-z3_pitch/factor_wind_acc, color = 'k')
+#axes[0].plot(scale_u*roll_pitch[:,1], color = 'green')
+'''
 
+
+'''
+axes[0].plot(enu[:,0], color = 'red')
+axes[0].plot(z1_roll, color = 'blue')
+
+axes[1].plot(vel[:,1], color = 'red')
+axes[1].plot(z1_pitch, color = 'blue')
+axes[1].plot(z3_pitch/factor_wind_acc, color = 'green')
+
+axes[2].plot(enu[:,2], color = 'red')
+axes[2].plot(z1_throttle, color = 'blue')
+'''
+
+'''
+axes[3].plot(vel[:,0], color = 'red')
+axes[3].plot(z2_roll, color = 'blue')
+
+axes[4].plot(vel[:,1], color = 'red')
+axes[4].plot(z2_pitch, color = 'blue')
+
+axes[5].plot(vel[:,2], color = 'red')
+axes[5].plot(z2_throttle, color = 'blue')
+'''
+
+
+'''
 axes[3].plot(anemo[:,0], color = 'red')
-axes[3].plot(vel[:,0]-alpha*z3[:,0], color = 'blue')
+axes[3].plot(z3_roll/factor_wind_acc, color = 'blue')
+#axes[3].plot(z3_roll, color = 'blue')
+'''
 
-axes[4].plot(anemo[:,1], color = 'red')
-axes[4].plot(vel[:,1]-alpha*z3[:,1], color = 'blue')
 
+axes[0].plot(anemo[100:,1], color = 'red')
+axes[0].plot(z3_pitch[100:]/factor_wind_acc, color = 'blue')
+#axes[0].plot(0.001*roll_pitch[100:,1], color = 'green')
+#axes[0].plot(0.001*delayed_roll_pitch[100:,1], color = 'k')
+
+'''
 axes[5].plot(anemo[:,2], color = 'red')
-axes[5].plot(vel[:,2]-alpha*z3[:,2], color = 'blue')
+axes[5].plot(z3_throttle/factor_wind_acc, color = 'blue')
+#axes[5].plot(z3_throttle, color = 'blue')
+#axes[5].plot(direction, color = 'blue')
+'''
 
 plt.show()

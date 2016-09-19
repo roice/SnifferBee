@@ -15,14 +15,14 @@
 #include <Matrix.hpp>
 #include <UnscentedKalmanFilter.hpp>
 
-#define MOCAP_NR_NUM_VECTORS   4
+#define MOCAP_NR_NUM_VECTORS   8    // 4 robots, velocity & acceleration
 
 typedef float T;
 
 double previous_time = -1;
 
 float signal_reading_var_process_noise = pow(3.0, 2);
-float signal_reading_var_measurement_noise = pow(0.0005*50.0, 2); // m/s, 0.001 m, 50 Hz
+float signal_reading_var_measurement_noise = pow(0.001*50.0, 2); // m/s, 0.001 m/s, 50 Hz
 void* signal_reading_filter[MOCAP_NR_NUM_VECTORS][3]; // ukf filters, enu
 void* signal_reading_state[MOCAP_NR_NUM_VECTORS][3]; // state vectors
 void* signal_reading_sys[MOCAP_NR_NUM_VECTORS][3]; // system model
