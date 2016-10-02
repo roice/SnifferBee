@@ -27,13 +27,7 @@ typedef enum {
 
 typedef struct mbspPort_s {
     serialPort_t *port; // null when port unused.
-    uint8_t offset;
-    uint8_t dataSize;
     uint8_t checksum;
-    uint8_t indRX;
-    uint8_t inBuf[MBSP_PORT_INBUF_SIZE];
-    mbspState_e c_state;
-    uint8_t cmdMBSP;
 } mbspPort_t;
 
 void mbspInit(void);
@@ -42,6 +36,6 @@ void mbspPrintf(const char *fmt, ...);
 void mbspSendMeasurements(void);
 void mbspSendHeartBeat(void);
 
-float* mb_GetBatteryVoltage(void);
+uint16_t* mb_GetBatteryVoltage(void);
 
 #endif

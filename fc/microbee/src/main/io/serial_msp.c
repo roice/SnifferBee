@@ -1223,9 +1223,8 @@ static bool processInCommand(void)
 #ifdef MICROBEE
     case MSP_BAT_STATUS:
     {
-        uint16_t adc_value = read16();
-        float* bat_volt = mb_GetBatteryVoltage();
-        *bat_volt = ((float)(adc_value & 0x03FF))*5.0f/1024.0f;
+        uint16_t* bat_volt = mb_GetBatteryVoltage();
+        *bat_volt = read16();
     }
         break;
 #endif

@@ -41,24 +41,23 @@
 #define MBSP_CMD_STATUS         101 // status of MicroBee
 #define MBSP_CMD_MEASUREMENTS   102 // readings of (three)gas sensors & motor values (if required)
 
-//#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // send motor values
+#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // send motor values
 
-STATIC_UNIT_TESTED mbspPort_t mbspPort;
+volatile mbspPort_t   mbspPort;
 
 static bufWriter_t *mbspWriter;
-static uint8_t mbspWriteBuffer[sizeof(*mbspWriter) + 20];
+static uint8_t mbspWriteBuffer[sizeof(bufWriter_t) + 30];
 
-static float battery_volt = 0;
+static uint16_t battery_volt = 0;
 
 void mbspInit(void)
 {
     // FUNCTION_TELEMETRY_FRSKY is used to distinguish with MSP,
     // telemetry is not used
-    serialPort_t* serialPort = openSerialPort(SERIAL_PORT_USART1, FUNCTION_TELEMETRY_FRSKY, NULL, 115200, MODE_RXTX, SERIAL_NOT_INVERTED);
+    serialPort_t* serialPort = openSerialPort(SERIAL_PORT_USART1, FUNCTION_TELEMETRY_FRSKY, NULL, 57600, MODE_RXTX, SERIAL_NOT_INVERTED);
     if (!serialPort)
         return;
 
-    memset(&mbspPort, 0x00, sizeof(mbspPort));
     mbspPort.port = serialPort;
 
     setPrintfSerialPort(mbspPort.port);
@@ -103,18 +102,18 @@ static void serialize16(uint16_t a)
     serialize8((uint8_t)(a >> 0));
     serialize8((uint8_t)(a >> 8));
 }
-
+/*
 static void serialize32(uint32_t a)
 {
     serialize16((uint16_t)(a >> 0));
     serialize16((uint16_t)(a >> 16));
 }
-
+*/
 void mbspSendMeasurements(void)
 {
-    mbspPort.checksum = 0;
-
     static uint16_t measurement_count = 0;
+    
+    mbspPort.checksum = 0;
 
     // send addr and channel of ground station RF
     // E53-TTL-100 module, EBYTE Co.Ltd., Chengdu
@@ -152,7 +151,7 @@ void mbspSendMeasurements(void)
     serialize16(measurement_count++);
 
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
-    for (char i = 0; i < 4; i++)
+    for (uint16_t i = 0; i < 4; i++)
         serialize16(motor[i]);
 #endif 
 
@@ -185,9 +184,9 @@ void mbspSendHeartBeat(void)
     serialize8(MICROBEE_DEVICE_NUMBER);
 
     // length of data (bytes)
-    serialize8(sizeof(uint8_t)+sizeof(float)); // ARM/DISARM and Battery Voltage
+    serialize8(sizeof(uint8_t)+sizeof(uint16_t)); // ARM/DISARM and Battery Voltage
 
-    // command, send gas sensor readings
+    // command, send microbee status
     serialize8(MBSP_CMD_STATUS);
 
     // ARM/DISARM info
@@ -197,8 +196,7 @@ void mbspSendHeartBeat(void)
         serialize8(0);
 
     // Battery Voltage
-    float* bat_volt = mb_GetBatteryVoltage();
-    serialize32(*(uint32_t*)bat_volt);
+    serialize16(battery_volt);
     
     // checksum
     bufWriterAppend(mbspWriter, mbspPort.checksum);
@@ -208,7 +206,7 @@ void mbspSendHeartBeat(void)
 }
 
 // get battery voltage
-float* mb_GetBatteryVoltage(void)
+uint16_t* mb_GetBatteryVoltage(void)
 {
     return &battery_volt;
 }
