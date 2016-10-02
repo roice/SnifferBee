@@ -138,9 +138,11 @@ static void youngProcessFrame(char* buf, int len, int index)
                 wind_data[index].temperature = (float)young_frame[index].T / 100.0 - 273.15; // convert to degree centigrade
                 // save record
                 wind_record[index].push_back(wind_data[index]);
-
-//printf("anemometer %d , speed = [ %f, %f, %f ], temperature = %f.\n", index, wind_data[index].speed[0], wind_data[index].speed[1], wind_data[index].speed[2], wind_data[index].temperature);
-
+/*
+if (index == 0) {
+    printf("anemometer %d , speed = [ %f, %f, %f ], temperature = %f.\n", index, wind_data[index].speed[0], wind_data[index].speed[1], wind_data[index].speed[2], wind_data[index].temperature);
+}
+*/
             }
             young_frame[index].pointer = 0;
             young_frame[index].checksum = 0;

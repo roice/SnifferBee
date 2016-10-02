@@ -17,10 +17,14 @@
 #include <FL/glu.h>
 #include <string.h>
 #include <time.h> // for srand seeding and FPS calculation
+#include <sys/time.h>
 #include "ui/agv.h" // eye movement
 #include "ui/draw/DrawScene.h" // draw experiment scene
 #include "mocap/packet_client.h" // draw mocap fps
 #include "GSRAO_Config.h"
+
+// experiment start time
+struct timeval  time_count_start;
 
 // width and height of current window, for redraw function
 static int win_width = 1;
@@ -143,7 +147,7 @@ static void draw_ui_fps_note(void)
 
 static void draw_mocap_fps_note(void)
 {
-    char buf[255];
+    char buf[256];
     MocapData_t* data = mocap_get_data();
 
     int fps = data->dlatency>0? 1.0f/(data->dlatency):0;
@@ -174,9 +178,32 @@ static void draw_mocap_fps_note(void)
     }
 }
 
+static void draw_time_passed_note(void)
+{
+    char buf[256];
+   
+    // get time passed since start
+    struct timeval  tv;
+    struct timezone tz;
+    gettimeofday(&tv, &tz);
+    double time_passed = (tv.tv_sec+tv.tv_usec/1000000.)-(time_count_start.tv_sec+time_count_start.tv_usec/1000000.);        // accurate down to ms
+
+    glDisable(GL_LIGHTING);
+    {
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        gluOrtho2D(0.0, win_width, 0.0, win_height);
+        sprintf(buf, "Time= %d m %.1f s", (int)(time_passed/60), time_passed-((int)(time_passed/60))*60);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        gl_font(FL_HELVETICA, 12);
+        gl_draw(buf, 260, 10);
+    }glEnable(GL_LIGHTING);
+}
+
 static void draw_notes(void) {
-    draw_ui_fps_note();
-    draw_mocap_fps_note();
+    draw_ui_fps_note();     // frames per second of UI
+    draw_mocap_fps_note();  // frames per second of Motion Capture
+    draw_time_passed_note();// time passed since start
 }
 
 static void View_idle(void) {
@@ -216,5 +243,9 @@ void View_init(int width, int height)
 
     /* init scene drawing */
     DrawScene_init();
+
+    /* start time counting */
+    struct timezone tz;
+    gettimeofday(&time_count_start, &tz);
 }
 /* End of View.cxx */

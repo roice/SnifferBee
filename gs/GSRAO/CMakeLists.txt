@@ -82,6 +82,8 @@ include_directories(${PROJECT_SOURCE_DIR}/src/mocap/kf)
 include_directories(${PROJECT_SOURCE_DIR}/../../3rdparty/blas/CBLAS/include)
 #   add ziggurat source file to generate normal distribution random numbers
 include_directories(${PROJECT_SOURCE_DIR}/../../3rdparty/ziggurat)
+#   add liquid-dsp dir to search for liquid.h header for dsp
+include_directories(${PROJECT_SOURCE_DIR}/../../3rdparty/liquid-dsp/include)
 #   add eigen header dir
 include_directories(${EIGEN3_INCLUDE_DIR})
 
@@ -92,6 +94,8 @@ link_directories(${PROJECT_SOURCE_DIR}/../../3rdparty/fltk-1.3.x-r11608/build/li
 #   add blas and cblas lib dir
 link_directories(${PROJECT_SOURCE_DIR}/../../3rdparty/blas/BLAS-3.6.0)
 link_directories(${PROJECT_SOURCE_DIR}/../../3rdparty/blas/CBLAS/lib)
+#   add liquid-dsp lib dir
+link_directories(${PROJECT_SOURCE_DIR}/../../3rdparty/liquid-dsp)
 
 #---- start compiling ----
 set(LIB_UI_NAME ui)
@@ -131,6 +135,8 @@ target_link_libraries(${PRJ_NAME} gfortran)
 target_link_libraries(${PRJ_NAME} pthread)
 # link extern hdf5 library
 target_link_libraries(${PRJ_NAME} ${HDF5_LIBRARIES})
+# link external liquid-dsp library
+target_link_libraries(${PRJ_NAME} liquid)
 
 # install
 #install(TARGETS ${PRJ_NAME}

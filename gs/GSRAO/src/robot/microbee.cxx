@@ -23,6 +23,8 @@
 #include "GSRAO_Config.h"
 /* CBLAS */
 #include "cblas.h"
+/* Liquid */
+#include "liquid.h"
 
 #ifndef MICROBEE_LANDING_THRESHOLD
 #define MICROBEE_LANDING_THRESHOLD 0.06 // shutdown when bee lands neer ground
@@ -42,9 +44,26 @@ static bool exit_microbee_state_thread = false;
 
 static MicroBee_t microbee[4] = {0}; // 4 robots max
 
+static float microbee_pos_fix[4][3] = {{-0.00162, 0.00025, 0.0092+0.0215}, {0}, {0}, {0}}; // position fix to align rigid body and microbee centers
+
+#ifdef MICROBEE_DENOISE_BEFORE_CONTROL
+#define DENOISE_H_LEN   (6)
+static firfilt_rrrf f_denoise[4][3]; // pos vel acc att, xyz
+static float h_denoise[4][3][DENOISE_H_LEN];
+#endif
+
+#ifdef MICROBEE_SMOOTH_WIND_EST
+// wind smooth
+#define WIND_SMOOTH_H_LEN   (5*50)
+static firfilt_rrrf f_wind_smooth[3];   // xyz
+static float h_wind_smooth[3][WIND_SMOOTH_H_LEN];    // 2 s * 50 Hz
+#endif
+
 static void* microbee_control_loop(void*);
 static void* microbee_state_loop(void*);
 static void microbee_pos_control(float, int);
+
+static void CreateGaussianKernel(float sigma, float* gKernel, int nWindowSize);
 
 /*-------- MicroBee State Refresh --------*/
 
@@ -54,6 +73,44 @@ bool microbee_state_init(void)
     // clear microbee states
     for (int i = 0; i < 4; i++) // 4 robots max
         memset(&(microbee[i].state), 0, sizeof(microbee[i].state));
+
+    float gain;
+#ifdef MICROBEE_DENOISE_BEFORE_CONTROL
+    // denoise, calculate response
+    for (int i = 0; i < 4; i++) // pos vel acc att
+        for (int j = 0; j < 3; j++) // xyz
+            CreateGaussianKernel(20.0, h_denoise[i][j], DENOISE_H_LEN);
+    // denoise, calculate filter gain and tune them to the same gain
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 3; j++) {// xyz
+            gain = 0;
+            for (int idx = 0; idx < DENOISE_H_LEN; idx++)
+                gain += h_denoise[i][j][idx];
+            for (int idx = 0; idx < DENOISE_H_LEN; idx++)
+                h_denoise[i][j][idx] /= gain;
+        }
+    // denoise, create filter from response
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 3; j++)
+            f_denoise[i][j] = firfilt_rrrf_create(h_denoise[i][j], DENOISE_H_LEN);
+#endif
+
+#ifdef MICROBEE_SMOOTH_WIND_EST
+    // wind smooth, calculate response
+    for (int i = 0; i < 3; i++)
+        CreateGaussianKernel(20.0, h_wind_smooth[i], WIND_SMOOTH_H_LEN);
+    // wind smooth, calculate filter gain and tune them to the same gain
+    for (int i = 0; i < 3; i++) {
+        gain = 0;
+        for (int idx = 0; idx < WIND_SMOOTH_H_LEN; idx++)
+            gain += h_wind_smooth[i][idx];
+        for (int idx = 0; idx < WIND_SMOOTH_H_LEN; idx++)
+            h_wind_smooth[i][idx] /= gain;
+    }
+    // wind smooth, create filter from response
+    for (int i = 0; i < 3; i++)
+        f_wind_smooth[i] = firfilt_rrrf_create(h_wind_smooth[i], WIND_SMOOTH_H_LEN);
+#endif
 
     /* create state refresh loop */
     exit_microbee_state_thread = false;
@@ -274,10 +331,21 @@ static void microbee_throttle_control_pid(float dt, int robot_index)
     // get alt
     MocapData_t* data = mocap_get_data(); // get mocap data
     Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref state
-    float EstAlt = data->robot[robot_index].enu[2]; // z axis, robot's real-time z axis pos
-    float AltHold = robot_ref[robot_index].enu[2]; // reference z axis pos
-    float vel_temp = data->robot[robot_index].vel[2]; // current alt velocity
-    float accZ_temp = data->robot[robot_index].acc[2]; // current alt acc
+    float EstAlt, vel_temp, accZ_temp;
+#ifdef MICROBEE_DENOISE_BEFORE_CONTROL
+    firfilt_rrrf_push(f_denoise[0][2], data->robot[robot_index].enu[2] + microbee_pos_fix[robot_index][2]);
+    firfilt_rrrf_execute(f_denoise[0][2], &(EstAlt));
+    firfilt_rrrf_push(f_denoise[1][2], data->robot[robot_index].vel[2]);
+    firfilt_rrrf_execute(f_denoise[1][2], &(vel_temp));
+    firfilt_rrrf_push(f_denoise[2][2], data->robot[robot_index].acc[2]);
+    firfilt_rrrf_execute(f_denoise[2][2], &(accZ_temp));
+#else
+    EstAlt = data->robot[robot_index].enu[2] + microbee_pos_fix[robot_index][2]; // z axis, robot's real-time z axis pos
+    vel_temp = data->robot[robot_index].vel[2]; // current alt velocity
+    accZ_temp = data->robot[robot_index].acc[2]; // current alt acc
+#endif
+
+    float AltHold = robot_ref[robot_index].enu[2]; // reference z axis pos 
 
     /* altitude control, throttle */
     // Altitude P-Controller
@@ -608,15 +676,33 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
     SPP_RC_DATA_t* rc_data = spp_get_rc_data();
 
     // get east/north
-    float pos[2], pos_ref[2], vel[2]; // e/n
+    float pos[3], pos_ref[3], vel[3], acc[3], att[3]; // e/n
     MocapData_t* data = mocap_get_data(); // get mocap data
     Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref states
     for (int i = 0; i < 2; i++) // e/n
     {
-        pos[i] = data->robot[robot_index].enu[i]; // e/n axis, robot's real-time x y axis pos
         pos_ref[i] = robot_ref[robot_index].enu[i]; // reference x y axis pos
+#ifdef MICROBEE_DENOISE_BEFORE_CONTROL
+        firfilt_rrrf_push(f_denoise[0][i], data->robot[robot_index].enu[i] + microbee_pos_fix[robot_index][i]);
+        firfilt_rrrf_execute(f_denoise[0][i], &(pos[i]));
+        firfilt_rrrf_push(f_denoise[1][i], data->robot[robot_index].vel[i]);
+        firfilt_rrrf_execute(f_denoise[1][i], &(vel[i]));
+        firfilt_rrrf_push(f_denoise[2][i], data->robot[robot_index].acc[i]);
+        firfilt_rrrf_execute(f_denoise[2][i], &(acc[i]));
+#else
+        pos[i] = data->robot[robot_index].enu[i] + microbee_pos_fix[robot_index][i]; // e/n axis, robot's real-time x y axis pos
+        
         vel[i] = data->robot[robot_index].vel[i]; // current e/n velocity
+        acc[i] = data->robot[robot_index].acc[i]; // current e/n acceleration
+        att[i] = data->robot[robot_index].att[i]; // current e/n acceleration
+#endif 
     }
+#ifdef MICROBEE_DENOISE_BEFORE_CONTROL
+    for (int i = 0; i < 3; i++) {
+        firfilt_rrrf_push(f_denoise[3][i], data->robot[robot_index].att[i]);
+        firfilt_rrrf_execute(f_denoise[3][i], &(att[i]));
+    }
+#endif
 
     // get position error vector in earth coordinate
     for (int i = 0; i < 2; i++)
@@ -641,7 +727,6 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
 
     // convert acceleration to robot's coordinate
     float acc_p[3];
-    float* acc = &(data->robot[robot_index].acc[0]); // current e/n acc
     acc_p[0] = cblas_sdot(2, acc, 1, heading_e_right, 1); // for roll
     acc_p[1] = cblas_sdot(2, acc, 1, heading_e_front, 1); // for pitch
     acc_p[2] = data->robot[robot_index].acc[2];
@@ -686,13 +771,15 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
     //float leso_err[2] = {vel_p[0]-state[robot_index][0].z1, vel_p[1]-state[robot_index][1].z1};
     //float leso_err[2] = {acc_p[0]-state[robot_index][0].z1, acc_p[1]-state[robot_index][1].z1};
     
-    // empirical value to convert rc volume to acc
-    float   factor_rc_to_acc = 0.03;
+    // get motor value and calculate force vector
+    float temp_force[3] = {0., 0., (float)(microbee[robot_index].motor[0]+microbee[robot_index].motor[1]+microbee[robot_index].motor[2]+microbee[robot_index].motor[3])};
+    float force[3] = {0};
 
-    // convert rc result to earth coord
-    float rc_result_p[3] = { (float)rc_data[robot_index].roll - 1500, (float)rc_data[robot_index].pitch - 1500, 0 };
-    float rc_result[3] = {0};
-    rotate_vector(rc_result_p, rc_result, data->robot[robot_index].att[2], 0, 0);
+    // convert force vector to earth coord
+    rotate_vector(temp_force, force, att[2], att[1], att[0]);
+
+    // factor to convert force to u
+    float factor_force_to_u = 0.002;
 
     // LESO update
 //printf("z1 = [ %f, %f ], z2 = [ %f, %f ], z3 = [ %f, %f ]\n", state[robot_index][0].z1, state[robot_index][1].z1, state[robot_index][0].z2, state[robot_index][1].z2, state[robot_index][0].z3, state[robot_index][1].z3);
@@ -700,7 +787,7 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
     for (int i = 0; i < 2; i++) // 0 for roll, 1 for pitch
     {
         state[robot_index][i].z1 += dt*(state[robot_index][i].z2 + 3*adrcProfile[robot_index].w0[ADRCPOS]*leso_err[i]);
-        state[robot_index][i].z2 += dt*(state[robot_index][i].z3 + 3*pow(adrcProfile[robot_index].w0[ADRCPOS],2)*leso_err[i] + factor_rc_to_acc*rc_result[i]);
+        state[robot_index][i].z2 += dt*(state[robot_index][i].z3 + 3*pow(adrcProfile[robot_index].w0[ADRCPOS],2)*leso_err[i] + factor_force_to_u*force[i]);
         state[robot_index][i].z3 += dt*(pow(adrcProfile[robot_index].w0[ADRCPOS],3)*leso_err[i]);
     }
 
@@ -709,12 +796,20 @@ static void microbee_roll_pitch_control_pid_leso(float dt, int robot_index)
 
     // save z3 to wind est
     // wind vector = ground vector - flight/air vector
-    float factor_z3_to_wind = 1.0/4.0;
+    float factor_z3_to_wind = 1.0;
     Robot_State_t* robot_state = robot_get_state();
-    robot_state[robot_index].wind[0] = vel[0]-factor_z3_to_wind*state[robot_index][0].z3;
-    robot_state[robot_index].wind[1] = vel[1]-factor_z3_to_wind*state[robot_index][1].z3;
-    //robot_state[robot_index].wind[0] = vel_p[0] - 0.007*state[robot_index][0].z3;
-    //robot_state[robot_index].wind[1] = vel_p[1] - 0.007*state[robot_index][1].z3;
+#ifdef MICROBEE_SMOOTH_WIND_EST
+    float temp_wind[3] = {factor_z3_to_wind*state[robot_index][0].z3, factor_z3_to_wind*state[robot_index][1].z3, 0.};
+    // smoothing
+    for (int i = 0; i < 2; i++) {
+        firfilt_rrrf_push(f_wind_smooth[i], temp_wind[i]);
+        firfilt_rrrf_execute(f_wind_smooth[i], &(robot_state[robot_index].wind[i]));
+    }
+#else
+    robot_state[robot_index].wind[0] = factor_z3_to_wind*state[robot_index][0].z3;
+    robot_state[robot_index].wind[1] = factor_z3_to_wind*state[robot_index][1].z3;
+#endif
+
     // for debug
     Anemometer_Data_t* wind_data = sonic_anemometer_get_wind_data();
     Robot_Debug_Record_t    new_dbg_rec;
@@ -800,4 +895,24 @@ static void microbee_pos_control(float dt, int robot_index)
     microbee_roll_pitch_control_pid(dt, robot_index);
     microbee_yaw_control_pid(dt, robot_index);
 #endif
+}
+
+static void CreateGaussianKernel(float sigma, float* gKernel, int nWindowSize) {
+    
+    int nCenter = nWindowSize/2;
+    double Value, Sum;
+   
+    // default no derivative
+    gKernel[nCenter] = 1.0;
+    Sum = 1.0;
+    for (int i = 1; i <= nCenter; i++) {
+        Value = 1.0/sigma*exp(-0.5*i*i/(sigma*sigma));
+        if (nCenter+i < nWindowSize)
+            gKernel[nCenter+i] = Value;
+        gKernel[nCenter-i] = Value;
+        Sum += 2.0*Value;
+    }
+    // normalize
+    for (int i = 0; i < nWindowSize; i++)
+        gKernel[i] = gKernel[i]/Sum;
 }

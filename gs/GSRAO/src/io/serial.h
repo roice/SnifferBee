@@ -23,7 +23,7 @@ void spp_close(void);
 SPP_RC_DATA_t* spp_get_rc_data(void);
 
 /* serial_mbsp.cxx */
-//#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // measurements include motor value
+#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // measurements include motor value
 bool mbsp_init(const char*);
 void mbsp_close(void);
 

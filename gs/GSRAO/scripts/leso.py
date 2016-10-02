@@ -21,7 +21,7 @@ def rotate_vector(vector, yaw, pitch, roll):
     return out
 
 
-fd = h5py.File("Record_2016-09-19_22-46-55.h5", 'r+')
+fd = h5py.File("Record_2016-10-02_11-30-09.h5", 'r+')
 enu = fd['/robot1/debug/enu'][...]
 att = fd['/robot1/debug/att'][...]
 vel = fd['/robot1/debug/vel'][...]
@@ -38,42 +38,71 @@ leso_z3 = fd['/robot1/debug/leso_z3'][...]
 anemo_1 = fd['/robot1/debug/anemometer_1'][...]
 anemo_2 = fd['/robot1/debug/anemometer_2'][...]
 anemo_3 = fd['/robot1/debug/anemometer_3'][...]
+motors = fd['robot1/motors'][...]
+bat_volt = fd['robot1/bat_volt'][...]
 
+# interpolate motors & bat volt to the same length of vel
+t_50Hz = np.linspace(0, 10, len(vel))
+t_20Hz = np.linspace(0, 10, len(motors))
+f = interpolate.interp1d(t_20Hz, motors[:,0], kind='slinear')
+motor1 = f(t_50Hz)
+f = interpolate.interp1d(t_20Hz, motors[:,1], kind='slinear')
+motor2 = f(t_50Hz)
+f = interpolate.interp1d(t_20Hz, motors[:,2], kind='slinear')
+motor3 = f(t_50Hz)
+f = interpolate.interp1d(t_20Hz, motors[:,3], kind='slinear')
+motor4 = f(t_50Hz)
+filtered_bat_volt = gaussian_filter(bat_volt[:,0], sigma=10)
+f = interpolate.interp1d(t_20Hz, filtered_bat_volt, kind='slinear')
+bat_volt = f(t_50Hz)
+
+
+pos_x = gaussian_filter(enu[:,0], sigma=10)
+pos_y = gaussian_filter(enu[:,1], sigma=10)
+pos_z = gaussian_filter(enu[:,2], sigma=10)
+
+vel_x = gaussian_filter(vel[:,0], sigma=10)
+vel_y = gaussian_filter(vel[:,1], sigma=10)
+vel_z = gaussian_filter(vel[:,2], sigma=10)
+
+att_x = gaussian_filter(att[:,0], sigma=10)
+att_y = gaussian_filter(att[:,1], sigma=10)
+att_z = gaussian_filter(att[:,2], sigma=10)
+
+motor_1 = gaussian_filter(motor1, sigma=10)
+motor_2 = gaussian_filter(motor2, sigma=10)
+motor_3 = gaussian_filter(motor3, sigma=10)
+motor_4 = gaussian_filter(motor4, sigma=10)
 '''
-# interpolate anemo to the same length of vel_p
-t_50Hz = np.linspace(0, 10, len(vel_p))
-t_32Hz = np.linspace(0, 10, len(anemo_1))
-f = interpolate.interp1d(t_32Hz, anemo_1[:,0], kind='slinear')
-anemo_1_x = f(t_50Hz)
-f = interpolate.interp1d(t_32Hz, anemo_1[:,1], kind='slinear')
-anemo_1_y = f(t_50Hz)
-f = interpolate.interp1d(t_32Hz, anemo_1[:,2], kind='slinear')
-anemo_1_z = f(t_50Hz)
-t_32Hz = np.linspace(0, 10, len(anemo_2))
-f = interpolate.interp1d(t_32Hz, anemo_2[:,0], kind='slinear')
-anemo_2_x = f(t_50Hz)
-f = interpolate.interp1d(t_32Hz, anemo_2[:,1], kind='slinear')
-anemo_2_y = f(t_50Hz)
-f = interpolate.interp1d(t_32Hz, anemo_2[:,2], kind='slinear')
-anemo_2_z = f(t_50Hz)
-t_32Hz = np.linspace(0, 10, len(anemo_3))
-f = interpolate.interp1d(t_32Hz, anemo_3[:,0], kind='slinear')
-anemo_3_x = f(t_50Hz)
-f = interpolate.interp1d(t_32Hz, anemo_3[:,1], kind='slinear')
-anemo_3_y = f(t_50Hz)
-f = interpolate.interp1d(t_32Hz, anemo_3[:,2], kind='slinear')
-anemo_3_z = f(t_50Hz)
+pos_x = enu[:,0]
+pos_y = enu[:,1]
+pos_z = enu[:,2]
+
+vel_x = vel[:,0]
+vel_y = vel[:,1]
+vel_z = vel[:,2]
+
+att_x = att[:,0]
+att_y = att[:,1]
+att_z = att[:,2]
+
+motor_1 = motor1
+motor_2 = motor2
+motor_3 = motor3
+motor_4 = motor4
 '''
 
 # interpolate anemo to get wind speed at robot's position
 anemo = []
-pos_anemo_1 = np.asarray([ 0, -1.8, 1.3 ])
-pos_anemo_2 = np.asarray([ 1.0, 0, 1.3 ])
-pos_anemo_3 = np.asarray([ -1.0, 0, 1.3 ])
+pos_anemo_1 = np.asarray([ 0, -1.8, 1.38 ])
+pos_anemo_2 = np.asarray([ 1.0, 0, 1.38 ])
+pos_anemo_3 = np.asarray([ -1.0, 0, 1.38 ])
+
+
 for i in range(len(vel_p)):
-    w1 = math.sqrt((enu[i,0]-pos_anemo_1[0])**2 + (enu[i,1]-pos_anemo_1[1])**2 + (enu[i,2]-pos_anemo_1[2])**2)
-    w2 = math.sqrt((enu[i,0]-pos_anemo_2[0])**2 + (enu[i,1]-pos_anemo_2[1])**2 + (enu[i,2]-pos_anemo_2[2])**2)
-    w3 = math.sqrt((enu[i,0]-pos_anemo_3[0])**2 + (enu[i,1]-pos_anemo_3[1])**2 + (enu[i,2]-pos_anemo_3[2])**2)
+    w1 = 1.0/math.sqrt((enu[i,0]-pos_anemo_1[0])**2 + (enu[i,1]-pos_anemo_1[1])**2 + (enu[i,2]-pos_anemo_1[2])**2)
+    w2 = 1.0/math.sqrt((enu[i,0]-pos_anemo_2[0])**2 + (enu[i,1]-pos_anemo_2[1])**2 + (enu[i,2]-pos_anemo_2[2])**2)
+    w3 = 1.0/math.sqrt((enu[i,0]-pos_anemo_3[0])**2 + (enu[i,1]-pos_anemo_3[1])**2 + (enu[i,2]-pos_anemo_3[2])**2)
     sum_w = w1 + w2 + w3
     w1 /= sum_w
     w2 /= sum_w
@@ -84,111 +113,145 @@ for i in range(len(vel_p)):
     anemo.append([ temp_anemo_x, temp_anemo_y, temp_anemo_z ])
 anemo = np.asarray(anemo)
 
-roll_pitch = []
-for i in range(len(roll)):
-    temp_v = rotate_vector(np.asarray([ roll[i,0], pitch[i,0], 0. ]), att[i,0], 0., 0.)
-    roll_pitch.append(temp_v)
-roll_pitch = np.asarray(roll_pitch)
-
-delay = 0.0    # s
-delayed_roll_pitch = []
-for i in range(len(roll_pitch)):
-    if (i < int(delay*50.0)):
-        delayed_roll_pitch.append([0., 0.])
-    else:
-        delayed_roll_pitch.append([ roll_pitch[i-int(delay*50.0),0], roll_pitch[i-int(delay*50.0),1] ])
-delayed_roll_pitch = np.asarray(delayed_roll_pitch)
-
+u = []
+for i in range(len(motor_1)):
+    temp_u = rotate_vector(np.asarray([ 0., 0., (motor_1[i]+motor_2[i]+motor_3[i]+motor_4[i])]), att_z[i], att_y[i], att_x[i])
+    u.append(temp_u)
+u = np.asarray(u)
 
 # LESO
-scale_u = 0.03
+scale_u = 0.002
 dt = 1.0/50.0   # 50 Hz
 w0 = 10.0
 temp_z1 = 0.
 temp_z2 = 0.
 temp_z3 = 0.
-z1_roll = []
-z2_roll = []
-z3_roll = []
+z1_x = []
+z2_x = []
+z3_x = []
 for i in range(len(enu)):
-    leso_err = enu[i,0] - temp_z1
+    leso_err = pos_x[i] - temp_z1
     temp_z1 += dt*(temp_z2 + 3*w0*leso_err)
-    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + scale_u*roll_pitch[i,0])
+    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + scale_u*u[i,0])
     temp_z3 += dt*(pow(w0, 3)*leso_err)
-    z1_roll.append(temp_z1)
-    z2_roll.append(temp_z2)
-    z3_roll.append(temp_z3)
-z1_roll = np.asarray(z1_roll)
-z2_roll = np.asarray(z2_roll)
-z3_roll = np.asarray(z3_roll)
+    z1_x.append(temp_z1)
+    z2_x.append(temp_z2)
+    z3_x.append(temp_z3)
+z1_x = np.asarray(z1_x)
+z2_x = np.asarray(z2_x)
+z3_x = np.asarray(z3_x)
+
 
 temp_z1 = 0.
 temp_z2 = 0.
 temp_z3 = 0.
-z1_pitch = []
-z2_pitch = []
-z3_pitch = []
+z1_y = []
+z2_y = []
+z3_y = []
 for i in range(len(enu)):
-    leso_err = enu[i,1] - temp_z1
+    leso_err = pos_y[i] - temp_z1
     temp_z1 += dt*(temp_z2 + 3*w0*leso_err)
-    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + scale_u*delayed_roll_pitch[i,1])
+    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + scale_u*u[i,1])
     temp_z3 += dt*(pow(w0, 3)*leso_err)
-    z1_pitch.append(temp_z1)
-    z2_pitch.append(temp_z2)
-    z3_pitch.append(temp_z3)
-z1_pitch = np.asarray(z1_pitch)
-z2_pitch = np.asarray(z2_pitch)
-z3_pitch = np.asarray(z3_pitch)
+    z1_y.append(temp_z1)
+    z2_y.append(temp_z2)
+    z3_y.append(temp_z3)
+z1_y = np.asarray(z1_y)
+z2_y = np.asarray(z2_y)
+z3_y = np.asarray(z3_y)
 
 temp_z1 = 0.
 temp_z2 = 0.
 temp_z3 = 0.
-z1_throttle = []
-z2_throttle = []
-z3_throttle = []
+z1_z = []
+z2_z = []
+z3_z = []
 for i in range(len(enu)):
-    leso_err = enu[i,2] - temp_z1
+    leso_err = pos_z[i] - temp_z1
     temp_z1 += dt*(temp_z2 + 3*w0*leso_err)
-    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + scale_u*throttle[i,0])
+    temp_z2 += dt*(temp_z3 + 3*pow(w0, 2)*leso_err + scale_u*u[i,2])
     temp_z3 += dt*(pow(w0, 3)*leso_err)
-    z1_throttle.append(temp_z1)
-    z2_throttle.append(temp_z2)
-    z3_throttle.append(temp_z3)
-z1_throttle = np.asarray(z1_throttle)
-z2_throttle = np.asarray(z2_throttle)
-z3_throttle = np.asarray(z3_throttle)
+    z1_z.append(temp_z1)
+    z2_z.append(temp_z2)
+    z3_z.append(temp_z3)
+z1_z = np.asarray(z1_z)
+z2_z = np.asarray(z2_z)
+z3_z = np.asarray(z3_z)
 
-direction = []
-for i in range(len(z3_roll)):
-    direction.append(math.atan2(z3_pitch[i], z3_roll[i]))
-direction = np.asarray(direction)
+factor_z3_to_wind = 1.0
 
-factor_wind_acc = 6.0
+wind = []
+for i in range(len(z3_x)):
+    temp_wind = [ z3_x[i]*factor_z3_to_wind, z3_y[i]*factor_z3_to_wind, z3_z[i]*factor_z3_to_wind ]
+    if math.sqrt(temp_wind[0]**2+temp_wind[1]**2) < 0:
+        temp_wind = [ 0., 0., 0. ]
+    wind.append(temp_wind)
+wind = np.asarray(wind)
 
-print "factor of wind vs vel is " + str(np.std(z3_roll[100:])/np.std(vel[100:,0]))
-print "factor of wind vs vel is " + str(np.std(z3_pitch[100:])/np.std(vel[100:,1]))
+# convert wind from earth coord to body coord
+wind_p = []
+for i in range(len(wind)):
+    temp_wind_p = rotate_vector(wind[i], att[i,2], 0, 0)
+    wind_p.append(temp_wind_p)
+wind_p = np.asarray(wind_p)
 
-fig, axes = plt.subplots(nrows=2)
+filtered_wind_x = gaussian_filter(wind[100:,0], sigma=50)
+filtered_anemo_x = gaussian_filter(anemo[100:,0], sigma=50)
+filtered_wind_y = gaussian_filter(wind[100:,1], sigma=50)
+filtered_anemo_y = gaussian_filter(anemo[100:,1], sigma=50)
+filtered_wind_z = gaussian_filter(wind[100:,2], sigma=50)
+filtered_anemo_z = gaussian_filter(anemo[100:,2], sigma=50)
+
 
 '''
-axes[0].plot(vel[:,1], color = 'red')
-axes[0].plot(z3_pitch/factor_wind_acc, color = 'blue')
-axes[0].plot(vel[:,1]-z3_pitch/factor_wind_acc, color = 'k')
-#axes[0].plot(scale_u*roll_pitch[:,1], color = 'green')
+masked_wind = []
+for i in range(len(filtered_wind_x)):
+    if enu[100+i,1] > -0.9-0.05 and enu[100+i,1] < -0.9+0.05 and enu[100+i,2] > 1.38-0.05 and enu[100+i,2] < 1.38+0.05:
+        masked_wind.append([ filtered_wind_x[i]-0.15, filtered_wind_y[i]-0.06 ])
+masked_wind = np.asarray(masked_wind)
+'''
+
+'''
+theta = []
+r = []
+for i in range(len(wind)):
+    temp_theta = math.atan2(-(wind[i,0]-0.16), wind[i,1]-0.08)
+    temp_r = math.sqrt(wind[i,0]**2+wind[i,1]**2)
+    if temp_r < 1.0:
+        r.append(temp_r)
+        theta.append(temp_theta)
+theta = np.asarray(theta)
+r = np.asarray(r)
+
+ax = plt.subplot(111, projection='polar')
+ax.scatter(theta, r, s = 10, cmap=plt.cm.hsv)
 '''
 
 
-'''
-axes[0].plot(enu[:,0], color = 'red')
-axes[0].plot(z1_roll, color = 'blue')
 
-axes[1].plot(vel[:,1], color = 'red')
-axes[1].plot(z1_pitch, color = 'blue')
-axes[1].plot(z3_pitch/factor_wind_acc, color = 'green')
+fig, axes = plt.subplots(nrows=3)
 
-axes[2].plot(enu[:,2], color = 'red')
-axes[2].plot(z1_throttle, color = 'blue')
-'''
+#axes[0].plot((motor_1+motor_2+motor_3+motor_4))
+#axes[0].plot(u[:,0])
+axes[0].plot(pos_z, color = 'red')
+axes[0].plot(z1_z, color = 'blue')
+#axes[0].plot(att[:,2], color = 'blue')
+
+#axes[1].plot(vel_y, color = 'red')
+axes[1].plot(att_x, color = 'blue')
+
+#axes[2].plot(anemo[100:,0], color = 'red')
+axes[2].plot(wind[100:,1], color = 'red')
+#axes[2].plot(filtered_anemo_x, color = 'red')
+#axes[2].plot(filtered_wind_x-0.15, color = 'blue')
+#axes[2].plot(leso_z3[100:,0], color = 'green')
+#axes[2].plot(leso_z3[100:,1], color = 'k')
+#axes[2].plot(filtered_wind_x, color = 'green')
+#axes[2].plot(filtered_wind_y, color = 'k')
+#axes[2].plot(masked_wind[:,0], color = 'green')
+#axes[2].plot(masked_wind[:,1], color = 'k')
+
+
 
 '''
 axes[3].plot(vel[:,0], color = 'red')
@@ -203,16 +266,14 @@ axes[5].plot(z2_throttle, color = 'blue')
 
 
 '''
-axes[3].plot(anemo[:,0], color = 'red')
-axes[3].plot(z3_roll/factor_wind_acc, color = 'blue')
-#axes[3].plot(z3_roll, color = 'blue')
-'''
-
+filtered_anemo = gaussian_filter(anemo[100:,1], sigma=100)
+filtered_z3 = gaussian_filter(z3_pitch[100:]/factor_wind_acc, sigma=100)
 
 axes[0].plot(anemo[100:,1], color = 'red')
 axes[0].plot(z3_pitch[100:]/factor_wind_acc, color = 'blue')
-#axes[0].plot(0.001*roll_pitch[100:,1], color = 'green')
-#axes[0].plot(0.001*delayed_roll_pitch[100:,1], color = 'k')
+#axes[0].plot(filtered_anemo, color = 'red')
+#axes[0].plot(filtered_z3, color = 'blue')
+'''
 
 '''
 axes[5].plot(anemo[:,2], color = 'red')

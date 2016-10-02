@@ -50,7 +50,6 @@ typedef struct {
 static int fd; // file descriptor for the port receiving MBSP messages
 static pthread_t mbsp_thread_handle;
 static bool exit_mbsp_thread = false;
-static char mbsp_frame[256];
 static mbspData_t mbsp_data;
 
 static void* mbsp_loop(void*);
@@ -63,7 +62,7 @@ bool mbsp_init(const char* port)
         return false;
 
     // setup serial port
-    if (!serial_setup(fd, 115200)) // N81
+    if (!serial_setup(fd, 57600)) // N81
         return false;
 
     // create thread for PPM sending
@@ -103,11 +102,11 @@ static void mbspEvaluateData(void)
         switch (mbsp_data.command) {
             case MBSP_CMD_STATUS:
             {
-                if (mbsp_data.len != 5) // 1(char type)+4(float type)
+                if (mbsp_data.len != 3) // 1(char type)+2(short int type)
                     break;
                 mb = microbee_get_states();
                 mb[mbsp_data.from-1].state.armed = mbsp_data.data[0]>0? true:false;
-                mb[mbsp_data.from-1].state.bat_volt = *(float*)(&(mbsp_data.data[1]));
+                mb[mbsp_data.from-1].state.bat_volt = ((*((short*)(&mbsp_data.data[1]))) & 0x03FF)*5.0f/1024.0f;
                 clock_gettime(CLOCK_REALTIME, &time);
                 mb[mbsp_data.from-1].time = time.tv_sec + time.tv_nsec/1.0e9;
                 break;
@@ -236,8 +235,12 @@ static void mbspProcessByte(char c)
             mbspEvaluateData();
         }
         else
-        { 
+        {
             printf("checksum failed\n");
+            printf("mbsp_data.to = %x, from = %x, len = %x, command = %x, data = ", mbsp_data.to, mbsp_data.from, mbsp_data.len, mbsp_data.command);
+            for (int i = 0; i < mbsp_data.len; i++)
+                printf("%x ", mbsp_data.data[i]);
+            printf("checksum = %x, while received %x\n", mbsp_checksum, c);
         }
         mbsp_state = MBSP_IDLE;
     }
@@ -257,11 +260,19 @@ static void mbspProcessFrame(char* buf, int len)
 static void* mbsp_loop(void* exit)
 {
     int nbytes;
+    char mbsp_frame[256];
 
     while (!*((bool*)exit))
     {
         nbytes = serial_read(fd, mbsp_frame, 256);
-        if (nbytes > 0)
+        if (nbytes > 0) {
+            /*
+            printf("Received %d bytes: ", nbytes);
+            for (int i = 0; i < nbytes; i++)
+                printf("%x ", mbsp_frame[i]);
+            printf("\n");
+            */
             mbspProcessFrame(mbsp_frame, nbytes);
+        }
     }
 }

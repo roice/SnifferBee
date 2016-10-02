@@ -238,13 +238,13 @@ void GSRAO_Config_init(void)
     {
         // PID
         settings.robot.pidProfile[i].P[PIDALT] = 1.0;
-        settings.robot.pidProfile[i].P[PIDVEL] = 500;
+        settings.robot.pidProfile[i].P[PIDVEL] = 400;
         settings.robot.pidProfile[i].I[PIDVEL] = 10;
-        settings.robot.pidProfile[i].D[PIDVEL] = 0.04;
+        settings.robot.pidProfile[i].D[PIDVEL] = 0.06;
         settings.robot.pidProfile[i].P[PIDPOS] = 0.5;
-        settings.robot.pidProfile[i].P[PIDPOSR] = 110;
-        settings.robot.pidProfile[i].I[PIDPOSR] = 0.6;
-        settings.robot.pidProfile[i].D[PIDPOSR] = 0.1;
+        settings.robot.pidProfile[i].P[PIDPOSR] = 120;
+        settings.robot.pidProfile[i].I[PIDPOSR] = 0.1;
+        settings.robot.pidProfile[i].D[PIDPOSR] = 22;
         settings.robot.pidProfile[i].P[PIDMAG] = 30;
         settings.robot.pidProfile[i].I[PIDMAG] = 0.3;
         settings.robot.pidProfile[i].D[PIDMAG] = 0.02;
@@ -252,12 +252,12 @@ void GSRAO_Config_init(void)
         settings.robot.adrcProfile[i].w0[ADRCALT] = 21;
         settings.robot.adrcProfile[i].kp[ADRCALT] = 49;
         settings.robot.adrcProfile[i].kd[ADRCALT] = 14;
-        settings.robot.adrcProfile[i].w0[ADRCPOS] = 18;
+        settings.robot.adrcProfile[i].w0[ADRCPOS] = 10;
         settings.robot.adrcProfile[i].kp[ADRCPOS] = 16;
         settings.robot.adrcProfile[i].kd[ADRCPOS] = 8;
         settings.robot.adrcProfile[i].w0[ADRCMAG] = 20;
         settings.robot.adrcProfile[i].kp[ADRCMAG] = 16;
-        settings.robot.adrcProfile[i].kd[ADRCMAG] = 8;
+        settings.robot.adrcProfile[i].kd[ADRCMAG] = 16;
     }
     // system
     settings.system.robot_panel_opened = false;

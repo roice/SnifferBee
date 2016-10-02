@@ -119,11 +119,11 @@ bool serial_setup(int fd, int baud)
 			break;
 	}
 
-    // Enable the receiver and se local mode
+    // Enable the receiver and set local mode
     options.c_cflag |= (CLOCAL | CREAD); 
 
     // Character size, Parity & Stop bit
-    options.c_cflag &= ~PARENB;
+    options.c_cflag &= ~PARENB; 
     options.c_cflag &= ~CSTOPB;
     options.c_cflag &= ~CSIZE;
     options.c_cflag |= CS8;
@@ -137,6 +137,10 @@ bool serial_setup(int fd, int baud)
 
     // Disable software flow control
     options.c_iflag &= ~(IXON | IXOFF | IXANY);
+
+    // Disable NL-CR and CR-NL
+    options.c_iflag &= ~(INLCR | ICRNL | IGNCR);
+    options.c_oflag &= ~(ONLCR | OCRNL);
 
     // Setup least bytes and timeout
     options.c_cc[VMIN] = 0; // pure timeout
