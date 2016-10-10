@@ -21,7 +21,7 @@ def rotate_vector(vector, yaw, pitch, roll):
     return out
 
 
-fd = h5py.File("Record_2016-10-02_11-30-09.h5", 'r+')
+fd = h5py.File("Record_2016-09-30_17-22-07.h5", 'r+')
 enu = fd['/robot1/debug/enu'][...]
 att = fd['/robot1/debug/att'][...]
 vel = fd['/robot1/debug/vel'][...]
@@ -238,10 +238,11 @@ axes[0].plot(z1_z, color = 'blue')
 #axes[0].plot(att[:,2], color = 'blue')
 
 #axes[1].plot(vel_y, color = 'red')
-axes[1].plot(att_x, color = 'blue')
+#axes[2].plot(att_y*10, color = 'blue')
 
 #axes[2].plot(anemo[100:,0], color = 'red')
-axes[2].plot(wind[100:,1], color = 'red')
+axes[2].plot(wind[400:,0], color = 'red')
+axes[2].plot(wind[400:,1], color = 'blue')
 #axes[2].plot(filtered_anemo_x, color = 'red')
 #axes[2].plot(filtered_wind_x-0.15, color = 'blue')
 #axes[2].plot(leso_z3[100:,0], color = 'green')
