@@ -31,7 +31,7 @@
 //#define FILE "../data/Record_2016-08-29_18-29-01.h5"
 //#define FILE "../data/Record_2016-08-30_08-58-21.h5"
 //#define FILE "../data/Record_2016-08-30_09-08-46.h5"
-#define FILE "../data/Record_2016-08-30_10-50-54.h5"
+#define FILE "../data/Record_2016-09-25_16-01-18.h5"
 
 int main(int argc, char* argv[])
 {
@@ -63,10 +63,7 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    //for (int i = 25*30; i < 25*40; i++)
-    for (int i = 25*60*0; i < 25*60*2; i++)
-    //for (int i = 25*240; i < 25*250; i++)
-    //for (int i = -200+550; i < -200+800; i++)
+    for (int i = 20*60*0; i < 20*60*2; i++)
     {
         // read position
         memcpy(&input.position[0], &position[i][0], 3*sizeof(float));
@@ -75,32 +72,10 @@ int main(int argc, char* argv[])
         // read wind (disturbance)
         memcpy(&input.wind[0], &wind[i][0], 3*sizeof(float));
 
-#if 0
-        // check if there are data missing problem
-        if (i > 0 and count[i]-count[i-1]>1) {
-            for (int j = 1; j <= count[i]-count[i-1]; j++) {
-                input.mox_reading[0] = (sensor_reading[i][0]-sensor_reading[i-1][0])/(count[i]-count[i-1])*j+sensor_reading[i][0];
-                input.mox_reading[1] = (sensor_reading[i][1]-sensor_reading[i-1][1])/(count[i]-count[i-1])*j+sensor_reading[i][1];
-                input.mox_reading[2] = (sensor_reading[i][2]-sensor_reading[i-1][2])/(count[i]-count[i-1])*j+sensor_reading[i][2];
-                // convert 3.3-0.8 to 0.8-3.3
-                input.mox_reading[0] = 3.3 - input.mox_reading[0];
-                input.mox_reading[1] = 3.3 - input.mox_reading[1];
-                input.mox_reading[2] = 3.3 - input.mox_reading[2];
-                foc.update(input);
-            }
-        }
-        else {
-            input.mox_reading[0] = 3.3 - sensor_reading[i][0];
-            input.mox_reading[1] = 3.3 - sensor_reading[i][1];
-            input.mox_reading[2] = 3.3 - sensor_reading[i][2];
-            foc.update(input);
-        }
-#else
-        input.mox_reading[0] = 3.3 - sensor_reading[i][0];
-        input.mox_reading[1] = 3.3 - sensor_reading[i][1];
-        input.mox_reading[2] = 3.3 - sensor_reading[i][2];
+        input.mox_reading[0] = sensor_reading[i][0];
+        input.mox_reading[1] = sensor_reading[i][1];
+        input.mox_reading[2] = sensor_reading[i][2];
         foc.update(input);
-#endif
     }
 
     Record_Data(foc);
