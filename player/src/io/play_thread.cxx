@@ -24,6 +24,7 @@
 #include "robot/robot.h"
 
 #define MAX_LEN_READ_BUFFER (60*60*20)    // 60 min, 20 Hz
+#define PLAY_SPEED  8
 
 std::string file_to_play = "/Users/roice/workspace/ExPlat/SnifferBee/player/data/Record_2016-09-25_16-01-18.h5";
 
@@ -99,7 +100,7 @@ static void* player_loop(void* exit)
 
     // loop interval
     req.tv_sec = 0;
-    req.tv_nsec = 50000000; // 0.05 s, 20 Hz
+    req.tv_nsec = 50000000/PLAY_SPEED; // 0.05 s, 20 Hz for 1x speed
 
     FOC_Input_t input;
 
@@ -122,9 +123,9 @@ static void* player_loop(void* exit)
         // read count
         memcpy(&input.count, &count[i], sizeof(int));
 
-        input.mox_reading[0] = 3.3 - sensor_reading[i][0];
-        input.mox_reading[1] = 3.3 - sensor_reading[i][1];
-        input.mox_reading[2] = 3.3 - sensor_reading[i][2];
+        input.mox_reading[0] = sensor_reading[i][0];
+        input.mox_reading[1] = sensor_reading[i][1];
+        input.mox_reading[2] = sensor_reading[i][2];
         foc->update(input);
 
         // robot state update
@@ -134,10 +135,10 @@ static void* player_loop(void* exit)
         memcpy(robot_state->wind, input.wind, 3*sizeof(float));
 
         gettimeofday(&tv, NULL);
-        if (tv.tv_sec*1000000 + tv.tv_usec - useconds < 50000) {    // 20 Hz
+        if (tv.tv_sec*1000000 + tv.tv_usec - useconds < 50000/PLAY_SPEED) {    // 20 Hz
             // loop interval
             req.tv_sec = 0;
-            req.tv_nsec = (50000 + useconds - tv.tv_sec*1000000 - tv.tv_usec)*1000;
+            req.tv_nsec = (50000/PLAY_SPEED + useconds - tv.tv_sec*1000000 - tv.tv_usec)*1000;
             nanosleep(&req, &rem);
         }
 

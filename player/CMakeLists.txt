@@ -74,9 +74,11 @@ elseif(APPLE)
 endif()
 
 #---- External CUDA related settings ----
-#find_package(CUDA REQUIRED)
-# nvcc flags
-#set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math)
+if(UNIX AND NOT APPLE)
+    find_package(CUDA REQUIRED)
+    # nvcc flags
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math)
+endif()
 
 #---- External HDF5 related, for data recording
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
@@ -132,7 +134,7 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 set(LIB_FOC_NAME foc) # flying odor compass
 # make a library from ui files
-add_library(${LIB_FOC_NAME} 
+cuda_add_library(${LIB_FOC_NAME} 
     src/foc/flying_odor_compass.cxx
     src/foc/foc_noise_reduction.cxx
     src/foc/foc_interp.cxx
@@ -144,7 +146,7 @@ add_library(${LIB_FOC_NAME}
     src/foc/foc_estimate.cxx
     src/foc/foc_wind.cxx
     src/foc/wake_qr.cxx
-    src/foc/virtual_plume.cxx
+    src/foc/virtual_plume.cu
     src/foc/vector_rotation.cxx
     ../3rdparty/ziggurat/ziggurat.cpp
     )

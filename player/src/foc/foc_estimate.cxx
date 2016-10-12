@@ -128,7 +128,7 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
 /*  Step 1 Phase 4: calculate wind */
     float wind_est[3];
     for (int i = 0; i < 3; i++)
-        wind_est[i] = 0.01*wind.back().wind[i];
+        wind_est[i] = wind.back().wind[i];
 
 /* ====================  Step 2: init particles / resample particles =================== */ 
     // compute rotation matrix to rotate unit_z to reverse direction of wind
@@ -194,6 +194,9 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
 
 /* =================  Step 3: Calculate particle weights ======================
  *  Step 3 Phase 1: Release virtual plumes and calculate virtual tdoa & std */
+#if 1   // GPU
+    release_virtual_plumes_and_calculate_virtual_tdoa_std(new_out.particles, raw.back(), wind_est);
+#else   // CPU
     // traverse every particle
     for (int i = 0; i < new_out.particles->size(); i++) {
         // release virtual plume
@@ -201,8 +204,9 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
         // calculate tdoa and std
         calculate_virtual_tdoa_and_std(new_out.particles->at(i).plume, raw.back().position, raw.back().attitude, new_out.particles->at(i));
     }
+#endif
 
-/* // calculate tdoa and std Step 3 Phase 2: Compare tdoa and std to get likelihood */
+/* Step 3 Phase 2: Compare tdoa and std to get likelihood */
     float temp_virtual_hd_p[3]; float temp_virtual_hd[3];
     float temp_angle_virtual_real_hd;
     for (int i = 0; i < new_out.particles->size(); i++) { // traverse every particle

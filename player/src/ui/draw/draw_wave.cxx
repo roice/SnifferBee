@@ -31,8 +31,8 @@ void WavePlot::draw(void)
         x2 = x() + (1.0/FOC_MOX_DAQ_FREQ)*(data->at(i+1).count-data->at(0).count)*w()/time_range;
         for (int idx_sensor = 0; idx_sensor < 3; idx_sensor++)
         {
-            y1 = y() + data->at(i).mox_reading[idx_sensor]*h()/3.3; // max 3.3 V
-            y2 = y() + data->at(i+1).mox_reading[idx_sensor]*h()/3.3; // max 3.3 V
+            y1 = y() + h() - data->at(i).mox_reading[idx_sensor]*h()/3.3; // max 3.3 V
+            y2 = y() + h() - data->at(i+1).mox_reading[idx_sensor]*h()/3.3; // max 3.3 V
             fl_color(cmap_sensors[idx_sensor]);
             fl_line(x1, y1, x2, y2);
         }       
