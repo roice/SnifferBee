@@ -21,6 +21,8 @@
 #include "io/play_thread.h"
 #include "robot/robot.h"
 #include "foc/vector_rotation.h"
+#include "io/play_thread.h"
+#include "foc/flying_odor_compass.h"
 
 void draw_robots(void)
 {
@@ -36,7 +38,15 @@ void draw_robots(void)
 
         /* draw robot according to its type, configures... */
         // draw quadrotor
-        draw_qr(robot_state);    
+        draw_qr(robot_state); 
+    }
+
+    if ((Flying_Odor_Compass*)play_thread_get_data()) {
+        // get wind info
+        std::vector<FOC_Input_t>& data_raw = ((Flying_Odor_Compass*)play_thread_get_data())->data_raw;
+        // draw wind arrow
+        if (data_raw.size() > 0)
+            draw_arrow(robot_state->position[0], robot_state->position[1], robot_state->position[2], robot_state->position[0]+data_raw.back().wind[0], robot_state->position[1]+data_raw.back().wind[1], robot_state->position[2]+data_raw.back().wind[2], 0, 1.0, 0);
     }
 }
 

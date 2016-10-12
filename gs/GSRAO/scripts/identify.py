@@ -21,7 +21,7 @@ def rotate_vector(vector, yaw, pitch, roll):
     return out
 
 
-fd = h5py.File("Record_2016-10-06_17-55-54.h5", 'r+')
+fd = h5py.File("Record_2016-09-25_16-01-18.h5", 'r+')
 enu = fd['/robot1/debug/enu'][...]
 att = fd['/robot1/debug/att'][...]
 vel = fd['/robot1/debug/vel'][...]
@@ -224,7 +224,21 @@ d_i_x = np.asarray(d_i_x)
 d_i_y = np.asarray(d_i_y)
 d_i_z = np.asarray(d_i_z)
 
+# interpolate wind to the same length of vel, down sampling
+t_50Hz = np.linspace(0, 10, len(vel))
+t_20Hz = np.linspace(0, 10, len(motors))
+f = interpolate.interp1d(t_50Hz, z3_x-disturb_x, kind='slinear')
+wind_x = f(t_20Hz)
+f = interpolate.interp1d(t_50Hz, z3_y-disturb_y, kind='slinear')
+wind_y = f(t_20Hz)
+f = interpolate.interp1d(t_50Hz, z3_z-disturb_z, kind='slinear')
+wind_z = f(t_20Hz)
 
+fd = h5py.File("wind.h5", "w")
+dset = fd.create_dataset("wind", (len(t_20Hz), 3), dtype='float')
+dset[:,0] = wind_x
+dset[:,1] = wind_y
+dset[:,2] = wind_z
 
 fig, axes = plt.subplots(nrows=3)
 

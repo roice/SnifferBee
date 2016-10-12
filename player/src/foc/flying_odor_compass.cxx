@@ -90,15 +90,19 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
 bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 {
     data_raw.push_back(new_in); // save record
-/* Step 0: Pre-processing */
-    foc_wind_smooth_update(new_in, data_wind); // smooth wind data
 
+/* Step 0: Pre-processing */
+
+#if 0
 /* Step 1: Noise reduction through UKF filtering */
     FOC_Reading_t ukf_out = foc_noise_reduction_ukf_update(new_in);
     data_denoise.push_back(ukf_out); // save record
+#endif
 
 /* Step 2: FIR interpolation (`zero-stuffing' upsampling + filtering)
  *         delay = FOC_SIGNAL_DELAY/2 s */
+    FOC_Reading_t ukf_out;
+    memcpy(ukf_out.reading, new_in.mox_reading, FOC_NUM_SENSORS*sizeof(float));
     if (!foc_interp_update(ukf_out, data_interp))
         return false;
 
@@ -124,10 +128,13 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
     if (!foc_tdoa_update(data_diff, data_edge_max, data_edge_min, data_cp_max, data_cp_min, data_tdoa))
         return false;
 
+#if 1
 /* Step 8: Estimate the direction the odor comes from 
- * Warning: This step is only suitable for 3 sensors (FOC_NUM_SENSORS = 3)*/
+ * Warning: This step is only suitable for 3 sensors (FOC_NUM_SENSORS = 3) */
     if (!foc_estimate_source_direction_update(data_raw, data_std, data_tdoa, data_wind, data_est))
         return false;
+#endif
+
 
     return true;
 }

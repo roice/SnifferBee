@@ -23,15 +23,17 @@
 #include "play_thread.h"
 #include "robot/robot.h"
 
-std::string file_to_play = "/Users/roice/workspace/ExPlat/SnifferBee/player/data/Record_2016-08-03_17-30-06.h5";
+#define MAX_LEN_READ_BUFFER (60*60*20)    // 60 min, 20 Hz
+
+std::string file_to_play = "/Users/roice/workspace/ExPlat/SnifferBee/player/data/Record_2016-09-25_16-01-18.h5";
 
 Flying_Odor_Compass* foc = NULL;
 
-float sensor_reading[100000][3] = {0};
-float position[100000][3] = {0};
-float attitude[100000][3] = {0};
-float wind[100000][3] = {0};
-int count[100000] = {0};
+float sensor_reading[MAX_LEN_READ_BUFFER][3] = {0};
+float position[MAX_LEN_READ_BUFFER][3] = {0};
+float attitude[MAX_LEN_READ_BUFFER][3] = {0};
+float wind[MAX_LEN_READ_BUFFER][3] = {0};
+float count[MAX_LEN_READ_BUFFER] = {0};
 
 static pthread_t play_thread_handle;
 static bool exit_play_thread = false;
@@ -59,12 +61,14 @@ bool play_thread_init(void)
     dataset_id = H5Dopen2(file_id, "robot1/att", H5P_DEFAULT);
     status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, attitude);
     status = H5Dclose(dataset_id);
-    dataset_id = H5Dopen2(file_id, "robot1/wind", H5P_DEFAULT);
-    status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, wind);
-    status = H5Dclose(dataset_id);
     dataset_id = H5Dopen2(file_id, "robot1/count", H5P_DEFAULT);
     status = H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, count);
-    status = H5Dclose(dataset_id); 
+    status = H5Dclose(dataset_id);
+
+    file_id = H5Fopen("/Users/roice/workspace/ExPlat/SnifferBee/player/data/wind.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
+    dataset_id = H5Dopen2(file_id, "wind", H5P_DEFAULT);
+    status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, wind);
+    status = H5Dclose(dataset_id);
 
     /* create play_thread_loop */
     exit_play_thread = false;
@@ -95,7 +99,7 @@ static void* player_loop(void* exit)
 
     // loop interval
     req.tv_sec = 0;
-    req.tv_nsec = 100000000; // 0.1 s
+    req.tv_nsec = 50000000; // 0.05 s, 20 Hz
 
     FOC_Input_t input;
 
@@ -103,7 +107,7 @@ static void* player_loop(void* exit)
 
     printf("Begin reading file.\n");
 
-    for (int i = 0; i < 4*60*25; i++)
+    for (int i = 0; i < 4*60*20; i++)   // 20 Hz
     {
         // get time
         gettimeofday(&tv, NULL);
@@ -115,35 +119,14 @@ static void* player_loop(void* exit)
         memcpy(&input.attitude[0], &attitude[i][0], 3*sizeof(float));
         // read wind (disturbance)
         memcpy(&input.wind[0], &wind[i][0], 3*sizeof(float));
+        // read count
+        memcpy(&input.count, &count[i], sizeof(int));
 
-#if 1
-        // check if there are data missing problem
-        if (i > 0 and count[i]-count[i-1]>1) {
-            for (int j = 1; j <= count[i]-count[i-1]; j++) {
-                input.mox_reading[0] = (sensor_reading[i][0]-sensor_reading[i-1][0])/(count[i]-count[i-1])*j+sensor_reading[i][0];
-                input.mox_reading[1] = (sensor_reading[i][1]-sensor_reading[i-1][1])/(count[i]-count[i-1])*j+sensor_reading[i][1];
-                input.mox_reading[2] = (sensor_reading[i][2]-sensor_reading[i-1][2])/(count[i]-count[i-1])*j+sensor_reading[i][2];
-                // convert 3.3-0.8 to 0.8-3.3
-                input.mox_reading[0] = 3.3 - input.mox_reading[0];
-                input.mox_reading[1] = 3.3 - input.mox_reading[1];
-                input.mox_reading[2] = 3.3 - input.mox_reading[2];
-                input.count ++;
-                foc->update(input);
-            }
-        }
-        else {
-            input.mox_reading[0] = 3.3 - sensor_reading[i][0];
-            input.mox_reading[1] = 3.3 - sensor_reading[i][1];
-            input.mox_reading[2] = 3.3 - sensor_reading[i][2];
-            input.count = count[i];
-            foc->update(input);
-        }
-#else
         input.mox_reading[0] = 3.3 - sensor_reading[i][0];
         input.mox_reading[1] = 3.3 - sensor_reading[i][1];
         input.mox_reading[2] = 3.3 - sensor_reading[i][2];
         foc->update(input);
-#endif
+
         // robot state update
         robot_state_t* robot_state = robot_get_state();
         memcpy(robot_state->position, input.position, 3*sizeof(float));
@@ -151,23 +134,15 @@ static void* player_loop(void* exit)
         memcpy(robot_state->wind, input.wind, 3*sizeof(float));
 
         gettimeofday(&tv, NULL);
-        if (tv.tv_sec*1000000 + tv.tv_usec - useconds < 100000) {
+        if (tv.tv_sec*1000000 + tv.tv_usec - useconds < 50000) {    // 20 Hz
             // loop interval
             req.tv_sec = 0;
-            req.tv_nsec = (100000 + useconds - tv.tv_sec*1000000 - tv.tv_usec)*1000;
+            req.tv_nsec = (50000 + useconds - tv.tv_sec*1000000 - tv.tv_usec)*1000;
             nanosleep(&req, &rem);
         }
 
         if (*((bool*)exit)) break;
     }
-
-#if 0
-    while (!*((bool*)exit))
-    {
-        // never change, 0.5s to avoid dead
-        nanosleep(&req, &rem); // 0.1 s
-    }
-#endif
 
     printf("End reading file.\n");
 

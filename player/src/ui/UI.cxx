@@ -399,7 +399,7 @@ static void cb_repeated_tasks_2hz(void* data)
 #endif
 }
 
-static void cb_repeated_tasks_10hz(void* data)
+static void cb_repeated_tasks_20hz(void* data)
 {
     ToolBar_Handles* hs = (ToolBar_Handles*)data;
 
@@ -410,7 +410,7 @@ static void cb_repeated_tasks_10hz(void* data)
     }
 
     // reload
-    Fl::repeat_timeout(0.1, cb_repeated_tasks_10hz, data);
+    Fl::repeat_timeout(0.05, cb_repeated_tasks_20hz, data);
 }
 
 void ToolBar::cb_button_start(Fl_Widget *w, void *data)
@@ -439,7 +439,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
          
             // add timers for repeated tasks (such as data display)
             //Fl::add_timeout(0.5, cb_repeated_tasks_2hz, (void*)&hs);
-            Fl::add_timeout(0.1, cb_repeated_tasks_10hz, (void*)&hs);
+            Fl::add_timeout(0.05, cb_repeated_tasks_20hz, (void*)&hs);
         }
         else {
             // user is trying to release start button when pause is not pressed
@@ -475,7 +475,7 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     play_thread_stop();
 
     //Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
-    Fl::remove_timeout(cb_repeated_tasks_10hz); // remove timeout callback for repeated tasks
+    Fl::remove_timeout(cb_repeated_tasks_20hz); // remove timeout callback for repeated tasks
     if (hs.robot_panel != NULL) {
         for (int i = 0; i < 4; i++) // clear robot states in robot panel
         {
@@ -687,7 +687,7 @@ void UI::cb_close(Fl_Widget* w, void* data) {
     // close player
     if (Fl::event() == FL_CLOSE) { 
         //Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
-        Fl::remove_timeout(cb_repeated_tasks_10hz); // remove timeout callback for repeated tasks
+        Fl::remove_timeout(cb_repeated_tasks_20hz); // remove timeout callback for repeated tasks
 
         UI_Widgets* ws = (UI_Widgets*)data;
 
