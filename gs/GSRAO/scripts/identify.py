@@ -21,7 +21,7 @@ def rotate_vector(vector, yaw, pitch, roll):
     return out
 
 
-fd = h5py.File("Record_2016-09-25_16-01-18.h5", 'r+')
+fd = h5py.File("Record_2016-09-25_16-42-59.h5", 'r+')
 enu = fd['/robot1/debug/enu'][...]
 att = fd['/robot1/debug/att'][...]
 vel = fd['/robot1/debug/vel'][...]

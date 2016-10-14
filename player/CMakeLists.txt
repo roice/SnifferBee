@@ -35,6 +35,8 @@ if(APPLE)
     message("Compile on APPLE MACOSX")
 elseif(UNIX)
     message("Compile on UNIX")
+    set(GPU_COMPUTING     "enable")
+    add_definitions(-DGPU_COMPUTING)
 endif()
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -134,7 +136,16 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 set(LIB_FOC_NAME foc) # flying odor compass
 # make a library from ui files
-cuda_add_library(${LIB_FOC_NAME} 
+if (GPU_COMPUTING)
+    cuda_add_library(vplume
+        src/foc/virtual_plume_cpu.cxx
+        src/foc/virtual_plume_gpu.cu)
+else()
+    add_library(vplume
+        src/foc/virtual_plume_cpu.cxx
+        src/foc/wake_qr.cxx)
+endif()
+add_library(${LIB_FOC_NAME}
     src/foc/flying_odor_compass.cxx
     src/foc/foc_noise_reduction.cxx
     src/foc/foc_interp.cxx
@@ -145,12 +156,12 @@ cuda_add_library(${LIB_FOC_NAME}
     src/foc/foc_tdoa.cxx
     src/foc/foc_estimate.cxx
     src/foc/foc_wind.cxx
-    src/foc/wake_qr.cxx
-    src/foc/virtual_plume.cu
     src/foc/vector_rotation.cxx
     ../3rdparty/ziggurat/ziggurat.cpp
     )
 target_compile_features(${LIB_FOC_NAME} PRIVATE cxx_constexpr)
+# link vplume
+target_link_libraries(${LIB_FOC_NAME} vplume)
 # link external liquid-dsp library
 target_link_libraries(${LIB_FOC_NAME} liquid)
 # compile main file

@@ -26,8 +26,8 @@
 #define FOC_MOX_INTERP_FACTOR       10      // samples/symbol, > 4, int
 #define FOC_DIFF_LAYERS_PER_GROUP   3       // layers of difference per group, 2 <= layers
 #define FOC_DIFF_GROUPS             6       // groups of difference
-#define FOC_MAX_PARTICLES           200     // max number of particles
-#define FOC_MAX_HIST_PARTICLES      100     // max history particles
+#define FOC_MAX_PARTICLES           400     // max number of particles
+#define FOC_MAX_HIST_PARTICLES      200     // max history particles
 #define FOC_RECORD_LEN              1000    // seconds of history recording, int
 
 // display state of foc estimation

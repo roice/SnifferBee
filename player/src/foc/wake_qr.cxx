@@ -6,6 +6,8 @@
 #include "wake_qr.h"
 #include "foc/vector_rotation.h"
 
+#ifndef GPU_COMPUTING
+
 #define WAKE_QR_VRM     // vortex ring method
 //#define WAKE_QR_VFM   // vortex filament method
 
@@ -128,3 +130,5 @@ static void induced_velocity_vortex_ring(float* center_ring, float radius_ring, 
     /* Step 3: convert relative velocity to absolute velocity */
     // as the velocity of quad-rotor is ommited, this step is skipped
 }
+
+#endif // ifndef GPU_COMPUTING

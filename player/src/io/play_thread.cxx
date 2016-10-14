@@ -26,7 +26,7 @@
 #define MAX_LEN_READ_BUFFER (60*60*20)    // 60 min, 20 Hz
 #define PLAY_SPEED  8
 
-std::string file_to_play = "/Users/roice/workspace/ExPlat/SnifferBee/player/data/Record_2016-09-25_16-01-18.h5";
+std::string file_to_play = "/home/roice/workspace/ExPlat/SnifferBee/player/data/Record_2016-09-25_16-42-59.h5";
 
 Flying_Odor_Compass* foc = NULL;
 
@@ -66,7 +66,7 @@ bool play_thread_init(void)
     status = H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, count);
     status = H5Dclose(dataset_id);
 
-    file_id = H5Fopen("/Users/roice/workspace/ExPlat/SnifferBee/player/data/wind.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
+    file_id = H5Fopen("/home/roice/workspace/ExPlat/SnifferBee/player/data/wind.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
     dataset_id = H5Dopen2(file_id, "wind", H5P_DEFAULT);
     status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, wind);
     status = H5Dclose(dataset_id);
@@ -108,7 +108,7 @@ static void* player_loop(void* exit)
 
     printf("Begin reading file.\n");
 
-    for (int i = 0; i < 4*60*20; i++)   // 20 Hz
+    for (int i = 0; i < 2*60*20; i++)   // 20 Hz
     {
         // get time
         gettimeofday(&tv, NULL);

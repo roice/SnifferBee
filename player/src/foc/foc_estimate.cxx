@@ -10,7 +10,7 @@
 #include "foc/vector_rotation.h"
 
 // latest samples
-#define POSSIBLE_ANG_RANGE      90.0*M_PI/180.0  // possible angle range to resample/init particles
+#define POSSIBLE_ANG_RANGE      180.0*M_PI/180.0  // possible angle range to resample/init particles
 
 unsigned int rand_seed; // seed to generate random numbers
 float rand_fn[128];
@@ -103,6 +103,7 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     // save wind info into new_out
     new_out.wind[0] = wind.back().wind[0];
     new_out.wind[1] = wind.back().wind[1];
+    new_out.wind[2] = wind.back().wind[2];
 
 /*  Step 1 Phase 2: compute the center of the recent trajectory of the robot */
     float robot_traj_center[3] = {0};
@@ -120,7 +121,7 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
             robot_traj_deviation = temp_distance;
     }
     robot_traj_deviation = sqrt(robot_traj_deviation);
-    float radius_particle_to_robot = robot_traj_deviation + 3*FOC_RADIUS; // 3 is empirical value
+    float radius_particle_to_robot = robot_traj_deviation + 6*FOC_RADIUS; // 6 is empirical value
 #ifdef FOC_ESTIMATE_DEBUG
     new_out.radius_particle_to_robot = radius_particle_to_robot;
 #endif
@@ -194,7 +195,7 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
 
 /* =================  Step 3: Calculate particle weights ======================
  *  Step 3 Phase 1: Release virtual plumes and calculate virtual tdoa & std */
-#if 1   // GPU
+#ifdef GPU_COMPUTING   // GPU
     release_virtual_plumes_and_calculate_virtual_tdoa_std(new_out.particles, raw.back(), wind_est);
 #else   // CPU
     // traverse every particle

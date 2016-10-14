@@ -60,12 +60,12 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
         } 
     data_est.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP);
 /* init wind filtering */
-    foc_wind_smooth_init(data_wind); // FOC_DELAY s delay
+    foc_wind_smooth_init(data_wind); // FOC_SIGNAL_DELAY s delay
 /* init UKF filtering */
     foc_noise_reduction_ukf_init();
 /* init FIR interpolation
  * delay = FOC_SIGNAL_DELAY/2 s */
-    foc_interp_init(data_interp, FOC_MOX_INTERP_FACTOR, (int)((float)FOC_SIGNAL_DELAY*(float)FOC_MOX_DAQ_FREQ/2.0), 60); // FOC_DELAY s delay, consistent with wind smoothing
+    foc_interp_init(data_interp, FOC_MOX_INTERP_FACTOR, (int)((float)FOC_SIGNAL_DELAY*(float)FOC_MOX_DAQ_FREQ/2.0), 60); // FOC_SIGNAL_DELAY s delay, consistent with wind smoothing
 /* init FIR smoothing
  * h_len = FOC_SIGNAL_DELAY s * sampling_freq 
  * delay = FOC_SIGNAL_DELAY/2 s , because the delay of FIR filter = (N-1)/(2*Fs) */

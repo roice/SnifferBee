@@ -41,8 +41,6 @@ void draw_foc(void)
     std::vector<FOC_Estimation_t>& data_est = ((Flying_Odor_Compass*)play_thread_get_data())->data_est;
     //std::vector<FOC_Delta_t>& delta = ((Flying_Odor_Compass*)play_thread_get_data())->data_delta;
 
-    std::vector<Wake_QR_ring_t>* wake_rings = wake_qr_get_info_vortex_rings();
-
     // get robot info
     robot_state_t* robot_state = robot_get_state();
 
