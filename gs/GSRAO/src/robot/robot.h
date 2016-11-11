@@ -70,8 +70,6 @@ typedef struct {
     float att[3];
     float vel[3];
     float acc[3];
-    float vel_p[3];
-    float acc_p[3];
     float throttle;
     float roll;
     float pitch;

@@ -305,6 +305,7 @@ void GSRAO_Save_Data(void)
         // free space
         free(data);
 
+#if 0
         // robot vel_p
         data_dims[0] = robot_debug_rec[i].size();
         data_dims[1] = 3;
@@ -344,6 +345,7 @@ void GSRAO_Save_Data(void)
         status = H5Sclose(dataspace_id);
         // free space
         free(data);
+#endif
 
         // robot leso_z1
         data_dims[0] = robot_debug_rec[i].size();

@@ -248,6 +248,7 @@ axes[0].plot(att_z, color = 'green')
 
 axes[1].plot(z3_x[400:]-disturb_x, color = 'red')
 axes[1].plot(z3_y[400:]-disturb_y, color = 'blue')
+axes[1].plot(z3_z[400:]-disturb_z, color = 'green')
 #axes[1].plot(d_i_y[400:], color = 'blue')
 #axes[1].plot(z3_y[400:] - d_i_y[400:], color = 'green')
 

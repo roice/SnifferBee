@@ -38,7 +38,7 @@ typedef struct {
     char    checksum;   // byte, XOR of all chars, hex val
 } Young_Binary_Frame_t;
 
-static int num_ports = 1;
+static int num_ports = 0;
 static int fd[SERIAL_YOUNG_MAX_ANEMOMETERS]; // max number of sensors supported
 static pthread_t    young_read_thread_handle[SERIAL_YOUNG_MAX_ANEMOMETERS];
 static pthread_t    young_write_thread_handle;
@@ -95,7 +95,7 @@ printf("num_ports = %d\n", num_ports);
 
 void sonic_anemometer_young_close(void)
 {
-    if (!exit_young_thread) // if still running
+    if (!exit_young_thread and num_ports) // if still running
     {
         // exit young thread
         exit_young_thread = true;
@@ -103,7 +103,7 @@ void sonic_anemometer_young_close(void)
         for (int i = 0; i < num_ports; i++)
             pthread_join(young_read_thread_handle[i], NULL);
         // close serial port
-        for (int i = 0; i < num_ports; i++)
+        for (int i = 0; i < num_ports; i++) 
             serial_close(fd[i]);
         printf("Young anemometer serial thread terminated.\n");
     }

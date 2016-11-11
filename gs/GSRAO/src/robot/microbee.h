@@ -10,10 +10,7 @@
 #ifndef MICROBEE_H
 #define MICROBEE_H
 
-#define MICROBEE_POS_CONTROL_USE_ADRC
 #define MICROBEE_DENOISE_BEFORE_CONTROL
-//#define MICROBEE_SMOOTH_WIND_EST
-
 
 typedef struct {
     bool linked; // false for unlinked, true for linked to GS

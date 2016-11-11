@@ -910,21 +910,23 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             
             // Init Anemometer thread
             std::string* path_anemometer_ports = sonic_anemometer_get_port_paths();
-            for (int idx = 0; idx < configs->miscellaneous.num_of_anemometers; idx++) {
-                path_anemometer_ports[idx] = configs->miscellaneous.anemometer_serial_port_path[idx].c_str();
-            }
-            if (!sonic_anemometer_young_init(configs->miscellaneous.num_of_anemometers, path_anemometer_ports))
-            {
-                widgets->msg_zone->label("Anemometer serial port init failed!");
-                widgets->msg_zone->labelcolor(FL_RED);
-                ((Fl_Button*)w)->value(0);
-                // close spp, mbsp, mocap, robot
-                method_stop(); // stop method
-                robot_shutdown();
-                spp_close();
-                mbsp_close();
-                mocap_client_close(); 
-                return;
+            if (configs->miscellaneous.num_of_anemometers) {
+                for (int idx = 0; idx < configs->miscellaneous.num_of_anemometers; idx++) {
+                    path_anemometer_ports[idx] = configs->miscellaneous.anemometer_serial_port_path[idx].c_str();
+                }
+                if (!sonic_anemometer_young_init(configs->miscellaneous.num_of_anemometers, path_anemometer_ports))
+                {
+                    widgets->msg_zone->label("Anemometer serial port init failed!");
+                    widgets->msg_zone->labelcolor(FL_RED);
+                    ((Fl_Button*)w)->value(0);
+                    // close spp, mbsp, mocap, robot
+                    method_stop(); // stop method
+                    robot_shutdown();
+                    spp_close();
+                    mbsp_close();
+                    mocap_client_close(); 
+                    return;
+                }
             }
 
             // add timers for repeated tasks (such as data display)
