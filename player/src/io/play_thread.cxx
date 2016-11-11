@@ -52,6 +52,13 @@ bool play_thread_init(void)
     // display which file to open
     printf("Reading file: %s\n", file_to_play.c_str());
 
+    // clear buffers
+    memset(sensor_reading, 0, sizeof(sensor_reading));
+    memset(position, 0, sizeof(position));
+    memset(attitude, 0, sizeof(attitude));
+    memset(wind, 0, sizeof(wind));
+    memset(count, 0, sizeof(count));
+
     file_id = H5Fopen(file_to_play.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     dataset_id = H5Dopen2(file_id, "robot1/mox", H5P_DEFAULT);
     status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, sensor_reading);
@@ -65,9 +72,7 @@ bool play_thread_init(void)
     dataset_id = H5Dopen2(file_id, "robot1/count", H5P_DEFAULT);
     status = H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, count);
     status = H5Dclose(dataset_id);
-
-    file_id = H5Fopen("/home/roice/workspace/ExPlat/SnifferBee/player/data/wind.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
-    dataset_id = H5Dopen2(file_id, "wind", H5P_DEFAULT);
+    dataset_id = H5Dopen2(file_id, "robot1/wind", H5P_DEFAULT);
     status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, wind);
     status = H5Dclose(dataset_id);
 
@@ -108,7 +113,7 @@ static void* player_loop(void* exit)
 
     printf("Begin reading file.\n");
 
-    for (int i = 0; i < 2*60*20; i++)   // 20 Hz
+    for (int i = 0; i < MAX_LEN_READ_BUFFER; i++)   // 20 Hz
     {
         // get time
         gettimeofday(&tv, NULL);

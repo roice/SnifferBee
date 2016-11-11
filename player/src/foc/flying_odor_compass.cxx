@@ -45,6 +45,7 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     data_raw.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_denoise.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_interp.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+#ifndef FOC_USE_WAVELETS_METHOD
     for (int i = 0; i < FOC_DIFF_GROUPS; i++)
         for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP+1; j++)
             data_smooth[i*(FOC_DIFF_LAYERS_PER_GROUP+1)+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
@@ -57,7 +58,10 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
             data_cp_min[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
             data_tdoa[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
             data_std[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
-        } 
+        }
+#else
+    
+#endif
     data_est.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP);
 /* init wind filtering */
     foc_wind_smooth_init(data_wind); // FOC_SIGNAL_DELAY s delay
