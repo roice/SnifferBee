@@ -49,6 +49,9 @@ include_directories(${HDF5_INCLUDE_DIRS})
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/scripts)
 find_package(Eigen3 REQUIRED)
 
+#---- External FFTW library
+find_package(FFTW REQUIRED)
+
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #============== Build the project ================
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -64,6 +67,8 @@ include_directories(${PROJECT_SOURCE_DIR}/3rd-party/liquid-dsp/include)
 include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/CBLAS/include)
 #   add ziggurat source file to generate normal distribution random numbers
 include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/ziggurat)
+#   add wavelib dir to search for wavelib2d.h for wavelet transform
+include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/wavelib/linuxstatic)
 #   add eigen header dir
 include_directories(${EIGEN3_INCLUDE_DIR})
 
@@ -74,6 +79,8 @@ link_directories(${PROJECT_SOURCE_DIR}/3rd-party/liquid-dsp)
 #   add blas and cblas lib dir
 link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/BLAS-3.6.0)
 link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/CBLAS/lib)
+#   add wavelib dir
+link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/wavelib/linuxstatic)
 #   libgfortran
 if(APPLE)
     link_directories(/usr/local/lib/gcc/6) # changes with gcc version
@@ -84,17 +91,18 @@ set(LIB_FOC_NAME foc) # flying odor compass
 # make a library from ui files
 add_library(${LIB_FOC_NAME} 
     ../../../player/src/foc/flying_odor_compass.cxx
-    ../../../player/src/foc/foc_noise_reduction.cxx
+    #../../../player/src/foc/foc_noise_reduction.cxx
     ../../../player/src/foc/foc_interp.cxx
-    ../../../player/src/foc/foc_smooth.cxx
-    ../../../player/src/foc/foc_diff.cxx
-    ../../../player/src/foc/foc_edge.cxx 
-    ../../../player/src/foc/foc_tdoa.cxx
-    ../../../player/src/foc/foc_std.cxx
-    ../../../player/src/foc/foc_estimate.cxx
+    ../../../player/src/foc/foc_wt.cxx
+    #../../../player/src/foc/foc_smooth.cxx
+    #../../../player/src/foc/foc_diff.cxx
+    #../../../player/src/foc/foc_edge.cxx 
+    #../../../player/src/foc/foc_tdoa.cxx
+    #../../../player/src/foc/foc_std.cxx
+    #../../../player/src/foc/foc_estimate.cxx
     ../../../player/src/foc/foc_wind.cxx
-    ../../../player/src/foc/wake_qr.cxx
-    ../../../player/src/foc/virtual_plume.cxx
+    #../../../player/src/foc/wake_qr.cxx
+    #../../../player/src/foc/virtual_plume.cxx
     ../../../player/src/foc/vector_rotation.cxx
     ../../../3rdparty/ziggurat/ziggurat.cpp
     )
@@ -112,6 +120,7 @@ target_link_libraries(${PRJ_NAME} ${LIB_FOC_NAME})
 # link external blas library
 target_link_libraries(${PRJ_NAME} cblas)
 target_link_libraries(${PRJ_NAME} blas)
+target_link_libraries(${PRJ_NAME} wavelet2s)
 target_link_libraries(${PRJ_NAME} gfortran)
 target_link_libraries(${PRJ_NAME} pthread)
 # link extern hdf5 library

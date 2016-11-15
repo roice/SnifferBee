@@ -16,14 +16,9 @@
 #include <vector>
 
 #include "foc/flying_odor_compass.h"
-#include "foc/foc_noise_reduction.h"
+//#include "foc/foc_noise_reduction.h"
 #include "foc/foc_interp.h"
-#include "foc/foc_smooth.h"
-#include "foc/foc_diff.h"
-#include "foc/foc_edge.h"
-#include "foc/foc_tdoa.h"
-#include "foc/foc_std.h"
-#include "foc/foc_estimate.h"
+#include "foc/foc_wt.h"
 #include "foc/foc_wind.h"
 
 #define SIGN(n) (n >= 0? 1:-1)
@@ -40,36 +35,21 @@
 
 Flying_Odor_Compass::Flying_Odor_Compass(void)
 {
-    // data
+    // make space for data
     data_wind.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_raw.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
-    data_denoise.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
-    data_interp.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-#ifndef FOC_USE_WAVELETS_METHOD
-    for (int i = 0; i < FOC_DIFF_GROUPS; i++)
-        for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP+1; j++)
-            data_smooth[i*(FOC_DIFF_LAYERS_PER_GROUP+1)+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-    for (int i = 0; i < FOC_DIFF_GROUPS; i++)
-        for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP; j++) { 
-            data_diff[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-            data_edge_max[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-            data_edge_min[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-            data_cp_max[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-            data_cp_min[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-            data_tdoa[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-            data_std[i*FOC_DIFF_LAYERS_PER_GROUP+j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
-        }
-#else
-    
-#endif
-    data_est.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP);
-/* init wind filtering */
-    foc_wind_smooth_init(data_wind); // FOC_SIGNAL_DELAY s delay
-/* init UKF filtering */
-    foc_noise_reduction_ukf_init();
+    for (int i = 0; i < FOC_NUM_SENSORS; i++) {
+        data_interp[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+        data_wt_out[i].reserve((FOC_WT_LEVEL+1)*FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+        data_wt_length[i].reserve((FOC_WT_LEVEL+2));
+        data_wt_flag[i].reserve(2);
+    }
+
 /* init FIR interpolation
  * delay = FOC_SIGNAL_DELAY/2 s */
-    foc_interp_init(data_interp, FOC_MOX_INTERP_FACTOR, (int)((float)FOC_SIGNAL_DELAY*(float)FOC_MOX_DAQ_FREQ/2.0), 60); // FOC_SIGNAL_DELAY s delay, consistent with wind smoothing
+    foc_interp_init(data_interp, FOC_MOX_INTERP_FACTOR, (int)((float)FOC_SIGNAL_DELAY*(float)FOC_MOX_DAQ_FREQ/2.0), 60);
+
+# if 0 // Scale space method. Smooth+Diff+Edges+TDOA
 /* init FIR smoothing
  * h_len = FOC_SIGNAL_DELAY s * sampling_freq 
  * delay = FOC_SIGNAL_DELAY/2 s , because the delay of FIR filter = (N-1)/(2*Fs) */
@@ -84,6 +64,9 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     foc_tdoa_init(data_cp_max, data_cp_min, data_tdoa);
 /* init direction estimation */
     foc_estimate_source_direction_init(data_est);
+#endif
+
+    foc_wt_init(data_wt_out, data_wt_length, data_wt_flag);
 }
 
 /* FOC update
@@ -92,27 +75,24 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
  *      false   Haven't dug out useful information
  */
 bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
-{
-    data_raw.push_back(new_in); // save record
-
+{ 
 /* Step 0: Pre-processing */
+    // save some info to record
+    data_raw.push_back(new_in); // save raw data
     FOC_Wind_t  new_wind;
     memcpy(new_wind.wind, new_in.wind, 3*sizeof(float));
-    data_wind.push_back(new_wind);
+    data_wind.push_back(new_wind); // save wind data
 
-#if 0
-/* Step 1: Noise reduction through UKF filtering */
-    FOC_Reading_t ukf_out = foc_noise_reduction_ukf_update(new_in);
-    data_denoise.push_back(ukf_out); // save record
-#endif
-
-/* Step 2: FIR interpolation (`zero-stuffing' upsampling + filtering)
+/* Step 1: FIR interpolation (`zero-stuffing' upsampling + filtering)
  *         delay = FOC_SIGNAL_DELAY/2 s */
-    FOC_Reading_t ukf_out;
-    memcpy(ukf_out.reading, new_in.mox_reading, FOC_NUM_SENSORS*sizeof(float));
-    if (!foc_interp_update(ukf_out, data_interp))
+    if (!foc_interp_update(new_in.mox_reading, data_interp))
         return false;
 
+/* Step 2: Wavelet Transformation */
+    if (!foc_wt_update(data_interp, data_wt_out, data_wt_length, data_wt_flag))
+        return false;
+
+#if 0
 /* Step 3: Smoothing through FIR filtering
  *         delay ~ FOC_SIGNAL_DELAY/2 s */
     if (!foc_smooth_update(data_interp, data_smooth))
@@ -139,6 +119,6 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
  * Warning: This step is only suitable for 3 sensors (FOC_NUM_SENSORS = 3) */
     if (!foc_estimate_source_direction_update(data_raw, data_std, data_tdoa, data_wind, data_est))
         return false;
-
+#endif
     return true;
 }

@@ -14,7 +14,7 @@ static int interp_factor = 4;
  *      m           filter delay (symbols), m > 0, default: 3
  *      s           filter stop-band attenuation [dB], default: 60 
  */
-void foc_interp_init(std::vector<FOC_Reading_t>& samples, int k = 4, int m = 3, float s = 60)
+void foc_interp_init(std::vector<double>* samples, int k = 4, int m = 3, float s = 60)
 {
     // check if args are valid
     if (k < 2) {
@@ -29,7 +29,8 @@ void foc_interp_init(std::vector<FOC_Reading_t>& samples, int k = 4, int m = 3, 
     for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
         q[idx] = firinterp_rrrf_create_kaiser(k,m,s);
  
-    samples.clear();
+    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+        samples[idx].clear();
 
     interp_factor = k;
 }
@@ -42,21 +43,19 @@ void foc_interp_init(std::vector<FOC_Reading_t>& samples, int k = 4, int m = 3, 
  *      false       an error occured
  *      true        interpolation successful
  */
-bool foc_interp_update(FOC_Reading_t& symbol, std::vector<FOC_Reading_t>& samples)
+bool foc_interp_update(float* symbol, std::vector<double>* samples)
 {
     float samples_array[FOC_NUM_SENSORS][interp_factor];
 
     for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
     {
-        firinterp_rrrf_execute(q[idx], symbol.reading[idx], &samples_array[idx][0]);
+        firinterp_rrrf_execute(q[idx], symbol[idx], &samples_array[idx][0]);
     }
 
-    FOC_Reading_t sp; sp.time = 0;
     for (int i = 0; i < interp_factor; i++)
     {
         for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-            sp.reading[idx] = samples_array[idx][i];
-        samples.push_back(sp);
+            samples[idx].push_back(samples_array[idx][i]);
     }
 
     return true;

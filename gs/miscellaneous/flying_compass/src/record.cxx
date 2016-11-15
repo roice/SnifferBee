@@ -76,7 +76,8 @@ void Record_Data(Flying_Odor_Compass& foc)
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it.
     status = H5Sclose(dataspace_id); // Terminate access to the data space.
     free(data_pointer); // free space
-   
+
+#if 0
     // save data_denoise
     data_dims[0] = foc.data_denoise.size();
     data_dims[1] = FOC_NUM_SENSORS;
@@ -90,21 +91,24 @@ void Record_Data(Flying_Odor_Compass& foc)
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(data_pointer); // free space
+#endif
 
     // save data_interp
-    data_dims[0] = foc.data_interp.size();
+    data_dims[0] = foc.data_interp[0].size(); // data_interp[0 ~ FOC_NUM_SENSORS-1] have the same size
     data_dims[1] = FOC_NUM_SENSORS;
     dataspace_id = H5Screate_simple(2, data_dims, NULL); 
     dataset_id = H5Dcreate2(group_id, "mox_interp", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
     data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
-    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
-        memcpy(&(data_pointer[idx*FOC_NUM_SENSORS]), &(foc.data_interp.at(idx).reading[0]), FOC_NUM_SENSORS*sizeof(float));
+    for (int i = 0; i < data_dims[0]; i++)    // prepare data
+        for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
+            data_pointer[i*FOC_NUM_SENSORS+idx] = foc.data_interp[idx].at(i);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data_pointer); // write data
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(data_pointer); // free space
 
+#if 0
     // save data_smooth
     for (int i = 0; i < FOC_DIFF_GROUPS; i++)
     for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP+1; j++) {
@@ -140,6 +144,7 @@ void Record_Data(Flying_Odor_Compass& foc)
         status = H5Sclose(dataspace_id); // Terminate access to the data space. 
         free(data_pointer); // free space
     }
+#endif
 
 #if 0
     // save data_gradient
@@ -157,6 +162,7 @@ void Record_Data(Flying_Odor_Compass& foc)
     free(data_pointer); // free space
 #endif
 
+#if 0
     // save data_edge
     for (int i = 0; i < FOC_DIFF_GROUPS; i++)
     for (int j = 0; j < FOC_DIFF_LAYERS_PER_GROUP; j++) {
@@ -356,7 +362,7 @@ void Record_Data(Flying_Odor_Compass& foc)
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(char_pointer); // free space
-
+#endif
 
     /* Close group "/FOC" */
     status = H5Gclose(group_id);

@@ -24,17 +24,18 @@
 #define FOC_TIME_RECENT_INFO        1       // seconds, int
 #define FOC_MOX_DAQ_FREQ            20      // Hz, int
 #define FOC_MOX_INTERP_FACTOR       10      // samples/symbol, > 4, int
-#define FOC_DIFF_LAYERS_PER_GROUP   3       // layers of difference per group, 2 <= layers
-#define FOC_DIFF_GROUPS             6       // groups of difference
+
+//#define FOC_DIFF_LAYERS_PER_GROUP   3       // layers of difference per group, 2 <= layers
+//#define FOC_DIFF_GROUPS             6       // groups of difference
+
+#define FOC_WT_LEVEL                2       // wavelet transform levels
+
 #define FOC_MAX_PARTICLES           400     // max number of particles
 #define FOC_MAX_HIST_PARTICLES      100     // max history particles
 #define FOC_RECORD_LEN              1000    // seconds of history recording, int
 
 // display state of foc estimation
 #define FOC_ESTIMATE_DEBUG
-
-// choose scale space or wavelet method
-#define FOC_USE_WAVELETS_METHOD
 
 typedef struct {
     float mox_reading[FOC_NUM_SENSORS];
@@ -121,7 +122,9 @@ class Flying_Odor_Compass
         std::vector<FOC_Wind_t>         data_wind;
         std::vector<FOC_Input_t>        data_raw;
         std::vector<FOC_Reading_t>      data_denoise;
-        std::vector<FOC_Reading_t>      data_interp;
+        std::vector<double>             data_interp[FOC_NUM_SENSORS];
+
+#if 0 // Scale space method. Smooth+Diff+Edges+TDOA
         std::vector<FOC_Reading_t>      data_smooth[FOC_DIFF_GROUPS*(FOC_DIFF_LAYERS_PER_GROUP+1)];
         std::vector<FOC_Reading_t>      data_diff[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
         std::vector<FOC_Reading_t>      data_edge_max[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
@@ -130,6 +133,11 @@ class Flying_Odor_Compass
         std::vector<FOC_ChangePoints_t> data_cp_min[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
         std::vector<FOC_TDOA_t>         data_tdoa[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
         std::vector<FOC_STD_t>          data_std[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
+#endif
+        std::vector<double>             data_wt_out[FOC_NUM_SENSORS]; // stores coefficients in format: [A(J) D(J) D(J-1)...D(1)], A(J) is the approximation coefficient vector at the Jth level while D(n) are the detail coefficent vectors at the nth level
+        std::vector<int>                data_wt_length[FOC_NUM_SENSORS]; // lengths of respective approximation and detail vectors, last entry of this vector is the length of the original signal
+        std::vector<double>             data_wt_flag[FOC_NUM_SENSORS]; // flag[0] is 0 if the signal is even, 1 if odd. flag[1] contains the decomposition levels
+
         std::vector<FOC_Estimation_t>   data_est;
     private:
         // unscented kalman filters

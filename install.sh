@@ -49,7 +49,13 @@ sleep 1
 cd $prjtop/3rdparty/blas/CBLAS
 make
 mv lib/cblas_*.a lib/libcblas.a
-
+# Compile wavelib
+echo "Start Compiling Wavelib..."
+cd $prjtop/3rdparty
+tar -xzf wavelib.tar.gz
+cd wavelib/linuxstatic
+rm ./libwavelet2s.a
+gcc -c -I ../src/static ../src/static/wavelet2s.cpp -o libwavelet2s.a
 
 ##======== Compile GSRAO ========
 #cd $prjtop/src

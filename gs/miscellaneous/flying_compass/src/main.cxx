@@ -31,7 +31,8 @@
 //#define FILE "../data/Record_2016-08-29_18-29-01.h5"
 //#define FILE "../data/Record_2016-08-30_08-58-21.h5"
 //#define FILE "../data/Record_2016-08-30_09-08-46.h5"
-#define FILE "../data/Record_2016-09-25_16-01-18.h5"
+//#define FILE "../data/Record_2016-09-25_16-01-18.h5"
+#define FILE "../data/Record_2016-10-27_20-16-05.h5"
 
 int main(int argc, char* argv[])
 {
