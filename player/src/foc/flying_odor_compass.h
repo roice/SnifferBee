@@ -21,14 +21,14 @@
 #define FOC_WIND_MAX                5.0     // m/s
 #define FOC_SIGNAL_DELAY            2       // seconds, int
 #define FOC_TDOA_DELAY              1       // seconds, int
-#define FOC_TIME_RECENT_INFO        1       // seconds, int
+#define FOC_LEN_RECENT_INFO         2048    // approx. 10 s
 #define FOC_MOX_DAQ_FREQ            20      // Hz, int
 #define FOC_MOX_INTERP_FACTOR       10      // samples/symbol, > 4, int
 
 //#define FOC_DIFF_LAYERS_PER_GROUP   3       // layers of difference per group, 2 <= layers
 //#define FOC_DIFF_GROUPS             6       // groups of difference
 
-#define FOC_WT_LEVEL                2       // wavelet transform levels
+#define FOC_WT_LEVEL                8       // wavelet transform levels
 
 #define FOC_MAX_PARTICLES           400     // max number of particles
 #define FOC_MAX_HIST_PARTICLES      100     // max history particles

@@ -121,6 +121,7 @@ target_link_libraries(${PRJ_NAME} ${LIB_FOC_NAME})
 target_link_libraries(${PRJ_NAME} cblas)
 target_link_libraries(${PRJ_NAME} blas)
 target_link_libraries(${PRJ_NAME} wavelet2s)
+target_link_libraries(${PRJ_NAME} fftw3)
 target_link_libraries(${PRJ_NAME} gfortran)
 target_link_libraries(${PRJ_NAME} pthread)
 # link extern hdf5 library
