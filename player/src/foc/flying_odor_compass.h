@@ -28,7 +28,7 @@
 //#define FOC_DIFF_LAYERS_PER_GROUP   3       // layers of difference per group, 2 <= layers
 //#define FOC_DIFF_GROUPS             6       // groups of difference
 
-#define FOC_WT_LEVEL                8       // wavelet transform levels
+#define FOC_WT_LEVEL                4       // wavelet transform levels
 
 #define FOC_MAX_PARTICLES           400     // max number of particles
 #define FOC_MAX_HIST_PARTICLES      100     // max history particles

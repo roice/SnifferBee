@@ -77,6 +77,30 @@ void Record_Data(Flying_Odor_Compass& foc)
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it.
     status = H5Sclose(dataspace_id); // Terminate access to the data space.
     free(data_pointer); // free space
+    
+    data_dims[1] = 3;
+    dataspace_id = H5Screate_simple(2, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "position", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(foc.data_raw.at(idx).position[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer);   // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it.
+    status = H5Sclose(dataspace_id); // Terminate access to the data space.
+    free(data_pointer); // free space
+
+    data_dims[1] = 3;
+    dataspace_id = H5Screate_simple(2, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "attitude", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(foc.data_raw.at(idx).attitude[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer);   // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it.
+    status = H5Sclose(dataspace_id); // Terminate access to the data space.
+    free(data_pointer); // free space
 
 #if 0
     // save data_denoise
@@ -141,8 +165,6 @@ void Record_Data(Flying_Odor_Compass& foc)
 
     // save data_wt_length
     data_dims[0] = foc.data_wt_length[0].size(); // data_wt_length[0 ~ FOC_NUM_SENSORS-1] have the same size
-
-printf("length is %d\n", data_dims[0]);
 
     data_dims[1] = FOC_NUM_SENSORS;
     dataspace_id = H5Screate_simple(2, data_dims, NULL); 

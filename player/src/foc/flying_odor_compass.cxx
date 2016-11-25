@@ -88,9 +88,11 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
     if (!foc_interp_update(new_in.mox_reading, data_interp))
         return false;
 
+#if 0
 /* Step 2: Wavelet Transformation */
     if (!foc_wt_update(data_interp, data_wt_out, data_wt_length, data_wt_flag))
         return false;
+#endif
 
 #if 0
 /* Step 3: Smoothing through FIR filtering

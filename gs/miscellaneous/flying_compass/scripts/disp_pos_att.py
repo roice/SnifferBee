@@ -3,8 +3,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-#fd = h5py.File('../data/Record_2016-08-25_21-17-16.h5', 'r+')
-fd = h5py.File('../data/Record_2016-08-19_16-36-49.h5', 'r+')
+fd = h5py.File('../data/Record_2016-10-27_20-16-05.h5', 'r+')
 att = fd['robot1/att'][...]
 pos = fd['robot1/enu'][...]
 

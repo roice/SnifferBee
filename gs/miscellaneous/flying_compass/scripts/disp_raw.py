@@ -2,23 +2,19 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-#fd = h5py.File('../data/Record_2016-07-08_15-24-37.h5', 'r+')
-#fd = h5py.File('../data/Record_2016-07-08_15-27-30.h5', 'r+')
-#fd = h5py.File('../data/Record_2016-07-08_15-30-28.h5', 'r+')
-#fd = h5py.File('../data/Record_2016-07-08_15-32-12.h5', 'r+')
-#fd = h5py.File('../data/Record_2016-07-08_15-35-47.h5', 'r+')
-#fd = h5py.File('../data/Record_2016-07-08_15-38-16.h5', 'r+')
-#fd = h5py.File('../data/Record_2016-08-03_17-30-06.h5', 'r+')
-#fd = h5py.File('../data/Record_2016-08-19_16-36-49.h5', 'r+')
-#fd = h5py.File('../data/Record_2016-08-19_16-45-13.h5', 'r+')
-#s_readings = fd['robot1/mox'][...]
 fd = h5py.File('FOC_Record.h5', 'r+')
 s_readings = fd['/FOC/mox_reading']
+pos = fd['FOC/position']
+att = fd['FOC/attitude']
 
-fig = plt.figure(figsize=(8,6))
-ax = fig.add_subplot(111)
-ax.plot(s_readings[:,0], color='red')
-ax.plot(s_readings[:,1], color='green')
-ax.plot(s_readings[:,2], color='blue')
+fig,axes = plt.subplots(nrows=2,figsize=(6,6))
+
+axes[0].plot(s_readings[:,0], color='red')
+axes[0].plot(s_readings[:,1], color='green')
+axes[0].plot(s_readings[:,2], color='blue')
+
+axes[1].plot(att[:,0]*180./np.pi, color='red')
+axes[1].plot(att[:,1]*180./np.pi, color='green')
+axes[1].plot(att[:,2]*180./np.pi, color='blue')
 
 plt.show()

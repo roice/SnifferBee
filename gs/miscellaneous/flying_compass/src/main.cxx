@@ -64,8 +64,8 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    //for (int i = 20*60*0; i < 20*60*2; i++)
-    for (int i = 20*60*0; i < 20*20; i++) // 20 s
+    for (int i = 20*60*0; i < 20*60*2; i++)
+    //for (int i = 20*60*0; i < 20*20; i++) // 20 s
     {
         // read position
         memcpy(&input.position[0], &position[i][0], 3*sizeof(float));
