@@ -1,6 +1,6 @@
 #include <vector>
 #include <string>
-#include "wavelet2s.h"
+#include "foc_wavelet.h"
 #include "flying_odor_compass.h"
 
 static std::vector<double> recent_readings[FOC_NUM_SENSORS];
