@@ -16,10 +16,9 @@
 #include <vector>
 
 #include "foc/flying_odor_compass.h"
-//#include "foc/foc_noise_reduction.h"
 #include "foc/foc_interp.h"
-#include "foc/foc_wt.h"
 #include "foc/foc_wind.h"
+#include "foc/foc_wavelet.h"
 
 #define SIGN(n) (n >= 0? 1:-1)
 
@@ -39,11 +38,10 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     data_wind.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_raw.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     for (int i = 0; i < FOC_NUM_SENSORS; i++) {
-        data_interp[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-        data_wt_out[i].reserve((FOC_WT_LEVEL+1)*FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-        data_wt_length[i].reserve((FOC_WT_LEVEL+2));
-        data_wt_flag[i].reserve(2);
+        data_interp[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR); 
     }
+    data_wt_idx.reserve(FOC_WT_LEVELS);
+    data_wvs_idx.reserve(FOC_WT_LEVELS);
 
 /* init FIR interpolation
  * delay = FOC_SIGNAL_DELAY/2 s */
@@ -66,7 +64,7 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     foc_estimate_source_direction_init(data_est);
 #endif
 
-    foc_wt_init(data_wt_out, data_wt_length, data_wt_flag);
+    foc_cwt_init(&data_wvs, data_wvs_idx, data_wt_out, data_wt_idx);
 }
 
 /* FOC update
@@ -88,11 +86,9 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
     if (!foc_interp_update(new_in.mox_reading, data_interp))
         return false;
 
-#if 0
 /* Step 2: Wavelet Transformation */
-    if (!foc_wt_update(data_interp, data_wt_out, data_wt_length, data_wt_flag))
+    if (!foc_cwt_update(data_interp, data_wt_out, data_wt_idx))
         return false;
-#endif
 
 #if 0
 /* Step 3: Smoothing through FIR filtering

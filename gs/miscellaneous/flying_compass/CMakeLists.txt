@@ -37,9 +37,11 @@ endif()
 #============== Find Dependencies ================
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #---- External CUDA related settings ----
-#find_package(CUDA REQUIRED)
+find_package(CUDA REQUIRED)
 # nvcc flags
-#set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math;)
+list(APPEND CUDA_DEV_LIBRARIES ${CUDA_cufft_LIBRARY})
+link_directories(${CUDA_LIBRARY_DIRS})
 
 #---- External HDF5 related, for data recording
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
@@ -48,9 +50,6 @@ include_directories(${HDF5_INCLUDE_DIRS})
 #---- External Eigen library
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/scripts)
 find_package(Eigen3 REQUIRED)
-
-#---- External FFTW library
-find_package(FFTW REQUIRED)
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 #============== Build the project ================
@@ -67,8 +66,6 @@ include_directories(${PROJECT_SOURCE_DIR}/3rd-party/liquid-dsp/include)
 include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/CBLAS/include)
 #   add ziggurat source file to generate normal distribution random numbers
 include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/ziggurat)
-#   add wavelib dir to search for wavelib2d.h for wavelet transform
-include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/wavelib/linuxstatic)
 #   add eigen header dir
 include_directories(${EIGEN3_INCLUDE_DIR})
 
@@ -93,7 +90,7 @@ add_library(${LIB_FOC_NAME}
     ../../../player/src/foc/flying_odor_compass.cxx
     #../../../player/src/foc/foc_noise_reduction.cxx
     ../../../player/src/foc/foc_interp.cxx
-    ../../../player/src/foc/foc_wt.cxx
+    #../../../player/src/foc/foc_wt.cxx
     #../../../player/src/foc/foc_smooth.cxx
     #../../../player/src/foc/foc_diff.cxx
     #../../../player/src/foc/foc_edge.cxx 
@@ -106,7 +103,10 @@ add_library(${LIB_FOC_NAME}
     ../../../player/src/foc/vector_rotation.cxx
     ../../../3rdparty/ziggurat/ziggurat.cpp
     )
+cuda_add_library(foc_wt_gpu ../../../player/src/foc/foc_wavelet.cu)
 target_compile_features(foc PRIVATE cxx_constexpr)
+# link foc_wt_gpu
+target_link_libraries(${LIB_FOC_NAME} foc_wt_gpu)
 # link external liquid-dsp library
 target_link_libraries(${LIB_FOC_NAME} liquid)
 # compile main file
@@ -120,9 +120,9 @@ target_link_libraries(${PRJ_NAME} ${LIB_FOC_NAME})
 # link external blas library
 target_link_libraries(${PRJ_NAME} cblas)
 target_link_libraries(${PRJ_NAME} blas)
-target_link_libraries(${PRJ_NAME} wavelet2s)
-target_link_libraries(${PRJ_NAME} fftw3)
 target_link_libraries(${PRJ_NAME} gfortran)
 target_link_libraries(${PRJ_NAME} pthread)
+# link CUDA library
+target_link_libraries(${PROJECT_NAME} ${CUDA_LIBRARIES} ${CUDA_DEV_LIBRARIES})
 # link extern hdf5 library
 target_link_libraries(${PRJ_NAME} ${HDF5_LIBRARIES})

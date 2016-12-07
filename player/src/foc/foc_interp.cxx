@@ -14,7 +14,7 @@ static int interp_factor = 4;
  *      m           filter delay (symbols), m > 0, default: 3
  *      s           filter stop-band attenuation [dB], default: 60 
  */
-void foc_interp_init(std::vector<double>* samples, int k = 4, int m = 3, float s = 60)
+void foc_interp_init(std::vector<float>* samples, int k = 4, int m = 3, float s = 60)
 {
     // check if args are valid
     if (k < 2) {
@@ -43,7 +43,7 @@ void foc_interp_init(std::vector<double>* samples, int k = 4, int m = 3, float s
  *      false       an error occured
  *      true        interpolation successful
  */
-bool foc_interp_update(float* symbol, std::vector<double>* samples)
+bool foc_interp_update(float* symbol, std::vector<float>* samples)
 {
     float samples_array[FOC_NUM_SENSORS][interp_factor];
 
