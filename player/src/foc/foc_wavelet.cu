@@ -303,33 +303,39 @@ __global__ void PropagateMaximaLines(FOC_ModMax_t *modmax, int *modmax_num, int 
     int temp_idx;
 
     int tid = threadIdx.x + blockIdx.x*blockDim.x;
-   
-    if (tid < modmax_num[0]) { // number of maxima lines 
+ 
+    if (tid < modmax_num[0]) { // tid is the index of maxima lines here
         maxline[tid*FOC_WT_LEVELS+0].t = modmax[modmax_idx[0]+tid].t;
         maxline[tid*FOC_WT_LEVELS+0].value = modmax[modmax_idx[0]+tid].value;
         maxline[tid*FOC_WT_LEVELS+0].level = modmax[modmax_idx[0]+tid].level;
         maxline_size[tid] = 1;
-        for (int level = 1; level < FOC_WT_LEVELS; level++) { // for every levels
-            if (modmax_num[level] > 0) {
-                distance = FOC_LEN_RECENT_INFO+FOC_LEN_WAVELET-1; // init distance to a very large number
-                for (int j = 0; j < modmax_num[level]; j++) { // find its coarser scale modmax point
-                    if (fabsf(modmax[modmax_idx[level]+j].t - maxline[tid*FOC_WT_LEVELS+level-1].t) < distance) {
-                        distance = fabsf(modmax[modmax_idx[level]+j].t - maxline[tid*FOC_WT_LEVELS+level-1].t);
-                        temp_idx = modmax_idx[level]+j;
+    }
+    __syncthreads();
+
+    for (int level = 1; level < FOC_WT_LEVELS; level++) { // for every levels
+        if (modmax_num[level] > 0 and tid < modmax_num[level]) { // tid is the index of modmax in the level
+            distance = FOC_LEN_RECENT_INFO+FOC_LEN_WAVELET-1; // init distance to a very large number
+            for (int j = 0; j < modmax_num[0]; j++) { // traverse every incomplete maxlines, j is the index of maxlines
+                if (maxline[j*FOC_WT_LEVELS+maxline_size[j]-1].level == level-1) { // last point of this maxline
+                    if (fabsf(modmax[modmax_idx[level]+tid].t - maxline[j*FOC_WT_LEVELS+maxline_size[j]-1].t) < distance) {
+                        distance = fabsf(modmax[modmax_idx[level]+tid].t - maxline[j*FOC_WT_LEVELS+maxline_size[j]-1].t);
+                        temp_idx = j; // index of maxline
                     }
                 }
-                if (distance > FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR/5.0)
-                    break;
-                else { // find maxima belong to this line
-                    maxline[tid*FOC_WT_LEVELS+level].t = modmax[temp_idx].t;
-                    maxline[tid*FOC_WT_LEVELS+level].value = modmax[temp_idx].value;
-                    maxline[tid*FOC_WT_LEVELS+level].level = modmax[temp_idx].level;
-                    maxline_size[tid]++;
-                }
             }
-            else // end propogation
-                break;
         }
+        __syncthreads();
+
+        if (modmax_num[level] > 0 and tid < modmax_num[level]) { // tid is the index of modmax in the level
+            if (distance < FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR/5.0) {
+                // found maxline this maxima belongs to
+                maxline[temp_idx*FOC_WT_LEVELS+level].t = modmax[modmax_idx[level]+tid].t;
+                maxline[temp_idx*FOC_WT_LEVELS+level].value = modmax[modmax_idx[level]+tid].value;
+                maxline[temp_idx*FOC_WT_LEVELS+level].level = modmax[modmax_idx[level]+tid].level;
+                maxline_size[temp_idx]++;
+            }
+        }
+        __syncthreads();
     }
 }
 
