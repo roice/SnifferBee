@@ -188,6 +188,60 @@ void Record_Data(Flying_Odor_Compass& foc)
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(int_pointer); // free space
 
+    // save data_modmax
+    for (int idx_s = 0; idx_s < FOC_NUM_SENSORS; idx_s++) {
+        data_dims[0] = foc.data_modmax[idx_s].size();
+        data_dims[1] = 3; // t, value, level
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        snprintf(ds_name, sizeof(ds_name), "wt_modmax_%d", idx_s);
+        dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+        data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+        for (int i = 0; i < data_dims[0]; i++) {    // prepare data
+            data_pointer[i*3+0] = foc.data_modmax[idx_s].at(i).t;
+            data_pointer[i*3+1] = foc.data_modmax[idx_s].at(i).value;
+            data_pointer[i*3+2] = foc.data_modmax[idx_s].at(i).level;
+        }
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+        status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+        status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+        free(data_pointer); // free space
+    }
+
+    // save data_modmax_num
+    data_dims[0] = FOC_NUM_SENSORS*FOC_WT_LEVELS;
+    dataspace_id = H5Screate_simple(1, data_dims, NULL); 
+    dataset_id = H5Dcreate2(group_id, "wt_modmax_num", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    int_pointer = (int*)malloc(data_dims[0]*sizeof(*int_pointer));
+    for (int i = 0; i < data_dims[0]; i++)    // prepare data
+        int_pointer[i] = foc.data_modmax_num[i];
+    status = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, int_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+    free(int_pointer); // free space
+
+    // save data_maxline
+    for (int idx_s = 0; idx_s < FOC_NUM_SENSORS; idx_s++) {
+        for (int idx_l = 0; idx_l < foc.data_modmax_num[idx_s*FOC_WT_LEVELS+0]; idx_l++) {
+            data_dims[0] = foc.data_maxline[idx_s][idx_l]->size();
+            data_dims[1] = 3; // t, value, level
+            dataspace_id = H5Screate_simple(2, data_dims, NULL);
+            snprintf(ds_name, sizeof(ds_name), "wt_maxline_%d_%d", idx_s, idx_l);
+            dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+            data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+            for (int i = 0; i < data_dims[0]; i++) {    // prepare data
+                data_pointer[i*3+0] = foc.data_maxline[idx_s][idx_l]->at(i).t;
+                data_pointer[i*3+1] = foc.data_maxline[idx_s][idx_l]->at(i).value;
+                data_pointer[i*3+2] = foc.data_maxline[idx_s][idx_l]->at(i).level;
+            }
+            status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+            status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+            status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+            free(data_pointer); // free space
+        }
+    }
 
 #if 0
     // save data_smooth

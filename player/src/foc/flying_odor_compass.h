@@ -112,6 +112,12 @@ typedef struct {
     int disp;
 } FOC_ChangePoints_t;
 
+typedef struct {
+    float   t;      // time of this maxima occurs
+    float   value;  // value of this maxima point
+    int     level;  // this maxima point belongs to which level
+} FOC_ModMax_t;
+
 class Flying_Odor_Compass
 {
     public:
@@ -138,6 +144,9 @@ class Flying_Odor_Compass
         std::vector<int>                data_wvs_idx; // index of every scale wavelet in data_wvs
         float*                          data_wt_out[FOC_NUM_SENSORS]; // wavelet transform of signals
         std::vector<int>                data_wt_idx; // index of every wavelet layer in data_wt_out array
+        std::vector<FOC_ModMax_t>       data_modmax[FOC_NUM_SENSORS]; // modulus maxima points, points are sequentially placed in the order of level 0, 1, 2, ..., FOC_WT_LEVELS-1
+        int                             data_modmax_num[FOC_NUM_SENSORS*FOC_WT_LEVELS]; // number of modmax in a level
+        std::vector<FOC_ModMax_t>**     data_maxline[FOC_NUM_SENSORS];
 
 // Debug 
 

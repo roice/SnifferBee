@@ -42,6 +42,11 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     }
     data_wt_idx.reserve(FOC_WT_LEVELS);
     data_wvs_idx.reserve(FOC_WT_LEVELS);
+    for (int i = 0; i < FOC_NUM_SENSORS; i++)
+        data_modmax[i].reserve(FOC_LEN_RECENT_INFO*FOC_WT_LEVELS/FOC_MOX_INTERP_FACTOR); // a bit exaggerated
+    memset(data_modmax_num, 0, FOC_NUM_SENSORS*FOC_WT_LEVELS*sizeof(int));
+    for (int i = 0; i < FOC_NUM_SENSORS; i++)
+        data_maxline[i] = NULL;
 
 /* init FIR interpolation
  * delay = FOC_SIGNAL_DELAY/2 s */
@@ -88,6 +93,14 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 
 /* Step 2: Wavelet Transformation */
     if (!foc_cwt_update(data_interp, data_wt_out, data_wt_idx))
+        return false;
+
+/* Step 3: Find (Identify) Modulus Maxima */
+    if (!foc_identify_modmax(data_modmax, data_modmax_num, data_wt_out, data_wt_idx))
+        return false;
+
+/* Step 4: Chain maxima lines */
+    if (!foc_chain_maxline(data_modmax, data_modmax_num, data_maxline))
         return false;
 
 #if 0
