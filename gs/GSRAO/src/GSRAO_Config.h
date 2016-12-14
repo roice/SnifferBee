@@ -45,7 +45,8 @@ typedef struct {
 
 typedef struct {
     int num_of_anemometers;
-    std::string anemometer_serial_port_path[SERIAL_YOUNG_MAX_ANEMOMETERS];
+    std::string anemometer_serial_port_path[SERIAL_MAX_ANEMOMETERS];
+    std::string anemometer_type[SERIAL_MAX_ANEMOMETERS];
 } GSRAO_Config_Miscellaneous_t;
 
 /* configuration struct */

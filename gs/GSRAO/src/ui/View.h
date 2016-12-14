@@ -14,6 +14,11 @@
 #ifndef VIEW_H
 #define VIEW_H
 
+#include <sys/time.h>
+
 void View_init(int, int);
+
+void View_start_count_time(void);
+void View_stop_count_time(void);
 
 #endif

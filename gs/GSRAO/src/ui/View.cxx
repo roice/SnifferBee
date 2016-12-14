@@ -25,6 +25,7 @@
 
 // experiment start time
 struct timeval  time_count_start;
+bool count_experiment_time = false;
 
 // width and height of current window, for redraw function
 static int win_width = 1;
@@ -188,16 +189,18 @@ static void draw_time_passed_note(void)
     gettimeofday(&tv, &tz);
     double time_passed = (tv.tv_sec+tv.tv_usec/1000000.)-(time_count_start.tv_sec+time_count_start.tv_usec/1000000.);        // accurate down to ms
 
-    glDisable(GL_LIGHTING);
-    {
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        gluOrtho2D(0.0, win_width, 0.0, win_height);
-        sprintf(buf, "Time= %d m %.1f s", (int)(time_passed/60), time_passed-((int)(time_passed/60))*60);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        gl_font(FL_HELVETICA, 12);
-        gl_draw(buf, 260, 10);
-    }glEnable(GL_LIGHTING);
+    if (count_experiment_time) {
+        glDisable(GL_LIGHTING);
+        {
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            gluOrtho2D(0.0, win_width, 0.0, win_height);
+            sprintf(buf, "Time= %d m %.1f s", (int)(time_passed/60), time_passed-((int)(time_passed/60))*60);
+            glColor3f(1.0f, 1.0f, 1.0f);
+            gl_font(FL_HELVETICA, 12);
+            gl_draw(buf, 260, 10);
+        }glEnable(GL_LIGHTING);
+    }
 }
 
 static void draw_notes(void) {
@@ -242,10 +245,20 @@ void View_init(int width, int height)
     glLoadIdentity();
 
     /* init scene drawing */
-    DrawScene_init();
+    DrawScene_init(); 
+}
 
+void View_start_count_time(void)
+{
     /* start time counting */
     struct timezone tz;
     gettimeofday(&time_count_start, &tz);
+    count_experiment_time = true;
+}
+
+void View_stop_count_time(void)
+{
+    /* stop time counting */
+    count_experiment_time = false;
 }
 /* End of View.cxx */

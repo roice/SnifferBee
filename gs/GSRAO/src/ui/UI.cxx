@@ -59,7 +59,8 @@ struct ConfigDlg_Widgets { // for parameter saving
     Fl_Input* dnet_serial_port;
     // serial port receiving anemometer data
     Fl_Choice* num_of_anemometers;
-    Fl_Input* anemo_serial_port[SERIAL_YOUNG_MAX_ANEMOMETERS];
+    Fl_Input* anemo_serial_port[SERIAL_MAX_ANEMOMETERS];
+    Fl_Choice* anemo_type[SERIAL_MAX_ANEMOMETERS];
 };
 class ConfigDlg : public Fl_Window
 {
@@ -113,11 +114,15 @@ void ConfigDlg::cb_change_num_of_anemometers(Fl_Widget* w, void* data)
 
     // deactivate & activate corresponding serial port input box
     if (ws->num_of_anemometers->value())
-        for (int i = 0; i < ws->num_of_anemometers->value(); i++)
+        for (int i = 0; i < ws->num_of_anemometers->value(); i++) {
             ws->anemo_serial_port[i]->activate();
-    if (ws->num_of_anemometers->value() < SERIAL_YOUNG_MAX_ANEMOMETERS)
-        for (int i = ws->num_of_anemometers->value(); i < SERIAL_YOUNG_MAX_ANEMOMETERS; i++)
+            ws->anemo_type[i]->activate();
+        }
+    if (ws->num_of_anemometers->value() < SERIAL_MAX_ANEMOMETERS)
+        for (int i = ws->num_of_anemometers->value(); i < SERIAL_MAX_ANEMOMETERS; i++) {
             ws->anemo_serial_port[i]->deactivate();
+            ws->anemo_type[i]->deactivate();
+        }
 }
 
 void ConfigDlg::save_value_to_configs(ConfigDlg_Widgets* ws) {
@@ -136,8 +141,20 @@ void ConfigDlg::save_value_to_configs(ConfigDlg_Widgets* ws) {
     // Anemometers
     configs->miscellaneous.num_of_anemometers = ws->num_of_anemometers->value();
     if (ws->num_of_anemometers->value() > 0)
-        for (int i = 0; i < ws->num_of_anemometers->value(); i++)
+        for (int i = 0; i < ws->num_of_anemometers->value(); i++) {
             configs->miscellaneous.anemometer_serial_port_path[i] = ws->anemo_serial_port[i]->value();
+            switch (ws->anemo_type[i]->value()) {
+                case 0:
+                    configs->miscellaneous.anemometer_type[i] = "RM Young 3D";
+                    break;
+                case 1:
+                    configs->miscellaneous.anemometer_type[i] = "Gill 3D";
+                    break;
+                default:
+                    configs->miscellaneous.anemometer_type[i] = "RM Young 3D";
+                    break;
+            }
+        }
 }
 
 void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
@@ -170,11 +187,18 @@ void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
     if (ws->num_of_anemometers->value()) {
         for (int i = 0; i < ws->num_of_anemometers->value(); i++) {
             ws->anemo_serial_port[i]->value(configs->miscellaneous.anemometer_serial_port_path[i].c_str());
+            if (configs->miscellaneous.anemometer_type[i] == "RM Young 3D")
+                ws->anemo_type[i]->value(0);
+            else if (configs->miscellaneous.anemometer_type[i] == "Gill 3D")
+                ws->anemo_type[i]->value(1);
+            else
+                ws->anemo_type[i]->value(0);
         }
     }
-    if (ws->num_of_anemometers->value() < SERIAL_YOUNG_MAX_ANEMOMETERS) {
-        for (int i = ws->num_of_anemometers->value(); i < SERIAL_YOUNG_MAX_ANEMOMETERS; i++) {
+    if (ws->num_of_anemometers->value() < SERIAL_MAX_ANEMOMETERS) {
+        for (int i = ws->num_of_anemometers->value(); i < SERIAL_MAX_ANEMOMETERS; i++) {
             ws->anemo_serial_port[i]->deactivate();
+            ws->anemo_type[i]->deactivate();
         }
     }
 }
@@ -321,8 +345,11 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             ws.num_of_anemometers->add("9");
             ws.num_of_anemometers->add("10");
             ws.num_of_anemometers->callback(cb_change_num_of_anemometers, (void*)&ws);
-            for (int i = 0; i < SERIAL_YOUNG_MAX_ANEMOMETERS; i++) {
-                ws.anemo_serial_port[i] = new Fl_Input(t_x+10+100, t_y+25+10+50+30*i, 200, 25, "Serial Port ");
+            for (int i = 0; i < SERIAL_MAX_ANEMOMETERS; i++) {
+                ws.anemo_serial_port[i] = new Fl_Input(t_x+10+50, t_y+25+10+50+30*i, 160, 25, "Port ");
+                ws.anemo_type[i] = new Fl_Choice(t_x+10+100+160, t_y+25+10+50+30*i, 100, 25, "Type");
+                ws.anemo_type[i]->add("RM Young 3D");
+                ws.anemo_type[i]->add("Gill 3D");
             }
         }
         flow->end();
@@ -517,6 +544,7 @@ private:
     // callback funcs
     static void cb_close(Fl_Widget*, void*);
     static void cb_robot_rc_button(Fl_Widget*, void*);
+    static void cb_robot_to_display_sensor_reading(Fl_Widget*, void*);
     // function to save current value of widgets to runtime configs
     static void save_value_to_configs(RobotPanel_Widgets*);
     // function to get runtime configs to set value of widgets
@@ -555,6 +583,9 @@ void RobotPanel::cb_robot_rc_button(Fl_Widget* w, void* data) {
             hs.remoter_panel->remoter_button = (Fl_Button*)w;
         }
     }
+}
+void RobotPanel::cb_robot_to_display_sensor_reading(Fl_Widget* w, void* data) {
+    ((RobotPanel_Widgets*)data)->robot_sensor_reading->robot_to_display = ((Fl_Choice*)w)->value();
 }
 void RobotPanel::get_value_from_configs(RobotPanel_Widgets* ws) {
     GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
@@ -627,6 +658,7 @@ RobotPanel::RobotPanel(int xpos, int ypos, int width, int height,
     ws.robot_to_display_sensor_reading->add("Show sensors robot 3");
     ws.robot_to_display_sensor_reading->add("Show sensors robot 4");
     ws.robot_to_display_sensor_reading->value(0);
+    ws.robot_to_display_sensor_reading->callback(cb_robot_to_display_sensor_reading, (void*)&ws);
 
     // sensor reading plot
     Fl_Box* sr_box = new Fl_Box(t_x+225, t_y, 465, 190, "Sensor reading");
@@ -910,11 +942,13 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             
             // Init Anemometer thread
             std::string* path_anemometer_ports = sonic_anemometer_get_port_paths();
+            std::string* type_anemometer = sonic_anemometer_get_types();
             if (configs->miscellaneous.num_of_anemometers) {
                 for (int idx = 0; idx < configs->miscellaneous.num_of_anemometers; idx++) {
                     path_anemometer_ports[idx] = configs->miscellaneous.anemometer_serial_port_path[idx].c_str();
+                    type_anemometer[idx] = configs->miscellaneous.anemometer_type[idx].c_str();
                 }
-                if (!sonic_anemometer_young_init(configs->miscellaneous.num_of_anemometers, path_anemometer_ports))
+                if (!sonic_anemometer_init(configs->miscellaneous.num_of_anemometers, path_anemometer_ports, type_anemometer))
                 {
                     widgets->msg_zone->label("Anemometer serial port init failed!");
                     widgets->msg_zone->labelcolor(FL_RED);
@@ -932,6 +966,9 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             // add timers for repeated tasks (such as data display)
             Fl::add_timeout(0.5, cb_repeated_tasks_2hz, (void*)&hs);
             Fl::add_timeout(0.1, cb_repeated_tasks_10hz, (void*)&hs);
+
+            // start counting experiment time
+            View_start_count_time();
         }
         else {
             // user is trying to release start button when pause is not pressed
@@ -964,12 +1001,13 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     widgets->pause->activate(); widgets->pause->clear();
 
     // close Link with robots and Motion Capture System
-    sonic_anemometer_young_close(); // close link with anemometers
+    sonic_anemometer_close(); // close link with anemometers
     method_stop();      // stop method
     robot_shutdown();   // shutdown robots
     spp_close();        // close serial link with PPM encoder
     mbsp_close();       // close serial link with DATA receiver
     mocap_client_close(); // close udp net link with motion capture system
+    View_stop_count_time(); // stop counting experiment time
     Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
     Fl::remove_timeout(cb_repeated_tasks_10hz); // remove timeout callback for repeated tasks
     if (hs.robot_panel != NULL) {

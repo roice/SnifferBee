@@ -27,17 +27,18 @@ SPP_RC_DATA_t* spp_get_rc_data(void);
 bool mbsp_init(const char*);
 void mbsp_close(void);
 
-/* serial_yound.cxx */
-#define SERIAL_YOUNG_MAX_ANEMOMETERS    10
+/* serial_anemometer.cxx */
+#define SERIAL_MAX_ANEMOMETERS    10
 
 typedef struct {
     float speed[3];
     float temperature;
 } Anemometer_Data_t;
 
-bool sonic_anemometer_young_init(int, std::string*);
-void sonic_anemometer_young_close(void);
+bool sonic_anemometer_init(int, std::string*, std::string*);
+void sonic_anemometer_close(void);
 std::string* sonic_anemometer_get_port_paths(void);
+std::string* sonic_anemometer_get_types(void);
 Anemometer_Data_t* sonic_anemometer_get_wind_data(void);
 std::vector<Anemometer_Data_t>* sonic_anemometer_get_wind_record(void);
 

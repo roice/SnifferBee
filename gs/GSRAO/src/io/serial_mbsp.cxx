@@ -65,7 +65,6 @@ bool mbsp_init(const char* port)
     if (!serial_setup(fd, 57600)) // N81
         return false;
 
-    // create thread for PPM sending
     exit_mbsp_thread = false;
     if (pthread_create(&mbsp_thread_handle, NULL, &mbsp_loop, (void*)&exit_mbsp_thread) != 0)
         return false;

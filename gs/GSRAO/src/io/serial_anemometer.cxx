@@ -1,10 +1,14 @@
 /*
- * Serial Protocal for R.M. Young sonic wind sensor
+ * Serial Protocal for Anemometers
+ * Support List:
+ *      R.M. Young 3D sonic wind sensor
+ *      Gill 3D sonic wind sensor
  *
  * Author:
  *      Roice Luo (Bing Luo)
  * Date:
- *      2016.09.05
+ *      2016.09.05      create this file
+ *      2016.12.10      add support for Gill 3D
  */
 
 #include <stdio.h>
@@ -21,6 +25,7 @@ typedef struct {
     void* arg;
 } Thread_Arguments_t;
 
+// RM Young Binary Frame Type
 typedef struct {
     // frame
     char frame[18];     // 18 bytes
@@ -39,80 +44,110 @@ typedef struct {
     char    checksum;   // byte, XOR of all chars, hex val
 } Young_Binary_Frame_t;
 
-static int num_ports = 0;
-static int fd[SERIAL_YOUNG_MAX_ANEMOMETERS]; // max number of sensors supported
-static pthread_t    young_read_thread_handle[SERIAL_YOUNG_MAX_ANEMOMETERS];
-static pthread_t    young_write_thread_handle;
-static bool     exit_young_thread = false;
-Thread_Arguments_t  young_thread_args[SERIAL_YOUNG_MAX_ANEMOMETERS];
-Anemometer_Data_t   wind_data[SERIAL_YOUNG_MAX_ANEMOMETERS];
-std::vector<Anemometer_Data_t> wind_record[SERIAL_YOUNG_MAX_ANEMOMETERS];
-std::string path_ports[SERIAL_YOUNG_MAX_ANEMOMETERS];
-static Young_Binary_Frame_t young_frame[SERIAL_YOUNG_MAX_ANEMOMETERS];
+// Gill ASCII Frame Type
+typedef struct {
+    // protocol
+    char protocol[50] = {0x02, 'X', 'X', ',', 'X', 'X', ',', 'S', 'X', 'X', '.', 'X', 'X', ',', 'S', 'X', 'X', '.', 'X', 'X', ',', 'S', 'X', 'X', '.', 'X', 'X', ',', 'S', 'X', 'X', '.', 'X', 'X', ',',0x03};
+    // frame
+    char frame[100];
+    // pointer
+    int pointer = 0;
+    // parsed value
+    short    StaA; // status address
+    short    StaD; // status data
+    float  u;  // U vector cm/s
+    float  v;  // V vector cm/s
+    float  w;  // W vector cm/s
+    float  T;  // absolute temperature
+} Gill_ASCII_Frame_t;
 
+static int num_ports = 0;
+static int fd[SERIAL_MAX_ANEMOMETERS]; // max number of sensors supported
+static pthread_t    read_thread_handle[SERIAL_MAX_ANEMOMETERS];
+static pthread_t    write_thread_handle;
+static bool     exit_thread = false;
+
+Thread_Arguments_t  thread_args[SERIAL_MAX_ANEMOMETERS];
+Anemometer_Data_t   wind_data[SERIAL_MAX_ANEMOMETERS];
+std::vector<Anemometer_Data_t> wind_record[SERIAL_MAX_ANEMOMETERS];
+std::string anemometer_port_path[SERIAL_MAX_ANEMOMETERS];
+std::string anemometer_type[SERIAL_MAX_ANEMOMETERS];
+static Young_Binary_Frame_t young_frame[SERIAL_MAX_ANEMOMETERS];
+
+// RM Young
 static void* young_write_loop(void*);
 static void* young_read_loop(void*);
+static void* gill_read_loop(void*);
 
-bool sonic_anemometer_young_init(int n_ports = 1, std::string* ports = NULL)
+bool sonic_anemometer_init(int n_ports = 1, std::string* ports = NULL, std::string* types = NULL)
 {
-    if (n_ports < 1 or n_ports > SERIAL_YOUNG_MAX_ANEMOMETERS)
+    if (n_ports < 1 or n_ports > SERIAL_MAX_ANEMOMETERS)
         return false;
 
-    if (!ports) return false;
+    if (!ports or !types) return false;
 
     // open serial port
     for (int i = 0; i < n_ports; i++) {
         fd[i] = serial_open(ports[i].c_str()); // blocking
         if (fd[i] == -1)
             return false;
+        if (types[i] == "RM Young 3D") {
+            if (!serial_setup(fd[i], 38400)) // N81
+                return false;
+        }
+        else if (types[i] == "Gill 3D") {
+            if (!serial_setup(fd[i], 115200)) // N81
+                return false;
+        }
+        else
+            return false; // type not recognized
     }
 
-    // setup serial port
-    for (int i = 0; i < n_ports; i++) {
-        if (!serial_setup(fd[i], 38400)) // N81
-            return false;
-    }
-
-    // clear young frame
+    // clear anemometer frames
     memset(young_frame, 0, sizeof(young_frame));
 
     // create thread for receiving anemometer measurements
-    exit_young_thread = false;
+    exit_thread = false;
     num_ports = n_ports;
 
-printf("num_ports = %d\n", num_ports);
-
     for (int i = 0; i < n_ports; i++) {
-        young_thread_args[i].arg = &exit_young_thread;
-        young_thread_args[i].index = i;
-        if (pthread_create(&young_read_thread_handle[i], NULL, &young_read_loop, (void*)&young_thread_args[i]) != 0)
-            return false;
+        thread_args[i].arg = &exit_thread;
+        thread_args[i].index = i;
+        if (types[i] == "RM Young 3D") {
+            if (pthread_create(&read_thread_handle[i], NULL, &young_read_loop, (void*)&thread_args[i]) != 0)
+                return false;
+        }
+        else if (types[i] == "Gill 3D") {
+            if (pthread_create(&read_thread_handle[i], NULL, &gill_read_loop, (void*)&thread_args[i]) != 0)
+                return false;
+        }
     }
-    if (pthread_create(&young_write_thread_handle, NULL, &young_write_loop, (void*)&exit_young_thread) != 0)
+
+    if (pthread_create(&write_thread_handle, NULL, &young_write_loop, (void*)&exit_thread) != 0)
             return false;
 
     return true;
 }
 
-void sonic_anemometer_young_close(void)
+void sonic_anemometer_close(void)
 {
-    if (!exit_young_thread and num_ports) // if still running
+    if (!exit_thread and num_ports) // if still running
     {
-        // exit young thread
-        exit_young_thread = true;
-        pthread_join(young_write_thread_handle, NULL);
+        // exit threads
+        exit_thread = true;
+        pthread_join(write_thread_handle, NULL);
         for (int i = 0; i < num_ports; i++)
-            pthread_join(young_read_thread_handle[i], NULL);
+            pthread_join(read_thread_handle[i], NULL);
         // close serial port
         for (int i = 0; i < num_ports; i++) 
             serial_close(fd[i]);
-        printf("Young anemometer serial thread terminated.\n");
+        printf("Anemometer serial thread terminated.\n");
     }
 }
 
 static void youngProcessFrame(char* buf, int len, int index)
 { 
-    if (index < 0 or index >= SERIAL_YOUNG_MAX_ANEMOMETERS)
+    if (index < 0 or index >= SERIAL_MAX_ANEMOMETERS)
         return;
 
     for (int i = 0; i < len; i++) {
@@ -152,6 +187,85 @@ if (index == 0) {
     }
 }
 
+static void gillProcessFrame(char* buf, int len, int index)
+{
+    static Gill_ASCII_Frame_t gill_frame;
+
+    if (index < 0 or index >= SERIAL_MAX_ANEMOMETERS)
+        return;
+
+    if (len <= 0)
+        return;
+
+    for (int i = 0; i < len; i++) {
+        switch (gill_frame.protocol[gill_frame.pointer]) {
+            case 0x02: // start frame
+                if (buf[i] == 0x02)
+                    gill_frame.frame[gill_frame.pointer++] = buf[i];
+                break;
+            case 'X': // number, not ',' or '.', or '+', or '-'
+                if (buf[i] != ',' and buf[i] != '.' and buf[i] != '+' and buf[i] != '-')
+                    gill_frame.frame[gill_frame.pointer++] = buf[i];
+                else
+                    gill_frame.pointer = 0;
+                break;
+            case 'S': // '+' or '-'
+                if (buf[i] == '+' or buf[i] == '-')
+                    gill_frame.frame[gill_frame.pointer++] = buf[i];
+                else
+                    gill_frame.pointer = 0;
+                break;
+            case ',':
+                if (buf[i] == ',')
+                    gill_frame.frame[gill_frame.pointer++] = buf[i];
+                else
+                    gill_frame.pointer = 0;
+                break;
+            case '.':
+                if (buf[i] == '.')
+                    gill_frame.frame[gill_frame.pointer++] = buf[i];
+                else
+                    gill_frame.pointer = 0;
+                break;
+            case 0x03: // end frame
+                if (buf[i] == 0x03) { // received a complete frame
+                    gill_frame.frame[gill_frame.pointer++] = buf[i]; 
+// Debug
+    //gill_frame.frame[gill_frame.pointer] = 0x0;
+    //printf("gill_frame = %s\n", gill_frame.frame);
+
+                    gill_frame.StaA = ((short)gill_frame.frame[1] << 8) & ((short)gill_frame.frame[2]);
+                    gill_frame.StaD = ((short)gill_frame.frame[4] << 8) & ((short)gill_frame.frame[5]);
+                    char temp_f[10] = {0};
+                    memcpy(temp_f, &gill_frame.frame[7], 6*sizeof(char));
+                    gill_frame.u = atof(temp_f);
+                    memcpy(temp_f, &gill_frame.frame[14], 6*sizeof(char));
+                    gill_frame.v = atof(temp_f);
+                    memcpy(temp_f, &gill_frame.frame[21], 6*sizeof(char));
+                    gill_frame.w = atof(temp_f);
+                    memcpy(temp_f, &gill_frame.frame[28], 6*sizeof(char));
+                    gill_frame.T = atof(temp_f);
+
+// Debug
+    //printf("wind = [%f, %f, %f], T = %f\n", gill_frame.u, gill_frame.v, gill_frame.w, gill_frame.T);
+
+                    // save data
+                    wind_data[index].speed[0] = (float)gill_frame.u;
+                    wind_data[index].speed[1] = (float)gill_frame.v;
+                    wind_data[index].speed[2] = (float)gill_frame.w;
+                    wind_data[index].temperature = (float)gill_frame.T;
+                    // save record
+                    wind_record[index].push_back(wind_data[index]);
+
+                    gill_frame.pointer = 0; // clear pointer
+                }
+                break;
+            default:
+                break;
+        }
+    }
+}
+
 static void* young_write_loop(void* exit)
 {
     struct timespec req, rem;
@@ -163,8 +277,10 @@ static void* young_write_loop(void* exit)
 
     while (!*((bool*)exit))
     {
-        for (int i = 0; i < num_ports; i++)
-            serial_write(fd[i], command, 3);
+        for (int i = 0; i < num_ports; i++) {
+            if (anemometer_type[i] == "RM Young 3D")
+                serial_write(fd[i], command, 3);
+        }
         nanosleep(&req, &rem);
     }
 }
@@ -182,9 +298,27 @@ static void* young_read_loop(void* args)
     }
 }
 
+static void* gill_read_loop(void* args)
+{
+    int nbytes;
+    char frame[512];
+    
+    while (!*((bool*)(((Thread_Arguments_t*)args)->arg)))
+    {
+        nbytes = serial_read(fd[((Thread_Arguments_t*)args)->index], frame, 512);
+        if (nbytes > 0)
+            gillProcessFrame(frame, nbytes, ((Thread_Arguments_t*)args)->index);
+    }
+}
+
 std::string* sonic_anemometer_get_port_paths(void)
 {
-    return path_ports;
+    return anemometer_port_path;
+}
+
+std::string* sonic_anemometer_get_types(void)
+{
+    return anemometer_type;
 }
 
 std::vector<Anemometer_Data_t>* sonic_anemometer_get_wind_record(void)

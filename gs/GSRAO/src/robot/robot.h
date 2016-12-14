@@ -77,7 +77,7 @@ typedef struct {
     float leso_z1[3];   // roll pitch throttle
     float leso_z2[3];
     float leso_z3[3];
-    float anemometer[SERIAL_YOUNG_MAX_ANEMOMETERS][3];
+    float anemometer[SERIAL_MAX_ANEMOMETERS][3];
 } Robot_Debug_Record_t;
 
 Robot_State_t* robot_get_state(void);
