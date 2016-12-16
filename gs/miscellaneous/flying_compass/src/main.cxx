@@ -32,7 +32,10 @@
 //#define FILE "../data/Record_2016-08-30_08-58-21.h5"
 //#define FILE "../data/Record_2016-08-30_09-08-46.h5"
 //#define FILE "../data/Record_2016-09-25_16-01-18.h5"
-#define FILE "../data/Record_2016-10-27_20-16-05.h5"
+//#define FILE "../data/Record_2016-10-27_20-16-05.h5"
+//#define FILE "../data/Record_2016-12-15_15-48-00.h5"
+//#define FILE "../data/Record_2016-12-15_16-14-30.h5"
+#define FILE "../data/Record_2016-12-16_10-13-13.h5"
 
 int main(int argc, char* argv[])
 {
@@ -64,8 +67,9 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    for (int i = 20*60*0; i < 20*60*1; i++)
-    //for (int i = 20*60*0; i < 20*20; i++) // 20 s
+    for (int i = 20*60*5; i < 20*60*6; i++)
+    //for (int i = 200; i < 600; i++)
+    //for (int i = 500; i < 900; i++)
     {
         // read position
         memcpy(&input.position[0], &position[i][0], 3*sizeof(float));
@@ -74,9 +78,9 @@ int main(int argc, char* argv[])
         // read wind (disturbance)
         memcpy(&input.wind[0], &wind[i][0], 3*sizeof(float));
 
-        input.mox_reading[0] = sensor_reading[i][0];
-        input.mox_reading[1] = sensor_reading[i][1];
-        input.mox_reading[2] = sensor_reading[i][2];
+        input.mox_reading[0] = 3.3-sensor_reading[i][0];
+        input.mox_reading[1] = 3.3-sensor_reading[i][1];
+        input.mox_reading[2] = 3.3-sensor_reading[i][2];
         foc.update(input);
     }
 

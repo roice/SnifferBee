@@ -2,6 +2,12 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
+MOX_DAQ_FREQ = 20
+MOX_INTERP_FACTOR = 10
+WT_LEVELS = 100
+LEN_WAVELET = (3*MOX_DAQ_FREQ*MOX_INTERP_FACTOR)
+LEN_RECENT_INFO = (15*MOX_DAQ_FREQ*MOX_INTERP_FACTOR)
+
 fd = h5py.File('FOC_Record.h5', 'r+')
 wt_out = fd['/FOC/wt_out'][...]
 wt_idx = fd['/FOC/wt_index'][...]
@@ -12,9 +18,9 @@ modmax_s1 = fd['/FOC/wt_modmax_1'][...]
 modmax_s2 = fd['/FOC/wt_modmax_2'][...]
 mox_interp = fd['/FOC/mox_interp']
 modmax_num = fd['/FOC/wt_modmax_num'][...]
-
-N = wt_idx[1]
-M = wvs_idx[1]
+maxline_num = [modmax_num[0*WT_LEVELS], modmax_num[1*WT_LEVELS], modmax_num[2*WT_LEVELS]]
+s_readings = fd['/FOC/mox_reading'][...]
+interp_out = fd['/FOC/mox_interp'][...]
 
 '''
 A = []
@@ -31,20 +37,37 @@ plt.grid(True)
 plt.axes().set_aspect('auto')
 '''
 
+fig, axes = plt.subplots(nrows=4, figsize=(6,6))
 
-fig, axes = plt.subplots(nrows=2, figsize=(6,6))
+axes[0].plot(s_readings[:,0], color='red')
+axes[0].plot(s_readings[:,1], color='green')
+axes[0].plot(s_readings[:,2], color='blue')
 
-for i in range(modmax_num[0]):
+axes[1].plot(interp_out)
+
+for i in range(len(wt_idx)):
+    axes[2].plot(wt_out[wt_idx[i]+LEN_WAVELET/2:wt_idx[i]+LEN_WAVELET/2+LEN_RECENT_INFO-1, 0])
+    #axes[2].plot(wt_out[wt_idx[i]:wt_idx[i]+N, 1])
+    #axes[2].plot(wt_out[wt_idx[i]:wt_idx[i]+N, 2])
+
+axes[2].scatter(modmax_s0[:,0]-LEN_WAVELET/2, modmax_s0[:,1])
+
+for i in range(maxline_num[0]):
     ds_name = '/FOC/wt_maxline_'+'0'+'_'+str(i)
     maxline = fd[ds_name][...]
-    axes[1].plot(maxline[:,0], maxline[:,1], color='k')
+    axes[3].plot(maxline[:,0] -LEN_WAVELET/2, maxline[:,2], color='r')
+for i in range(maxline_num[1]):
+    ds_name = '/FOC/wt_maxline_'+'1'+'_'+str(i)
+    maxline = fd[ds_name][...]
+    axes[3].plot(maxline[:,0] -LEN_WAVELET/2, maxline[:,2], color='g')
+for i in range(maxline_num[2]):
+    ds_name = '/FOC/wt_maxline_'+'2'+'_'+str(i)
+    maxline = fd[ds_name][...]
+    axes[3].plot(maxline[:,0] -LEN_WAVELET/2, maxline[:,2], color='b')
 
-axes[1].scatter(modmax_s0[:,0], modmax_s0[:,1])
 
-#for i in range(len(wt_idx)):
-#    axes[1].plot(wt_out[wt_idx[i]:wt_idx[i]+N, 0])
-    #axes[1].plot(wt_out[wt_idx[i]:wt_idx[i]+N, 1])
-    #axes[1].plot(wt_out[wt_idx[i]:wt_idx[i]+N, 2])
+
+
 
 '''
 for i in range(len(wvs_idx)):

@@ -303,7 +303,36 @@ __global__ void PropagateMaximaLines(FOC_ModMax_t *modmax, int *modmax_num, int 
     int temp_idx;
 
     int tid = threadIdx.x + blockIdx.x*blockDim.x;
- 
+
+#if 1
+    if (tid < modmax_num[0]) { // number of maxima lines 
+        maxline[tid*FOC_WT_LEVELS+0].t = modmax[modmax_idx[0]+tid].t;
+        maxline[tid*FOC_WT_LEVELS+0].value = modmax[modmax_idx[0]+tid].value;
+        maxline[tid*FOC_WT_LEVELS+0].level = modmax[modmax_idx[0]+tid].level;
+        maxline_size[tid] = 1;
+        for (int level = 1; level < FOC_WT_LEVELS; level++) { // for every levels
+            if (modmax_num[level] > 0) {
+                distance = FOC_LEN_RECENT_INFO+FOC_LEN_WAVELET-1; // init distance to a very large number
+                for (int j = 0; j < modmax_num[level]; j++) { // find its coarser scale modmax point
+                    if (fabsf(modmax[modmax_idx[level]+j].t - maxline[tid*FOC_WT_LEVELS+level-1].t) < distance) {
+                        distance = fabsf(modmax[modmax_idx[level]+j].t - maxline[tid*FOC_WT_LEVELS+level-1].t);
+                        temp_idx = modmax_idx[level]+j;
+                    }
+                }
+                if (distance > FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR/5.0)
+                    break;
+                else { // find maxima belong to this line
+                    maxline[tid*FOC_WT_LEVELS+level].t = modmax[temp_idx].t;
+                    maxline[tid*FOC_WT_LEVELS+level].value = modmax[temp_idx].value;
+                    maxline[tid*FOC_WT_LEVELS+level].level = modmax[temp_idx].level;
+                    maxline_size[tid]++;
+                }
+            }
+            else // end propogation
+                break;
+        }
+    }
+#else
     if (tid < modmax_num[0]) { // tid is the index of maxima lines here
         maxline[tid*FOC_WT_LEVELS+0].t = modmax[modmax_idx[0]+tid].t;
         maxline[tid*FOC_WT_LEVELS+0].value = modmax[modmax_idx[0]+tid].value;
@@ -337,6 +366,7 @@ __global__ void PropagateMaximaLines(FOC_ModMax_t *modmax, int *modmax_num, int 
         }
         __syncthreads();
     }
+#endif
 }
 
 bool foc_chain_maxline(std::vector<FOC_ModMax_t>* data_modmax, int* data_modmax_num, std::vector<FOC_ModMax_t>*** data_maxline)
@@ -426,6 +456,7 @@ bool foc_chain_maxline(std::vector<FOC_ModMax_t>* data_modmax, int* data_modmax_
         HANDLE_ERROR( cudaFreeHost(maxline[i]) );
         HANDLE_ERROR( cudaFreeHost(maxline_size[i]) );
     }
+
 #else
     /* CPU */
     // propogate from fine scales to coarse scales
