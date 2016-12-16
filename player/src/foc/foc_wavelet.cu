@@ -1,4 +1,3 @@
-#include <cufft.h>
 #include <vector>
 #include <string>
 #include <cmath>
@@ -6,18 +5,11 @@
 #include "flying_odor_compass.h"
 
 // data pointers for GPU computation
-static float *data_wt_in[FOC_NUM_SENSORS];
-static float *dev_data_wt_in[FOC_NUM_SENSORS];
+static float *data_wt_in;
+static float *dev_data_wt_in;
 static float *dev_data_wt_out;
-
-// L, length of convolution out
-static int L;
-
-// FFT handles
-cufftHandle plan_signals, plan_results;
-
-// FFT of wavelets
-cufftComplex *fft_of_wavelets, *fft_of_signals, *fft_of_results; // FFT intermediate 
+static float *data_wavelets;
+static float *dev_data_wavelets;
 
 /* 1st order derivative of gaussian wavelet
    f'(x)=-x/(sigma^3*sqrt(2*pi))*e^(-x^2/(2*sigma^2))
@@ -29,15 +21,17 @@ float wavelet_gauss_d1_psi(float x, float sigma)
 
 /* Make wavelets
     wvs             array containing wavelets, len(wvs)=len*num_levels
-    wvs_conv        extended (insert zeros), len(wvs_conv)=len_conv*num_levels
     len             sample window of wavelets, M
-    len_conv        L
     num_levels      number of levels
  */
-bool sample_wavelets(std::string wavelet_name, float* wvs, int len, float *wvs_conv, int len_conv, int num_levels)
+bool sample_wavelets(std::string wavelet_name, float* wvs, int len, int num_levels)
 {
-    if (len > len_conv)
-        return false; 
+    if (wavelet_name != "gauss_d1" or wavelet_name != "gauss_d2")
+        return false;
+    if (!wvs)
+        return false;
+    if (len <= 0 or num_levels <= 0)
+        return false;
 
     // sample wavelets
     float scale; // scale = (num_levels-level_idx/num_levels)*10
@@ -58,11 +52,6 @@ bool sample_wavelets(std::string wavelet_name, float* wvs, int len, float *wvs_c
             wvs[i*len+j] /= sum_h;
     }
 
-    // extend wavelets from length M to length L
-    memset(wvs_conv, 0, len_conv*FOC_WT_LEVELS*sizeof(float));
-    for (int i = 0; i < num_levels; i++)
-        std::copy(wvs+i*len, wvs+(i+1)*len, wvs_conv+i*len_conv);
-
     return true;
 }
 
@@ -70,10 +59,7 @@ bool sample_wavelets(std::string wavelet_name, float* wvs, int len, float *wvs_c
  */
 void foc_cwt_init(float **addr_data_wvs, std::vector<int>& data_wvs_idx, float **data_wt_out, std::vector<int>& data_wt_idx)
 {
-    // calculate L
-    int N = FOC_LEN_RECENT_INFO + FOC_LEN_WAVELET - 1;
-    L = pow(2, static_cast<int>(log2(static_cast<double>(N))+1));
-    // index of data_wt_out 
+    // index of data_wt_out
     data_wt_idx.reserve(FOC_WT_LEVELS);
     data_wt_idx.clear();
     for (int i = 0; i < FOC_WT_LEVELS; i++)
