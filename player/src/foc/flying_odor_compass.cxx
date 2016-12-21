@@ -40,13 +40,16 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     for (int i = 0; i < FOC_NUM_SENSORS; i++) {
         data_interp[i].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR); 
     }
-    data_wt_idx.reserve(FOC_WT_LEVELS);
-    data_wvs_idx.reserve(FOC_WT_LEVELS);
     for (int i = 0; i < FOC_NUM_SENSORS; i++)
-        data_modmax[i].reserve(FOC_LEN_RECENT_INFO*FOC_WT_LEVELS/FOC_MOX_INTERP_FACTOR); // a bit exaggerated
-    memset(data_modmax_num, 0, FOC_NUM_SENSORS*FOC_WT_LEVELS*sizeof(int));
+        for (int j = 0; j < FOC_WT_LEVELS; j++)
+            data_wt_out[i][j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
     for (int i = 0; i < FOC_NUM_SENSORS; i++)
-        data_maxline[i] = NULL;
+        for (int j = 0; j < FOC_WT_LEVELS; j++)
+            for (int k = 0; k < 2; k++)
+                data_modmax[i][j][k].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_WT_LEVELS); // a bit exaggerated
+    for (int i = 0; i < FOC_NUM_SENSORS; i++)
+        for (int j = 0; j < 2; j++)
+            data_maxline[i][j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
 
 /* init FIR interpolation
  * delay = FOC_SIGNAL_DELAY/2 s */
@@ -69,7 +72,9 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     foc_estimate_source_direction_init(data_est);
 #endif
 
-    foc_cwt_init(&data_wvs, data_wvs_idx, data_wt_out, data_wt_idx);
+    foc_cwt_init(data_wvs, data_wvs_idx, data_wt_out);
+    foc_identify_modmax_init(data_modmax);
+    foc_chain_maxline_init(data_maxline);
 }
 
 /* FOC update
@@ -92,15 +97,15 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
         return false;
 
 /* Step 2: Wavelet Transformation */
-    if (!foc_cwt_update(data_interp, data_wt_out, data_wt_idx))
+    if (!foc_cwt_update(data_interp, data_wt_out))
         return false;
 
 /* Step 3: Find (Identify) Modulus Maxima */
-    if (!foc_identify_modmax(data_modmax, data_modmax_num, data_wt_out, data_wt_idx))
+    if (!foc_identify_modmax_update(data_wt_out, data_modmax))
         return false;
 
 /* Step 4: Chain maxima lines */
-    if (!foc_chain_maxline(data_modmax, data_modmax_num, data_maxline))
+    if (!foc_chain_maxline_update(data_modmax, data_maxline, data_wt_out[0][0].size()))
         return false;
 
 #if 0

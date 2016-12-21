@@ -14,10 +14,10 @@ wt_out = fd['/FOC/wt_out'][...]
 wvs = fd['/FOC/wvs'][...]
 wvs_idx = fd['/FOC/wvs_index'][...]
 
-fig, axes = plt.subplots(nrows=NUM_SENSORS, figsize=(6,6))
+fig = plt.figure(figsize=(8,6))
+ax = fig.add_subplot(111)
 
-for i in range(NUM_SENSORS):
-    for j in range(WT_LEVELS):
-        axes[i].plot(wt_out[:, j, i])
+for i in range(len(wvs_idx)):
+    ax.plot(wvs[wvs_idx[i]:wvs_idx[i]+LEN_WAVELET])
 
 plt.show()

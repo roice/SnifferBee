@@ -5,7 +5,7 @@
 #include "flying_odor_compass.h"
 
 // cwt
-float *dev_wavelets;
+static float *dev_wavelets;
 
 /* 1st order derivative of gaussian wavelet
    f'(x)=-x/(sigma^3*sqrt(2*pi))*e^(-x^2/(2*sigma^2))
@@ -65,29 +65,6 @@ void foc_cwt_init(float *data_wvs, std::vector<int>& data_wvs_idx, std::vector<f
     data_wvs_idx.clear();
     for (int i = 0; i < FOC_WT_LEVELS; i++)
         data_wvs_idx.push_back(i*FOC_LEN_WAVELET);
-
-#if 0
-    // storing cuda device properties, for the sheduling of parallel computing
-    cudaDeviceProp prop;
-    int count; // number of devices
-    HANDLE_ERROR( cudaGetDeviceCount(&count) );
-    for (int i = 0; i < count; i++) {// print out info of all graphic cards
-        HANDLE_ERROR( cudaGetDeviceProperties(&prop, i) );
-        printf("======== Card %d ========\n", i+1);
-        printf("Graphic card name: %s\n", prop.name);
-        printf("Compute Capability: %d.%d\n", prop.major, prop.minor);
-        printf("Total global memory: %ld MByte\n", prop.totalGlobalMem/1024/1024);
-        printf("Total constant memoty: %ld kByte\n", prop.totalConstMem/1024);
-        printf("Multiprocessor count: %d\n", prop.multiProcessorCount);
-        printf("Shared mem per mp: %ld\n", prop.sharedMemPerBlock);
-        printf("Registers per mp: %d\n", prop.regsPerBlock);
-        printf("Threads in warp: %d\n", prop.warpSize);
-        printf("Max threads per block: %d\n", prop.maxThreadsPerBlock);
-        printf("Max thread dimensions: (%d, %d, %d)\n", prop.maxThreadsDim[0], prop.maxThreadsDim[1], prop.maxThreadsDim[2]);
-        printf("Max grid dimensions: (%d, %d, %d)\n", prop.maxGridSize[0], prop.maxGridSize[1], prop.maxGridSize[2]);
-        printf("\n");
-    }
-#endif
 
 /* allocate memory for wavelet tranformation of signals */ 
     // allocate device memory for wavelets
@@ -255,59 +232,46 @@ bool foc_identify_modmax_update(std::vector<float> data_wt_out[FOC_NUM_SENSORS][
 void foc_chain_maxline_init(std::vector<FOC_Maxline_t> data_maxline[FOC_NUM_SENSORS][2])
 {
     for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-        for (int sign = 0; sign < 2; sign++)
-        data_maxline[idx][sign].clear();
-}
-
-float decision_function_chain_maxline(float s1, float s2, float alpha, float n, float m, float wf_s1, float wf_s2)
-{
-    float delta = std::exp(-std::abs(n-m)*std::pow(s1,-alpha));
-    float D = std::exp( -std::abs(std::log(std::abs(wf_s2)/std::abs(wf_s1))/std::log(s2/s1)-0.5)*std::pow(s1,alpha) );
-    return delta*D;
+        data_maxline[idx].clear();
 }
 
 bool foc_chain_maxline_update(std::vector<FOC_ModMax_t> data_modmax[FOC_NUM_SENSORS][FOC_WT_LEVELS][2], std::vector<FOC_Maxline_t> data_maxline[FOC_NUM_SENSORS][2], int size_of_wt_out)
 {
-    static int previous_t[FOC_NUM_SENSORS][2] = {0};
+    static int previous_t_modmax[FOC_NUM_SENSORS][2] = {0};
 
     if (data_modmax[0][0][0].size() == 0)
         return false;
 
-    int t_modmax_bound = FOC_MOX_INTERP_FACTOR*10;
-
     FOC_Maxline_t new_maxline;
-    float probability, temp_probability;
-    int temp_idx_modmax;
+    int distance, temp_idx_modmax;
     for (int idx = 0; idx < FOC_NUM_SENSORS; idx++) {
         for (int sign = 0; sign < 2; sign++) {
             if (data_modmax[idx][0][sign].size() > 0) {
                 for (int i = data_modmax[idx][0][sign].size()-1; i >= 0; i--) {
-                    if (data_modmax[idx][0][sign].at(i).t > previous_t[idx][sign]) {
-                        if (data_modmax[idx][0][sign].at(i).t + t_modmax_bound < size_of_wt_out) {// 1/FOC_MOX_DAQ_FREQ s
+                    if (data_modmax[idx][0][sign].at(i).t > previous_t_modmax[idx][sign]) {
+                        if (data_modmax[idx][0][sign].at(i).t + FOC_MOX_INTERP_FACTOR < size_of_wt_out) {// 1/FOC_MOX_DAQ_FREQ s
                             new_maxline.t[0] = data_modmax[idx][0][sign].at(i).t;
                             new_maxline.value[0] = data_modmax[idx][0][sign].at(i).value;
-                            new_maxline.levels = 1;
                             for (int level = 1; level < FOC_WT_LEVELS; level++) {
                                 if (data_modmax[idx][level][sign].size() > 0 and level == new_maxline.levels) {
-                                    probability = 0;
+                                    distance = 100000;
                                     for (int j = data_modmax[idx][level][sign].size()-1; j >= 0; j--) {
-                                        if (data_modmax[idx][level][sign].at(j).t > new_maxline.t[level-1] - t_modmax_bound) {
-                                            if (data_modmax[idx][level][sign].at(j).t < new_maxline.t[level-1] + t_modmax_bound) {
-                                                temp_probability = decision_function_chain_maxline(std::sqrt((float)level), std::sqrt((float)level+1), -0.28, data_modmax[idx][level][sign].at(j).t, new_maxline.t[level-1], new_maxline.value[level-1], data_modmax[idx][level][sign].at(j).value);
-                                                if (temp_probability > probability) {
-                                                    probability = temp_probability;
+                                        if (data_modmax[idx][level][sign].at(j).t + FOC_MOX_INTERP_FACTOR > new_maxline.t[level-1]) {
+                                            if (data_modmax[idx][level][sign].at(j).t < new_maxline.t[level-1] + FOC_MOX_INTERP_FACTOR) {
+                                                if (std::abs(data_modmax[idx][level][sign].at(j).t - new_maxline.t[level-1]) < distance) {
+                                                    distance = std::abs(data_modmax[idx][level][sign].at(j).t - new_maxline.t[level-1]);
                                                     temp_idx_modmax = j;
                                                 }
                                             }
                                         }
                                         else {
-                                            if (probability > 0) { // found
+                                            if (distance < FOC_MOX_INTERP_FACTOR) { // found
                                                 new_maxline.t[level] = data_modmax[idx][level][sign].at(temp_idx_modmax).t;
                                                 new_maxline.value[level] = data_modmax[idx][level][sign].at(temp_idx_modmax).value;
                                                 new_maxline.levels++; 
                                             }
                                             if (new_maxline.levels == FOC_WT_LEVELS)
-                                                data_maxline[idx][sign].push_back(new_maxline);
+                                                    data_maxline[idx][sign].push_back(new_maxline);
                                             break;
                                         }
                                     }
@@ -325,10 +289,6 @@ bool foc_chain_maxline_update(std::vector<FOC_ModMax_t> data_modmax[FOC_NUM_SENS
             }
         }
     }
-
-    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-        for (int sign = 0; sign < 2; sign++)
-            previous_t[idx][sign] = size_of_wt_out-t_modmax_bound-1;
 
     return true;
 }

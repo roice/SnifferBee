@@ -10,7 +10,7 @@ void Record_Data(Flying_Odor_Compass& foc)
 {
     hid_t file_id, group_id, dataset_id, dataspace_id; 
     herr_t status;
-    hsize_t data_dims[2];   // dataset dimensions
+    hsize_t data_dims[3];   // dataset dimensions
     float* data_pointer;
     int* int_pointer;
     
@@ -161,14 +161,16 @@ void Record_Data(Flying_Odor_Compass& foc)
     free(int_pointer); // free space
 
     // save data_wt_out
-    data_dims[0] = foc.data_wt_out[0][0]; // data_wt_out[0 ~ FOC_NUM_SENSORS-1][0 ~ FOC_WT_LEVELS-1] have the same size
-    data_dims[1] = FOC_NUM_SENSORS;
-    dataspace_id = H5Screate_simple(2, data_dims, NULL); 
+    data_dims[0] = foc.data_wt_out[0][0].size(); // data_wt_out[0 ~ FOC_NUM_SENSORS-1][0 ~ FOC_WT_LEVELS-1] have the same size
+    data_dims[1] = FOC_WT_LEVELS;
+    data_dims[2] = FOC_NUM_SENSORS;
+    dataspace_id = H5Screate_simple(3, data_dims, NULL); 
     dataset_id = H5Dcreate2(group_id, "wt_out", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
-    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*data_dims[2]*sizeof(*data_pointer));
     for (int i = 0; i < data_dims[0]; i++)    // prepare data
-        for (int idx = 0; idx < FOC_NUM_SENSORS; idx++)
-            data_pointer[i*FOC_NUM_SENSORS+idx] = foc.data_wt_out[idx][i];
+        for (int j = 0; j < data_dims[1]; j++)
+            for (int idx = 0; idx < data_dims[2]; idx++)
+                data_pointer[i*FOC_WT_LEVELS*FOC_NUM_SENSORS+j*FOC_NUM_SENSORS+idx] = foc.data_wt_out[idx][j].at(i);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data_pointer); // write data
     status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
@@ -176,51 +178,94 @@ void Record_Data(Flying_Odor_Compass& foc)
     free(data_pointer); // free space 
 
     // save data_modmax
-    for (int idx_s = 0; idx_s < FOC_NUM_SENSORS; idx_s++) {
-        data_dims[0] = foc.data_modmax[idx_s].size();
-        data_dims[1] = 3; // t, value, level
-        dataspace_id = H5Screate_simple(2, data_dims, NULL);
-        snprintf(ds_name, sizeof(ds_name), "wt_modmax_%d", idx_s);
-        dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
-        data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
-        for (int i = 0; i < data_dims[0]; i++) {    // prepare data
-            data_pointer[i*3+0] = foc.data_modmax[idx_s].at(i).t;
-            data_pointer[i*3+1] = foc.data_modmax[idx_s].at(i).value;
-            data_pointer[i*3+2] = foc.data_modmax[idx_s].at(i).level;
-        }
-        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
-                      H5P_DEFAULT, data_pointer); // write data
-        status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
-        status = H5Sclose(dataspace_id); // Terminate access to the data space. 
-        free(data_pointer); // free space
-    }
-
-    // save data_modmax_num
-    data_dims[0] = FOC_NUM_SENSORS*FOC_WT_LEVELS;
-    dataspace_id = H5Screate_simple(1, data_dims, NULL); 
-    dataset_id = H5Dcreate2(group_id, "wt_modmax_num", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
-    int_pointer = (int*)malloc(data_dims[0]*sizeof(*int_pointer));
-    for (int i = 0; i < data_dims[0]; i++)    // prepare data
-        int_pointer[i] = foc.data_modmax_num[i];
-    status = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
-                      H5P_DEFAULT, int_pointer); // write data
-    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
-    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
-    free(int_pointer); // free space
-
-    // save data_maxline
-    for (int idx_s = 0; idx_s < FOC_NUM_SENSORS; idx_s++) {
-        for (int idx_l = 0; idx_l < foc.data_modmax_num[idx_s*FOC_WT_LEVELS+0]; idx_l++) {
-            data_dims[0] = foc.data_maxline[idx_s][idx_l]->size();
+    for (int idx = 0; idx < FOC_NUM_SENSORS; idx++) {
+        for (int level = 0; level < FOC_WT_LEVELS; level++) {
+            data_dims[0] = foc.data_modmax[idx][level][0].size();
             data_dims[1] = 3; // t, value, level
             dataspace_id = H5Screate_simple(2, data_dims, NULL);
-            snprintf(ds_name, sizeof(ds_name), "wt_maxline_%d_%d", idx_s, idx_l);
+            snprintf(ds_name, sizeof(ds_name), "wt_maxima_s%d_l%d", idx, level);
             dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
             data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
             for (int i = 0; i < data_dims[0]; i++) {    // prepare data
-                data_pointer[i*3+0] = foc.data_maxline[idx_s][idx_l]->at(i).t;
-                data_pointer[i*3+1] = foc.data_maxline[idx_s][idx_l]->at(i).value;
-                data_pointer[i*3+2] = foc.data_maxline[idx_s][idx_l]->at(i).level;
+                data_pointer[i*3+0] = foc.data_modmax[idx][level][0].at(i).t;
+                data_pointer[i*3+1] = foc.data_modmax[idx][level][0].at(i).value;
+                data_pointer[i*3+2] = foc.data_modmax[idx][level][0].at(i).level;
+            }
+            status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+            status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+            status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+            free(data_pointer); // free space
+
+            data_dims[0] = foc.data_modmax[idx][level][1].size();
+            data_dims[1] = 3; // t, value, level
+            dataspace_id = H5Screate_simple(2, data_dims, NULL);
+            snprintf(ds_name, sizeof(ds_name), "wt_minima_s%d_l%d", idx, level);
+            dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+            data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+            for (int i = 0; i < data_dims[0]; i++) {    // prepare data
+                data_pointer[i*3+0] = foc.data_modmax[idx][level][1].at(i).t;
+                data_pointer[i*3+1] = foc.data_modmax[idx][level][1].at(i).value;
+                data_pointer[i*3+2] = foc.data_modmax[idx][level][1].at(i).level;
+            }
+            status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+            status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+            status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+            free(data_pointer); // free space
+        }
+    }
+
+
+
+    // save data_maxline
+    for (int idx_s = 0; idx_s < FOC_NUM_SENSORS; idx_s++) {
+        for (int sign = 0; sign < 2; sign++) {
+            data_dims[0] = foc.data_maxline[idx_s][sign].size();
+            data_dims[1] = 1; // levels
+            dataspace_id = H5Screate_simple(1, data_dims, NULL);
+            if (sign == 0)
+                snprintf(ds_name, sizeof(ds_name), "wt_maxline_levels_s%d", idx_s);
+            else
+                snprintf(ds_name, sizeof(ds_name), "wt_minline_levels_s%d", idx_s);
+            dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+            int_pointer = (int*)malloc(data_dims[0]*sizeof(*int_pointer));
+            for (int i = 0; i < data_dims[0]; i++) {    // prepare data
+                int_pointer[i] = foc.data_maxline[idx_s][sign].at(i).levels;
+            }
+            status = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, int_pointer); // write data
+            status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+            status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+            free(int_pointer); // free space
+
+            data_dims[1] = FOC_WT_LEVELS; // t[FOC_WT_LEVELS]
+            dataspace_id = H5Screate_simple(2, data_dims, NULL);
+            if (sign == 0)
+                snprintf(ds_name, sizeof(ds_name), "wt_maxline_t_s%d", idx_s);
+            else
+                snprintf(ds_name, sizeof(ds_name), "wt_minline_t_s%d", idx_s);
+            dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+            data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+            for (int i = 0; i < data_dims[0]; i++) // prepare data
+                for (int j = 0; j < data_dims[1]; j++)
+                    data_pointer[i*data_dims[1]+j] = foc.data_maxline[idx_s][sign].at(i).t[j];
+            status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+            status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+            status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+            free(data_pointer); // free space
+
+            data_dims[1] = FOC_WT_LEVELS; // t[FOC_WT_LEVELS]
+            dataspace_id = H5Screate_simple(2, data_dims, NULL);
+            if (sign == 0)
+                snprintf(ds_name, sizeof(ds_name), "wt_maxline_value_s%d", idx_s);
+            else
+                snprintf(ds_name, sizeof(ds_name), "wt_minline_value_s%d", idx_s);
+            dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+            data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+            for (int i = 0; i < data_dims[0]; i++) {    // prepare data
+                memcpy(&data_pointer[i*data_dims[1]], foc.data_maxline[idx_s][sign].at(i).value, data_dims[1]*sizeof(float));
             }
             status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
                       H5P_DEFAULT, data_pointer); // write data

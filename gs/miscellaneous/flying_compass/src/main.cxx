@@ -67,8 +67,8 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    for (int i = 20*60*5; i < 20*60*6; i++)
-    //for (int i = 200; i < 600; i++)
+    //for (int i = 20*60*0; i < 20*60*6; i++)
+    for (int i = 200; i < 600; i++)
     //for (int i = 500; i < 900; i++)
     {
         // read position
@@ -78,9 +78,9 @@ int main(int argc, char* argv[])
         // read wind (disturbance)
         memcpy(&input.wind[0], &wind[i][0], 3*sizeof(float));
 
-        input.mox_reading[0] = 3.3-sensor_reading[i][0];
-        input.mox_reading[1] = 3.3-sensor_reading[i][1];
-        input.mox_reading[2] = 3.3-sensor_reading[i][2];
+        input.mox_reading[0] = sensor_reading[i][0];
+        input.mox_reading[1] = sensor_reading[i][1];
+        input.mox_reading[2] = sensor_reading[i][2];
         foc.update(input);
     }
 

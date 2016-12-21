@@ -14,8 +14,8 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 # Project name
 set(PRJ_NAME Flying_Odor_Compass)
 # Debug version
-#set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
 # ===================================================
 
 #====================================================
@@ -40,7 +40,7 @@ endif()
 find_package(CUDA REQUIRED)
 # nvcc flags
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math;)
-list(APPEND CUDA_DEV_LIBRARIES ${CUDA_cufft_LIBRARY})
+#list(APPEND CUDA_DEV_LIBRARIES ${CUDA_cufft_LIBRARY})
 link_directories(${CUDA_LIBRARY_DIRS})
 
 #---- External HDF5 related, for data recording
@@ -123,6 +123,6 @@ target_link_libraries(${PRJ_NAME} blas)
 target_link_libraries(${PRJ_NAME} gfortran)
 target_link_libraries(${PRJ_NAME} pthread)
 # link CUDA library
-target_link_libraries(${PROJECT_NAME} ${CUDA_LIBRARIES} ${CUDA_DEV_LIBRARIES})
+#target_link_libraries(${PROJECT_NAME} ${CUDA_LIBRARIES} ${CUDA_DEV_LIBRARIES})
 # link extern hdf5 library
 target_link_libraries(${PRJ_NAME} ${HDF5_LIBRARIES})

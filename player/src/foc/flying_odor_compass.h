@@ -118,6 +118,12 @@ typedef struct {
     int     level;  // this maxima point belongs to which level
 } FOC_ModMax_t;
 
+typedef struct {
+    int levels; // the number of levels this maxline grows through
+    float value[FOC_WT_LEVELS]; // value of modmax
+    float t[FOC_WT_LEVELS]; // time of modmax
+} FOC_Maxline_t;
+
 class Flying_Odor_Compass
 {
     public:
@@ -140,12 +146,11 @@ class Flying_Odor_Compass
         std::vector<FOC_STD_t>          data_std[FOC_DIFF_GROUPS*FOC_DIFF_LAYERS_PER_GROUP];
 #endif
         // memory allocated in foc_wavelet.cu
-        float*                          data_wvs; // wavelets of multi-scales
+        float                           data_wvs[FOC_WT_LEVELS*FOC_LEN_WAVELET]; // wavelets of multi-scales
         std::vector<int>                data_wvs_idx; // index of every scale wavelet in data_wvs
-        std::vector<float>                          data_wt_out[FOC_NUM_SENSORS][FOC_WT_LEVELS]; // wavelet transform of signals
-        std::vector<FOC_ModMax_t>       data_modmax[FOC_NUM_SENSORS]; // modulus maxima points, points are sequentially placed in the order of level 0, 1, 2, ..., FOC_WT_LEVELS-1
-        int                             data_modmax_num[FOC_NUM_SENSORS*FOC_WT_LEVELS]; // number of modmax in a level
-        std::vector<FOC_ModMax_t>**     data_maxline[FOC_NUM_SENSORS];
+        std::vector<float>              data_wt_out[FOC_NUM_SENSORS][FOC_WT_LEVELS]; // wavelet transform of signals
+        std::vector<FOC_ModMax_t>       data_modmax[FOC_NUM_SENSORS][FOC_WT_LEVELS][2]; // modulus maxima points, points are sequentially placed in the order of level 0, 1, 2, ..., FOC_WT_LEVELS-1
+        std::vector<FOC_Maxline_t>      data_maxline[FOC_NUM_SENSORS][2]; // maxima lines
 
 // Debug 
 
