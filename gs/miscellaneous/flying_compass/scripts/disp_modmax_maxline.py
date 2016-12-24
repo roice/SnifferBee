@@ -11,6 +11,15 @@ LEN_RECENT_INFO = (15*MOX_DAQ_FREQ*MOX_INTERP_FACTOR)
 
 fd = h5py.File('FOC_Record.h5', 'r+')
 
+maxline_levels = fd['/FOC/wt_maxline_levels_s2'][...]
+maxline_t = fd['/FOC/wt_maxline_t_s2'][...]
+maxline_value = fd['/FOC/wt_maxline_value_s2'][...]
+for i in range(len(maxline_levels)):
+    if maxline_t[i, 0] == 964:
+        print "levels = " + str(maxline_levels[i])
+        print "t = " + str(maxline_t[i])
+        print "value = " + str(maxline_value[i])
+
 fig, axes = plt.subplots(nrows=3, figsize=(8,6))
 
 for i in range(NUM_SENSORS):

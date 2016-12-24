@@ -19,6 +19,7 @@
 #include "foc/foc_interp.h"
 #include "foc/foc_wind.h"
 #include "foc/foc_wavelet.h"
+#include "foc/foc_feature.h"
 
 #define SIGN(n) (n >= 0? 1:-1)
 
@@ -50,6 +51,7 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     for (int i = 0; i < FOC_NUM_SENSORS; i++)
         for (int j = 0; j < 2; j++)
             data_maxline[i][j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
+    data_feature.reserve(FOC_LEN_RECENT_INFO);
 
 /* init FIR interpolation
  * delay = FOC_SIGNAL_DELAY/2 s */
@@ -75,6 +77,7 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     foc_cwt_init(data_wvs, data_wvs_idx, data_wt_out);
     foc_identify_modmax_init(data_modmax);
     foc_chain_maxline_init(data_maxline);
+    foc_feature_extraction_init(data_feature);
 }
 
 /* FOC update
@@ -107,6 +110,12 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 /* Step 4: Chain maxima lines */
     if (!foc_chain_maxline_update(data_modmax, data_maxline, data_wt_out[0][0].size()))
         return false;
+
+/* Step 5: Get features (TDOA, etc), use recent info */
+    if (!foc_feature_extraction_update(data_maxline, data_feature, data_wt_out[0][0].size()))
+        return false;
+
+/* Step 6:  */
 
 #if 0
 /* Step 3: Smoothing through FIR filtering

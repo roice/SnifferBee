@@ -90,7 +90,7 @@ add_library(${LIB_FOC_NAME}
     ../../../player/src/foc/flying_odor_compass.cxx
     #../../../player/src/foc/foc_noise_reduction.cxx
     ../../../player/src/foc/foc_interp.cxx
-    #../../../player/src/foc/foc_wt.cxx
+    ../../../player/src/foc/foc_feature.cxx
     #../../../player/src/foc/foc_smooth.cxx
     #../../../player/src/foc/foc_diff.cxx
     #../../../player/src/foc/foc_edge.cxx 

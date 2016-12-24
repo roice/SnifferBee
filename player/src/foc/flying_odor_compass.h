@@ -17,15 +17,12 @@
 
 #define FOC_NUM_SENSORS             3
 #define FOC_RADIUS                  0.1     // meter
-#define FOC_WIND_MIN                0.05    // m/s
+#define FOC_WIND_MIN                0.1    // m/s
 #define FOC_WIND_MAX                5.0     // m/s
 #define FOC_SIGNAL_DELAY            2       // seconds, int
 #define FOC_TDOA_DELAY              1       // seconds, int
 #define FOC_MOX_DAQ_FREQ            20      // Hz, int
 #define FOC_MOX_INTERP_FACTOR       10      // samples/symbol, > 4, int
-
-//#define FOC_DIFF_LAYERS_PER_GROUP   3       // layers of difference per group, 2 <= layers
-//#define FOC_DIFF_GROUPS             6       // groups of difference
 #define FOC_LEN_RECENT_INFO         (15*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)    // approx. 15 s
 #define FOC_LEN_WAVELET             (3*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)    // approx. 3 s
 #define FOC_WT_LEVELS               100       // wavelet transform levels
@@ -124,6 +121,12 @@ typedef struct {
     float t[FOC_WT_LEVELS]; // time of modmax
 } FOC_Maxline_t;
 
+typedef struct {
+    int type; // sign
+    int idx_ml[FOC_NUM_SENSORS]; // index of data_maxline this feature extracts from
+    float toa[FOC_NUM_SENSORS];
+} FOC_Feature_t;
+
 class Flying_Odor_Compass
 {
     public:
@@ -151,6 +154,7 @@ class Flying_Odor_Compass
         std::vector<float>              data_wt_out[FOC_NUM_SENSORS][FOC_WT_LEVELS]; // wavelet transform of signals
         std::vector<FOC_ModMax_t>       data_modmax[FOC_NUM_SENSORS][FOC_WT_LEVELS][2]; // modulus maxima points, points are sequentially placed in the order of level 0, 1, 2, ..., FOC_WT_LEVELS-1
         std::vector<FOC_Maxline_t>      data_maxline[FOC_NUM_SENSORS][2]; // maxima lines
+        std::vector<FOC_Feature_t>      data_feature;
 
 // Debug 
 

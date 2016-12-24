@@ -278,6 +278,7 @@ bool foc_chain_maxline_update(std::vector<FOC_ModMax_t> data_modmax[FOC_NUM_SENS
     FOC_Maxline_t new_maxline;
     float probability, temp_probability;
     int temp_idx_modmax;
+    bool flag_should_grow_maxline = false;
     for (int idx = 0; idx < FOC_NUM_SENSORS; idx++) {
         for (int sign = 0; sign < 2; sign++) {
             if (data_modmax[idx][0][sign].size() > 0) {
@@ -293,7 +294,7 @@ bool foc_chain_maxline_update(std::vector<FOC_ModMax_t> data_modmax[FOC_NUM_SENS
                                     for (int j = data_modmax[idx][level][sign].size()-1; j >= 0; j--) {
                                         if (data_modmax[idx][level][sign].at(j).t > new_maxline.t[level-1] - t_modmax_bound) {
                                             if (data_modmax[idx][level][sign].at(j).t < new_maxline.t[level-1] + t_modmax_bound) {
-                                                temp_probability = decision_function_chain_maxline(std::sqrt((float)level), std::sqrt((float)level+1), -0.28, data_modmax[idx][level][sign].at(j).t, new_maxline.t[level-1], new_maxline.value[level-1], data_modmax[idx][level][sign].at(j).value);
+                                                temp_probability = decision_function_chain_maxline(std::sqrt((float)level), std::sqrt((float)level+1), -0.3, data_modmax[idx][level][sign].at(j).t, new_maxline.t[level-1], new_maxline.value[level-1], data_modmax[idx][level][sign].at(j).value);
                                                 if (temp_probability > probability) {
                                                     probability = temp_probability;
                                                     temp_idx_modmax = j;
@@ -302,9 +303,34 @@ bool foc_chain_maxline_update(std::vector<FOC_ModMax_t> data_modmax[FOC_NUM_SENS
                                         }
                                         else {
                                             if (probability > 0) { // found
-                                                new_maxline.t[level] = data_modmax[idx][level][sign].at(temp_idx_modmax).t;
-                                                new_maxline.value[level] = data_modmax[idx][level][sign].at(temp_idx_modmax).value;
-                                                new_maxline.levels++; 
+                                                // eliminate wrong link in previous maxlines
+                                                if (data_maxline[idx][sign].size() > 0) {
+                                                    for (int pre_ml = (int)data_maxline[idx][sign].size()-1>=0?data_maxline[idx][sign].size()-1:0; pre_ml < data_maxline[idx][sign].size(); pre_ml++) {
+                                                        if (level < data_maxline[idx][sign].at(pre_ml).levels and data_modmax[idx][level][sign].at(temp_idx_modmax).t == data_maxline[idx][sign].at(pre_ml).t[level] and data_modmax[idx][level][sign].at(temp_idx_modmax).value == data_maxline[idx][sign].at(pre_ml).value[level]) {
+                                                            if (probability > decision_function_chain_maxline(std::sqrt((float)level), std::sqrt((float)level+1), -0.3, data_modmax[idx][level][sign].at(temp_idx_modmax).t, data_maxline[idx][sign].at(pre_ml).t[level-1], data_maxline[idx][sign].at(pre_ml).value[level-1], data_modmax[idx][level][sign].at(temp_idx_modmax).value)) {
+                                                                data_maxline[idx][sign].at(pre_ml).levels = level;
+                                                                flag_should_grow_maxline = true;
+                                                            }
+                                                            else
+                                                                flag_should_grow_maxline = false;
+                                                            break;
+                                                        }
+                                                        else
+                                                            flag_should_grow_maxline = true;
+                                                    }
+                                                }
+                                                else
+                                                    flag_should_grow_maxline = true;
+                                                if (flag_should_grow_maxline) {
+                                                    new_maxline.t[level] = data_modmax[idx][level][sign].at(temp_idx_modmax).t;
+                                                    new_maxline.value[level] = data_modmax[idx][level][sign].at(temp_idx_modmax).value;
+                                                    new_maxline.levels++;
+                                                    flag_should_grow_maxline = false;
+                                                }
+                                            }
+                                            else {
+                                                data_maxline[idx][sign].push_back(new_maxline);
+                                                break;
                                             }
                                             if (new_maxline.levels == FOC_WT_LEVELS)
                                                 data_maxline[idx][sign].push_back(new_maxline);
