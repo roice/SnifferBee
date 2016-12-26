@@ -26,7 +26,7 @@ for i in range(NUM_SENSORS):
     for j in range(WT_LEVELS):
         ds_name = '/FOC/wt_maxima_s'+str(i)+'_l'+str(j)
         modmax = fd[ds_name][...]
-        axes[i].scatter(modmax[:,0], modmax[:,1])
+        axes[i].scatter((modmax[:,0]+LEN_WAVELET/2)/(float)(MOX_DAQ_FREQ*MOX_INTERP_FACTOR), modmax[:,1])
 
 for i in range(NUM_SENSORS):
     for j in range(2):
@@ -42,6 +42,6 @@ for i in range(NUM_SENSORS):
         maxline_t = fd[ds_name_t][...]
         maxline_value = fd[ds_name_value][...]
         for k in range(len(maxline_levels)):
-            axes[i].plot(maxline_t[k, 0:maxline_levels[k]], maxline_value[k, 0:maxline_levels[k]])
+            axes[i].plot((maxline_t[k, 0:maxline_levels[k]]+LEN_WAVELET/2)/(float)(MOX_DAQ_FREQ*MOX_INTERP_FACTOR), maxline_value[k, 0:maxline_levels[k]])
 
 plt.show()

@@ -124,7 +124,8 @@ typedef struct {
 typedef struct {
     int type; // sign
     int idx_ml[FOC_NUM_SENSORS]; // index of data_maxline this feature extracts from
-    float toa[FOC_NUM_SENSORS];
+    float toa[FOC_NUM_SENSORS]; // second
+    float sum_abs_top_level_wt_value; // sum of the abs of top level wt value
 //Debug
     float sum_abs_tdoa; // sum of abs(tdoa), s
     float sum_llh_mls_t; // sum of likelihood of time of maxlines, -FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!)  ~ FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!)
@@ -161,9 +162,6 @@ class Flying_Odor_Compass
         std::vector<FOC_ModMax_t>       data_modmax[FOC_NUM_SENSORS][FOC_WT_LEVELS][2]; // modulus maxima points, points are sequentially placed in the order of level 0, 1, 2, ..., FOC_WT_LEVELS-1
         std::vector<FOC_Maxline_t>      data_maxline[FOC_NUM_SENSORS][2]; // maxima lines
         std::vector<FOC_Feature_t>      data_feature;
-
-// Debug 
-
         std::vector<FOC_Estimation_t>   data_est;
     private:
         // unscented kalman filters

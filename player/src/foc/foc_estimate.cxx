@@ -21,7 +21,7 @@ static void init_particles(unsigned int, int, float, float*, FOC_Estimation_t&);
 static void split_new_particles(unsigned int, float, int, float, float*, float, FOC_Estimation_t&);
 static void CalculateRotationMatrix(float*, float*, float*);
 
-void foc_estimate_source_direction_init(std::vector<FOC_Estimation_t>& out)
+void foc_estimate_source_init(std::vector<FOC_Estimation_t>& out)
 { 
     // generate seed for random numbers
     rand_seed = time(NULL);
@@ -34,30 +34,123 @@ void foc_estimate_source_direction_init(std::vector<FOC_Estimation_t>& out)
     out.clear();
 }
 
+/* Estimate horizontal plume dispersion direction according to TOA
+ * Args:
+ *      feature     including toa
+ *      out         direction, out = speed*e[2] = speed*{e_x, e_y}
+ * Return:
+ *      false       can't determine where the odor comes from
+ *      true
+ * Equations:
+ *                                      1
+ *      e_x = +/- --------------------------------------------------
+ *                 sqrt(1 + 1/3*((dt_lf+dt_rf)/(dt_lf-dt_rf))^2)
+ *                1      dt_lf+dt_rf
+ *      e_y = --------- ------------- e_x
+ *             sqrt(3)   dt_lf-dt_rf
+ *      e_x^2 + e_y^2 = 1
+ *      The sign of e_x & e_y is consist with dt_lf or dt_rf:
+ *      sign(sqrt(3)e_x + 3e_y) = sign(dt_lf)
+ *      sign(-sqrt(3)e_x + 3e_y) = sign(dt_rf)
+ */
+bool estimate_horizontal_plume_dispersion_direction_according_to_toa(FOC_Feature_t& feature, float* out)
+{
+    float e_x, e_y, dt_lf = feature.toa[1]-feature.toa[0], dt_rf = feature.toa[2]-feature.toa[0], speed;
+    float sqrt_3 = sqrt(3);
+
+    // check if dt is valid
+    if (dt_lf == 0 and dt_rf == 0)
+        return false;
+
+    // calculate e_x & e_y
+    if (dt_lf == dt_rf) {
+        if (dt_lf > 0.) {
+            e_x = 0.;
+            e_y = -1.;
+        }
+        else {
+            e_x = 0.;
+            e_y = 1.;
+        }
+    }
+    else {
+        float dt_add = dt_lf + dt_rf;
+        float dt_minus = dt_lf - dt_rf;
+        e_x = 1.0 / sqrt(1 + 1.0/3.0*pow(dt_add/dt_minus, 2));
+        e_y = 1.0/sqrt_3*dt_add/dt_minus*e_x;
+        
+        // determine sign(e_x) & sign(e_y)
+        //if (absf(dt_lf) > absf(dt_rf)) { // math.h
+        if (std::abs(dt_lf) > std::abs(dt_rf)) { // cmath
+            if (std::signbit(sqrt_3*e_x+3*e_y)==std::signbit(dt_lf)) {
+                e_x *= -1;
+                e_y *= -1;
+            }
+        }
+        else {
+            if (std::signbit(-sqrt_3*e_x+3*e_y)==std::signbit(dt_rf)) {
+                e_x *= -1;
+                e_y *= -1;
+            }
+        }
+    }
+
+    // calculate wind speed
+    //if (absf(dt_lf) > absf(dt_rf)) // math.h
+    if (std::abs(dt_lf) > std::abs(dt_rf)) // cmath
+        //speed = sqrt_3*FOC_RADIUS/2.0*absf(e_x+sqrt_3*e_y)/absf(dt_lf); // math.h
+        speed = sqrt_3*FOC_RADIUS/2.0*std::abs(e_x+sqrt_3*e_y)/std::abs(dt_lf); // cmath
+    else
+        //speed = sqrt_3*FOC_RADIUS/2.0*absf(e_x-sqrt_3*e_y)/absf(dt_rf); // math.h
+        speed = sqrt_3*FOC_RADIUS/2.0*std::abs(e_x-sqrt_3*e_y)/std::abs(dt_rf); // cmath
+
+    // check if wind speed is valid
+    if (speed > FOC_WIND_MAX or speed < FOC_WIND_MIN)
+        return false;
+
+    // save result
+    out[0] = e_x; //*speed;
+    out[1] = e_y; //*speed;
+
+    return true;
+}
+
 /* Estimate the 3D direction the odor comes from 
  * Args:
- *      in      standard deviation & time of arrival of signals of different sensors
- *      out     direction estimation
+ *      feature     feature of combinations of sensor maxlines, containing TDOA etc. info
+ *      est         direction estimation
  */
-bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::vector<FOC_STD_t>* std, std::vector<FOC_TDOA_t>* tdoa, std::vector<FOC_Wind_t>& wind, std::vector<FOC_Estimation_t>& out)
+bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector<FOC_Estimation_t>& est)
 {
-    FOC_Estimation_t new_out;
+    if (feature.size() == 0)
+        return false;
+
+    FOC_Estimation_t new_est;
 
 /* ===============  Step 1: Prepare to release particles  =====================
  *  Step 1 Phase 1: estimate horizontal direction where the odor comes from */
     float est_horizontal_odor_trans_direction[3] = {0};   // estimated horizontal odor transport direction, e/n
     float est_horizontal_odor_std_deviation[FOC_NUM_SENSORS] = {0};   // standard deviations of odor sensors
+    float temp_hd[3], temp_hd_p[3], temp_sum_hd[3] = {0};
+    for (int i = 0; i < feature.size(); i++) {
+        if(estimate_horizontal_plume_dispersion_direction_according_to_toa(feature.at(i), temp_hd_p)) {
+            for (int j = 0; j < 2; j++)
+                temp_sum_hd[j] += temp_hd_p[j]*feature.at(i).credit;
+
+printf("feature %d, type = %d, toa = { %f, %f, %f } temp_hd_p = { %f, %f }, sum_value = %f\n", i, feature.at(i).type, feature.at(i).toa[0], feature.at(i).toa[1], feature.at(i).toa[2], temp_hd_p[0], temp_hd_p[1], feature.at(i).sum_abs_top_level_wt_value);
+
+        }
+    }
+
+printf("temp_sum_hd = { %f, %f }\n", temp_sum_hd[0], temp_sum_hd[1]);
+
+#if 0
     float est_horizontal_odor_trans_direction_clustering = 0;   // clustering of odor trans direction
-    int deep_traceback = FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR;
-    int index_tdoa;
-    float temp_hd[3], temp_hd_p[3];
+    
     double temp_sum_hd[3] = {0}; double temp_norm_hd = 0;
     std::vector<FOC_Vector_t>* hds = new std::vector<FOC_Vector_t>;
     FOC_Vector_t new_hd_v = {0}; int temp_count = 0;
-    for (int grp = 3; grp < FOC_DIFF_GROUPS; grp++)
-    for (int lyr = 0; lyr < FOC_DIFF_LAYERS_PER_GROUP; lyr++) {
-        memset(temp_sum_hd, 0, sizeof(temp_sum_hd));
-        index_tdoa = tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].size() -1;
+    e() -1;
         while (index_tdoa >= 0) {
             if (tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa).index > tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].back().index - deep_traceback) {
                 if (tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa).dt < FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_RADIUS/FOC_WIND_MAX) {
@@ -282,6 +375,8 @@ bool foc_estimate_source_direction_update(std::vector<FOC_Input_t>& raw, std::ve
     */
 
     out.push_back(new_out);
+
+#endif
 
     return true;
 }

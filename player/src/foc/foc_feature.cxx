@@ -6,7 +6,7 @@
 #include "foc/flying_odor_compass.h"
 
 #define FOC_FEATURE_ML_LEVELS_THRESHOLD     30
-#define FOC_FEATURE_ML_VALUE_THRESHOLD      0.6
+#define FOC_FEATURE_ML_VALUE_THRESHOLD      0.15
 #define FOC_FEATURE_MLS_T_THRESHOLD         (FOC_RADIUS/FOC_WIND_MIN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR) // 1 s
 
 void foc_feature_extraction_init(std::vector<FOC_Feature_t> &data_feature)
@@ -250,7 +250,11 @@ for (int i = 0; i < comb_mls[sign].size(); i++) {
             memset(&new_feature, 0, sizeof(new_feature));
             new_feature.type = sign;
             memcpy(new_feature.idx_ml, comb_mls[sign].at(temp_idx_comb).idx, FOC_NUM_SENSORS*sizeof(int));
+            for (int i = 0; i < FOC_NUM_SENSORS; i++)
+                new_feature.toa[i] = (float)(data_maxline[i][sign].at(comb_mls[sign].at(temp_idx_comb).idx[i]).t[0]+FOC_LEN_WAVELET/2)/(float)(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
             new_feature.sum_abs_tdoa = comb_mls[sign].at(temp_idx_comb).sum_abs_tdoa;
+            for (int i = 0; i < FOC_NUM_SENSORS; i++)
+                new_feature.sum_abs_top_level_wt_value += std::abs(data_maxline[i][sign].at(comb_mls[sign].at(temp_idx_comb).idx[i]).value[data_maxline[i][sign].at(comb_mls[sign].at(temp_idx_comb).idx[i]).levels-1]);
             new_feature.sum_llh_mls_t = comb_mls[sign].at(temp_idx_comb).sum_llh_mls_t;
             new_feature.sum_llh_mls_value = comb_mls[sign].at(temp_idx_comb).sum_llh_mls_value;
             new_feature.sum_llh_mls_levels = comb_mls[sign].at(temp_idx_comb).sum_llh_mls_levels;

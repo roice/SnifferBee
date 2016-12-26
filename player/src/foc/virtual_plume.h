@@ -15,6 +15,5 @@ void calculate_virtual_tdoa_and_std(std::vector<FOC_Puff_t>*, float*, float*, FO
 // GPU verstion
 void release_virtual_plumes_and_calculate_virtual_tdoa_std(std::vector<FOC_Particle_t>*, FOC_Input_t&, float*);
 #endif
-bool estimate_horizontal_direction_according_to_tdoa(FOC_TDOA_t& delta, float* out);
 
 #endif

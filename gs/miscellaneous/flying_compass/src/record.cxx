@@ -276,9 +276,6 @@ void Record_Data(Flying_Odor_Compass& foc)
     }
 
     // data_feature
-
-printf ("data_feature.size() = %d\n", foc.data_feature.size());
-    
     data_dims[0] = foc.data_feature.size();
     data_dims[1] = 1;
     dataspace_id = H5Screate_simple(1, data_dims, NULL);

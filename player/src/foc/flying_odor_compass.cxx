@@ -20,6 +20,7 @@
 #include "foc/foc_wind.h"
 #include "foc/foc_wavelet.h"
 #include "foc/foc_feature.h"
+#include "foc/foc_estimate.h"
 
 #define SIGN(n) (n >= 0? 1:-1)
 
@@ -52,6 +53,7 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
         for (int j = 0; j < 2; j++)
             data_maxline[i][j].reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_feature.reserve(FOC_LEN_RECENT_INFO);
+    data_est.reserve(FOC_LEN_RECENT_INFO);
 
 /* init FIR interpolation
  * delay = FOC_SIGNAL_DELAY/2 s */
@@ -78,6 +80,7 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
     foc_identify_modmax_init(data_modmax);
     foc_chain_maxline_init(data_maxline);
     foc_feature_extraction_init(data_feature);
+    foc_estimate_source_init(data_est);
 }
 
 /* FOC update
@@ -115,7 +118,10 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
     if (!foc_feature_extraction_update(data_maxline, data_feature, data_wt_out[0][0].size()))
         return false;
 
-/* Step 6:  */
+/* Step 6: Estimate source
+ * Warning: FOC_NUM_SENSORS = 3 */
+    if (!foc_estimate_source_update(data_feature, data_est))
+        return false;
 
 #if 0
 /* Step 3: Smoothing through FIR filtering

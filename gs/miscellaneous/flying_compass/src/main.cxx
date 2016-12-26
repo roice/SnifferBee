@@ -35,7 +35,12 @@
 //#define FILE "../data/Record_2016-10-27_20-16-05.h5"
 //#define FILE "../data/Record_2016-12-15_15-48-00.h5"
 //#define FILE "../data/Record_2016-12-15_16-14-30.h5"
-#define FILE "../data/Record_2016-12-16_10-13-13.h5"
+//#define FILE "../data/Record_2016-12-16_10-13-13.h5"
+//#define FILE "../data/Record_2016-12-26_19-51-55.h5" // no alcohol
+//#define FILE "../data/Record_2016-12-26_20-09-14.h5" // no alcohol, wind
+//#define FILE "../data/Record_2016-12-26_20-14-25.h5" // alcohol blow ahead to red
+//#define FILE "../data/Record_2016-12-26_20-42-10.h5"
+#define FILE "../data/Record_2016-12-26_22-16-19.h5" // alcohol blow ahead to red, hovering
 
 int main(int argc, char* argv[])
 {
@@ -67,9 +72,9 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    //for (int i = 20*60*0; i < 20*60*6; i++)
-    //for (int i = 200; i < 600; i++)
-    for (int i = 6000; i < 7000; i++)
+    for (int i = 20*60*0; i < 20*60*1; i++)
+    //for (int i = 0; i < 800; i++)
+    //for (int i = 6000; i < 7000; i++)
     {
         // read position
         memcpy(&input.position[0], &position[i][0], 3*sizeof(float));
