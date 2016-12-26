@@ -119,8 +119,8 @@ void mbspSendMeasurements(void)
     // E53-TTL-100 module, EBYTE Co.Ltd., Chengdu
     // 0x00 0x64 0x82 by default
     bufWriterAppend(mbspWriter, 0x00);
-    bufWriterAppend(mbspWriter, 0x64);
-    bufWriterAppend(mbspWriter, 0x82);
+    bufWriterAppend(mbspWriter, 120+MICROBEE_DEVICE_NUMBER);  // address of GS
+    bufWriterAppend(mbspWriter, 115+10*(MICROBEE_DEVICE_NUMBER-1));  // 115 + 10*(MICROBEE_DEVICE_NUMBER-1)
 
     // '$B>' header of mbsp message
     bufWriterAppend(mbspWriter, '$');
