@@ -469,15 +469,20 @@ void RemoterPanel::cb_change_rc_yaw(Fl_Widget* w, void* data) {
     }
 }
 void RemoterPanel::cb_manual_auto_switch(Fl_Widget* w, void* data) {
+    RemoterPanel_Widgets* widgets = (RemoterPanel_Widgets*)data;
     if (((Fl_Button*)w)->value()) // manual control
-    {// set throttle/roll/pitch/yaw sliders according to latest spp_rc_data
-        RemoterPanel_Widgets* widgets = (RemoterPanel_Widgets*)data;
+    {
+        // tell flight controller not to control microbee
+        microbee_switch_to_manual(widgets->robot_to_control->value());
+        // set throttle/roll/pitch/yaw sliders according to latest spp_rc_data
         SPP_RC_DATA_t* rc_data = spp_get_rc_data();
         widgets->rc_throttle->value(rc_data[widgets->robot_to_control->value()].throttle);
         widgets->rc_roll->value(rc_data[widgets->robot_to_control->value()].roll);
         widgets->rc_pitch->value(rc_data[widgets->robot_to_control->value()].pitch);
         widgets->rc_yaw->value(rc_data[widgets->robot_to_control->value()].yaw);
     }
+    else
+        microbee_switch_to_auto(widgets->robot_to_control->value());
 }
 void save_value_to_configs(RemoterPanel_Widgets* ws) {
 }

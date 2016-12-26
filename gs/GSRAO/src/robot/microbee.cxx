@@ -46,6 +46,8 @@ static MicroBee_t microbee[4] = {0}; // 4 robots max
 
 static float microbee_pos_fix[4][3] = {{0, 0, 0}, {0}, {0}, {0}}; // position fix to align rigid body and microbee centers
 
+static bool microbee_manual_control[4] = {false, false, false, false};
+
 #ifdef MICROBEE_DENOISE_BEFORE_CONTROL
 #define DENOISE_H_LEN   (6)
 static firfilt_rrrf f_denoise[4][3]; // pos vel acc att, xyz
@@ -231,6 +233,10 @@ static void* microbee_control_loop(void* args)
         current_time = time.tv_sec + time.tv_nsec/1.0e9;
         dtime = current_time - previous_time;
         previous_time = current_time;
+
+        // check if at manual control
+        if (microbee_manual_control[idx_robot])
+            continue;
 
         // position control update
         //microbee_pos_control(dtime, idx_robot);
@@ -589,4 +595,30 @@ static void CreateGaussianKernel(float sigma, float* gKernel, int nWindowSize) {
     // normalize
     for (int i = 0; i < nWindowSize; i++)
         gKernel[i] = gKernel[i]/Sum;
+}
+
+void microbee_switch_to_manual(int idx_robot)
+{
+    if (idx_robot < 0 or idx_robot >= 4) // 0 1 2 3
+        return;
+    microbee_manual_control[idx_robot] = true;
+}
+
+void microbee_switch_to_auto(int idx_robot)
+{
+    if (idx_robot < 0 or idx_robot >= 4) // 0 1 2 3
+        return;
+    microbee_manual_control[idx_robot] = false;
+}
+
+void microbee_switch_all_to_manual(void)
+{
+    for (int i = 0; i < 4; i++)
+        microbee_manual_control[i] = true;
+}
+
+void microbee_switch_all_to_auto(void)
+{
+    for (int i = 0; i < 4; i++)
+        microbee_manual_control[i] = false;
 }

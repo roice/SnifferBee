@@ -39,4 +39,9 @@ void microbee_control_close(int);
 bool microbee_state_init(void);
 void microbee_state_close(void);
 
+void microbee_switch_to_manual(int);
+void microbee_switch_to_auto(int);
+void microbee_switch_all_to_manual(void);
+void microbee_switch_all_to_auto(void);
+
 #endif
