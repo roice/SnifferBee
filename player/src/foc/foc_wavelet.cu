@@ -305,7 +305,7 @@ bool foc_chain_maxline_update(std::vector<FOC_ModMax_t> data_modmax[FOC_NUM_SENS
                                             if (probability > 0) { // found
                                                 // eliminate wrong link in previous maxlines
                                                 if (data_maxline[idx][sign].size() > 0) {
-                                                    for (int pre_ml = (int)data_maxline[idx][sign].size()-1>=0?data_maxline[idx][sign].size()-1:0; pre_ml < data_maxline[idx][sign].size(); pre_ml++) {
+                                                    for (int pre_ml = (int)data_maxline[idx][sign].size()-5>=0?data_maxline[idx][sign].size()-5:0; pre_ml < data_maxline[idx][sign].size(); pre_ml++) {
                                                         if (level < data_maxline[idx][sign].at(pre_ml).levels and data_modmax[idx][level][sign].at(temp_idx_modmax).t == data_maxline[idx][sign].at(pre_ml).t[level] and data_modmax[idx][level][sign].at(temp_idx_modmax).value == data_maxline[idx][sign].at(pre_ml).value[level]) {
                                                             if (probability > decision_function_chain_maxline(std::sqrt((float)level), std::sqrt((float)level+1), -0.3, data_modmax[idx][level][sign].at(temp_idx_modmax).t, data_maxline[idx][sign].at(pre_ml).t[level-1], data_maxline[idx][sign].at(pre_ml).value[level-1], data_modmax[idx][level][sign].at(temp_idx_modmax).value)) {
                                                                 data_maxline[idx][sign].at(pre_ml).levels = level;
@@ -328,10 +328,8 @@ bool foc_chain_maxline_update(std::vector<FOC_ModMax_t> data_modmax[FOC_NUM_SENS
                                                     flag_should_grow_maxline = false;
                                                 }
                                             }
-                                            else {
-                                                data_maxline[idx][sign].push_back(new_maxline);
+                                            else
                                                 break;
-                                            }
                                             if (new_maxline.levels == FOC_WT_LEVELS)
                                                 data_maxline[idx][sign].push_back(new_maxline);
                                             break;

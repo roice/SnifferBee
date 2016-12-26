@@ -275,6 +275,38 @@ void Record_Data(Flying_Odor_Compass& foc)
         }
     }
 
+    // data_feature
+
+printf ("data_feature.size() = %d\n", foc.data_feature.size());
+    
+    data_dims[0] = foc.data_feature.size();
+    data_dims[1] = 1;
+    dataspace_id = H5Screate_simple(1, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "feature_type", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+    int_pointer = (int*)malloc(data_dims[0]*sizeof(*int_pointer));
+    for (int i = 0; i < data_dims[0]; i++) {    // prepare data
+        int_pointer[i] = foc.data_feature.at(i).type;
+    }
+    status = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
+        H5P_DEFAULT, int_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+        free(int_pointer); // free space
+
+    data_dims[0] = foc.data_feature.size();
+    data_dims[1] = FOC_NUM_SENSORS;
+    dataspace_id = H5Screate_simple(2, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "feature_idx_ml", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set 
+    int_pointer = (int*)malloc(data_dims[0]*data_dims[1]*sizeof(*int_pointer));
+    for (int i = 0; i < data_dims[0]; i++) {    // prepare data
+        memcpy(&int_pointer[i*FOC_NUM_SENSORS], foc.data_feature.at(i).idx_ml, FOC_NUM_SENSORS*sizeof(int));
+    }
+    status = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
+        H5P_DEFAULT, int_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+        free(int_pointer); // free space
+
 #if 0
     // save data_smooth
     for (int i = 0; i < FOC_DIFF_GROUPS; i++)

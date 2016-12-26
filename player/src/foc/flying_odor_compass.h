@@ -110,7 +110,7 @@ typedef struct {
 } FOC_ChangePoints_t;
 
 typedef struct {
-    float   t;      // time of this maxima occurs
+    int   t;      // time of this maxima occurs
     float   value;  // value of this maxima point
     int     level;  // this maxima point belongs to which level
 } FOC_ModMax_t;
@@ -118,13 +118,19 @@ typedef struct {
 typedef struct {
     int levels; // the number of levels this maxline grows through
     float value[FOC_WT_LEVELS]; // value of modmax
-    float t[FOC_WT_LEVELS]; // time of modmax
+    int t[FOC_WT_LEVELS]; // time of modmax
 } FOC_Maxline_t;
 
 typedef struct {
     int type; // sign
     int idx_ml[FOC_NUM_SENSORS]; // index of data_maxline this feature extracts from
     float toa[FOC_NUM_SENSORS];
+//Debug
+    float sum_abs_tdoa; // sum of abs(tdoa), s
+    float sum_llh_mls_t; // sum of likelihood of time of maxlines, -FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!)  ~ FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!)
+    float sum_llh_mls_value; // sum of likelihood of value of maxlines, -FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!) ~ FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!)
+    float sum_llh_mls_levels; // sum of diff of levels of maxlines, 0. ~ FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!)
+    float credit; // contribution of this feature to all features list
 } FOC_Feature_t;
 
 class Flying_Odor_Compass
