@@ -50,7 +50,10 @@ void GSRAO_Config_restore(void)
         // Robot
         settings.robot.num_of_robots = pt.get<int>("Robot.num_of_robots");
         settings.robot.ppm_serial_port_path = pt.get<std::string>("Robot.ppm_serial_port_path");
-        settings.robot.dnet_serial_port_path = pt.get<std::string>("Robot.dnet_serial_port_path");
+        settings.robot.dnet_serial_port_path[0] = pt.get<std::string>("Robot.dnet_serial_port_path[0]");
+settings.robot.dnet_serial_port_path[1] = pt.get<std::string>("Robot.dnet_serial_port_path[1]");
+settings.robot.dnet_serial_port_path[2] = pt.get<std::string>("Robot.dnet_serial_port_path[2]");
+settings.robot.dnet_serial_port_path[3] = pt.get<std::string>("Robot.dnet_serial_port_path[3]");
         // PID
         settings.robot.pidProfile[0].P[PIDALT] = pt.get<float>("Robot.pidProfile_P_ALT_of_robot_1");
         settings.robot.pidProfile[0].P[PIDVEL] = pt.get<float>("Robot.pidProfile_P_VEL_of_robot_1");
@@ -142,7 +145,10 @@ void GSRAO_Config_save(void)
     // Robot
     pt.put("Robot.num_of_robots", settings.robot.num_of_robots);
     pt.put("Robot.ppm_serial_port_path", settings.robot.ppm_serial_port_path);
-    pt.put("Robot.dnet_serial_port_path", settings.robot.dnet_serial_port_path);
+    pt.put("Robot.dnet_serial_port_path[0]", settings.robot.dnet_serial_port_path[0]);
+    pt.put("Robot.dnet_serial_port_path[1]", settings.robot.dnet_serial_port_path[1]);
+    pt.put("Robot.dnet_serial_port_path[2]", settings.robot.dnet_serial_port_path[2]);
+    pt.put("Robot.dnet_serial_port_path[3]", settings.robot.dnet_serial_port_path[3]);
     // PID
     pt.put("Robot.pidProfile_P_ALT_of_robot_1", settings.robot.pidProfile[0].P[PIDALT]);
     pt.put("Robot.pidProfile_P_VEL_of_robot_1", settings.robot.pidProfile[0].P[PIDVEL]);
@@ -237,7 +243,11 @@ void GSRAO_Config_init(void)
     // robot
     settings.robot.num_of_robots = 1;
     settings.robot.ppm_serial_port_path = "/dev/ttyUSB_GSRAO_PPM";
-    settings.robot.dnet_serial_port_path = "/dev/ttyUSB_GSRAO_DATA";
+    settings.robot.dnet_serial_port_path[0] = "/dev/ttyUSB1";
+    settings.robot.dnet_serial_port_path[1] = "/dev/ttyUSB2";
+    settings.robot.dnet_serial_port_path[2] = "/dev/ttyUSB3";
+    settings.robot.dnet_serial_port_path[3] = "/dev/ttyUSB4";
+
     for (char i = 0; i < 4; i++)
     {
         // PID

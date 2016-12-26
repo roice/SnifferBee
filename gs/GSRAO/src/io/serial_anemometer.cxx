@@ -20,11 +20,6 @@
 #include <cmath>
 #include "io/serial.h"
 
-typedef struct {
-    int index;
-    void* arg;
-} Thread_Arguments_t;
-
 // RM Young Binary Frame Type
 typedef struct {
     // frame
@@ -67,7 +62,7 @@ static pthread_t    read_thread_handle[SERIAL_MAX_ANEMOMETERS];
 static pthread_t    write_thread_handle;
 static bool     exit_thread = false;
 
-Thread_Arguments_t  thread_args[SERIAL_MAX_ANEMOMETERS];
+static Thread_Arguments_t  thread_args[SERIAL_MAX_ANEMOMETERS];
 Anemometer_Data_t   wind_data[SERIAL_MAX_ANEMOMETERS];
 std::vector<Anemometer_Data_t> wind_record[SERIAL_MAX_ANEMOMETERS];
 std::string anemometer_port_path[SERIAL_MAX_ANEMOMETERS];

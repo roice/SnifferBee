@@ -56,7 +56,7 @@ struct ConfigDlg_Widgets { // for parameter saving
     // serial port transmitting PPM signals (frames)
     Fl_Input* ppmcnt_serial_port;
     // serial port receiving data
-    Fl_Input* dnet_serial_port;
+    Fl_Input* dnet_serial_port[4]; // 4 robots max
     // serial port receiving anemometer data
     Fl_Choice* num_of_anemometers;
     Fl_Input* anemo_serial_port[SERIAL_MAX_ANEMOMETERS];
@@ -106,6 +106,11 @@ void ConfigDlg::cb_change_num_of_robots(Fl_Widget* w, void* data)
         ws->mocap_model_name_of_robot[i]->deactivate();
     for (char i = 0; i <= ws->scenario_num_of_robots->value(); i++)
         ws->mocap_model_name_of_robot[i]->activate();
+    // deactivate & activate corresponding ground station data links
+    for (char i = ws->scenario_num_of_robots->value()+1; i < 4; i++) // 4 robots max
+        ws->dnet_serial_port[i]->deactivate();
+    for (char i = 0; i <= ws->scenario_num_of_robots->value(); i++)
+        ws->dnet_serial_port[i]->activate();
 }
 
 void ConfigDlg::cb_change_num_of_anemometers(Fl_Widget* w, void* data)
@@ -131,7 +136,8 @@ void ConfigDlg::save_value_to_configs(ConfigDlg_Widgets* ws) {
     // Robot
     configs->robot.num_of_robots = ws->scenario_num_of_robots->value()+1; // Fl_Choice count from 0
     configs->robot.ppm_serial_port_path = ws->ppmcnt_serial_port->value(); // serial port path for PPM
-    configs->robot.dnet_serial_port_path = ws->dnet_serial_port->value(); // serial port path for data
+    for (int i = 0; i < 4; i++) // 4 robots max
+        configs->robot.dnet_serial_port_path[i] = ws->dnet_serial_port[i]->value(); // serial port path for data
     // Link
     configs->mocap.netcard = ws->mocap_netcard->menu()[ws->mocap_netcard->value()].label();
     //configs->mocap.netcard = ws->mocap_netcard->value(); // save netcard num
@@ -163,7 +169,8 @@ void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
     // Robot
     ws->scenario_num_of_robots->value(configs->robot.num_of_robots-1); // Fl_Choice count from 0
     ws->ppmcnt_serial_port->value(configs->robot.ppm_serial_port_path.c_str()); // serial port path for PPM
-    ws->dnet_serial_port->value(configs->robot.dnet_serial_port_path.c_str()); // serial port path for data
+    for (int i = 0; i < 4; i++) // 4 robots max
+        ws->dnet_serial_port[i]->value(configs->robot.dnet_serial_port_path[i].c_str()); // serial port path for data
 
     // Link mocap
     char netcard_index = ((Fl_Menu_*)ws->mocap_netcard)->find_index(configs->mocap.netcard.c_str());
@@ -180,6 +187,12 @@ void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
             ws->mocap_model_name_of_robot[i]->activate();
         else
             ws->mocap_model_name_of_robot[i]->deactivate();
+        // activate/deactivate according to number of robots
+        if (i <= ws->scenario_num_of_robots->value())
+            ws->dnet_serial_port[i]->activate();
+        else
+            ws->dnet_serial_port[i]->deactivate();
+
     }
 
     // Anemometers
@@ -251,22 +264,23 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             ws.ppmcnt_serial_port = new Fl_Input(t_x+10+100, t_y+25+10+30, 200, 25, "Serial Port "); 
 
             // Data network
-            Fl_Box *dnet = new Fl_Box(t_x+10, t_y+25+10+70, 370, 65,"Data Network");
+            Fl_Box *dnet = new Fl_Box(t_x+10, t_y+25+10+70, 370, 65+75,"Data Network");
             dnet->box(FL_PLASTIC_UP_FRAME);
             dnet->labelsize(16);
             dnet->labelfont(FL_COURIER_BOLD_ITALIC);
             dnet->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
             //   Set serial port receiving the data
-            ws.dnet_serial_port = new Fl_Input(t_x+10+100, t_y+25+10+100, 200, 25, "Serial Port "); 
+            for (int i = 0; i < 4; i++)
+                ws.dnet_serial_port[i] = new Fl_Input(t_x+10+100, t_y+25+10+25*i+100, 200, 25, "Serial Port "); 
 
             // Motion capture settings
-            Fl_Box *mocap = new Fl_Box(t_x+10, t_y+25+10+140, 370, 130,"Motion Capture");
+            Fl_Box *mocap = new Fl_Box(t_x+10, t_y+25+10+140+75, 370, 130,"Motion Capture");
             mocap->box(FL_PLASTIC_UP_FRAME);
             mocap->labelsize(16);
             mocap->labelfont(FL_COURIER_BOLD_ITALIC);
             mocap->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
             //   Select network interface receiving the multicast info of Motion Capture System
-            ws.mocap_netcard = new Fl_Choice(t_x+10+70, t_y+25+10+30+140, 280, 25, "Netcard");
+            ws.mocap_netcard = new Fl_Choice(t_x+10+70, t_y+25+10+30+140+75, 280, 25, "Netcard");
             //     get all network interfaces for choosing
             struct ifaddrs* ifAddrStruct = NULL;
             struct ifaddrs* ifa = NULL;
@@ -307,7 +321,7 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             char rbName[20];
             for (char i = 0; i < 4; i++) // 4 robots max
             {
-                ws.mocap_model_name_of_robot[i] = new Fl_Choice(t_x+10+70+175*(i%2), t_y+25+10+60+30*(i<2?0:1)+140, 120, 25, robot_name[i]);
+                ws.mocap_model_name_of_robot[i] = new Fl_Choice(t_x+10+70+175*(i%2), t_y+25+10+60+30*(i<2?0:1)+140+75, 120, 25, robot_name[i]);
                 for (char j = 0; j < 10; j++) // 10 rigid body candidates
                 {
                     snprintf(rbName, 20, "Rigid Body %d", j+1);
@@ -870,7 +884,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 ((Fl_Button*)w)->value(0);
                 return;
             }
-            if (!mbsp_init(configs->robot.dnet_serial_port_path.c_str())) // link with DATA receiver
+            if (!mbsp_init(configs->robot.dnet_serial_port_path, configs->robot.num_of_robots)) // link with DATA receiver
             {
                 widgets->msg_zone->label("DNET Serial Port Failed!");
                 widgets->msg_zone->labelcolor(FL_RED);

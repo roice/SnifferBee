@@ -520,7 +520,7 @@ void GSRAO_Save_Data(void)
     group_id = H5Gcreate2(file_id, "anemometers", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     std::vector<Anemometer_Data_t>* anemo_record = sonic_anemometer_get_wind_record();
  
-    for (int anemo_idx = 0; anemo_idx < 3; anemo_idx++) {
+    for (int anemo_idx = 0; anemo_idx < 4; anemo_idx++) {
         // anemometer
         data_dims[0] = anemo_record[anemo_idx].size();
         data_dims[1] = 3;
