@@ -130,9 +130,9 @@ static void mbspEvaluateData(int index_mb)
             case MBSP_CMD_MEASUREMENTS:
             {
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
-                if (mbsp_data[index_mb].len != 3*2 + 2 + 4*2)
+                if (mbsp_data[index_mb].len != 3*2+2+4*2+2+1)
 #else
-                if (mbsp_data[index_mb].len != 3*2 +2) // 3*sizeof((uint16_t)) + (sizeof(uint16_t))
+                if (mbsp_data[index_mb].len != 3*2+2+2+1) // 3*sizeof((uint16_t)) + (sizeof(uint16_t)) + (sizeof(uint16_t)) + (sizeof(uint8_t))
 #endif
                     break;
                 mb = microbee_get_states();
@@ -141,16 +141,18 @@ static void mbspEvaluateData(int index_mb)
                 left = *(short*)(&(mbsp_data[index_mb].data[2]));
                 right = *(short*)(&(mbsp_data[index_mb].data[4]));
                 unsigned short count;
-                count = *(short*)(&(mbsp_data[index_mb].data[6]));
+                count = *(short*)(&(mbsp_data[index_mb].data[9]));
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
                 int motor[4];
                 for (int i = 0; i < 4; i++)
-                    motor[i] = *(short*)(&(mbsp_data[index_mb].data[8+2*i]));
+                    motor[i] = *(short*)(&(mbsp_data[index_mb].data[11+2*i]));
 #endif 
                 mb[mbsp_data[index_mb].from-1].sensors.front = front*3.3/4096.0;
                 mb[mbsp_data[index_mb].from-1].sensors.left = left*3.3/4096.0;
                 mb[mbsp_data[index_mb].from-1].sensors.right = right*3.3/4096.0;
                 mb[mbsp_data[index_mb].from-1].count = count;
+                mb[mbsp_data[index_mb].from-1].state.armed = mbsp_data[index_mb].data[8]>0? true:false;
+                mb[mbsp_data[index_mb].from-1].state.bat_volt = ((*((short*)(&mbsp_data[index_mb].data[6]))) & 0x03FF)*5.0f/1024.0f;
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
                 for (int i = 0; i < 4; i++)
                     mb[mbsp_data[index_mb].from-1].motor[i] = motor[i] & 0x0000FFFF;
