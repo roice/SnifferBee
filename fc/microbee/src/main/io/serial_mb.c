@@ -41,7 +41,7 @@
 #define MBSP_CMD_STATUS         101 // status of MicroBee
 #define MBSP_CMD_MEASUREMENTS   102 // readings of (three)gas sensors & motor values (if required)
 
-#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // send motor values
+//#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // send motor values
 
 volatile mbspPort_t   mbspPort;
 
@@ -134,9 +134,9 @@ void mbspSendMeasurements(void)
 
     // length of data (bytes)
 #ifdef MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE
-    serialize8(MB_ADC_CHANNEL_COUNT*sizeof(uint16_t) + sizeof(uint16_t) + 4*sizeof(uint16_t));
+    serialize8(MB_ADC_CHANNEL_COUNT*sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint8_t) + 4*sizeof(uint16_t));
 #else
-    serialize8(MB_ADC_CHANNEL_COUNT*sizeof(uint16_t) + sizeof(uint16_t));
+    serialize8(MB_ADC_CHANNEL_COUNT*sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint8_t));
 #endif
 
     // command, send gas sensor readings
@@ -146,6 +146,15 @@ void mbspSendMeasurements(void)
     serialize16(mb_adcGetChannel(ADC_GAS_SENSOR_FRONT));
     serialize16(mb_adcGetChannel(ADC_GAS_SENSOR_REAR_LEFT));
     serialize16(mb_adcGetChannel(ADC_GAS_SENSOR_REAR_RIGHT));
+
+    // Battery Voltage
+    serialize16(battery_volt);
+
+    // ARM/DISARM info
+    if (ARMING_FLAG(ARMED))
+        serialize8(1);
+    else
+        serialize8(0);
 
     // count number, in case data missing
     serialize16(measurement_count++);
@@ -162,6 +171,7 @@ void mbspSendMeasurements(void)
     bufWriterFlush(mbspWriter);
 }
 
+/*
 void mbspSendHeartBeat(void)
 {
     mbspPort.checksum = 0;
@@ -204,6 +214,7 @@ void mbspSendHeartBeat(void)
     // send message
     bufWriterFlush(mbspWriter);
 }
+*/
 
 // get battery voltage
 uint16_t* mb_GetBatteryVoltage(void)

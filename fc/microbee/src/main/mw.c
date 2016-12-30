@@ -723,7 +723,7 @@ void taskMainPidLoop(void)
 
 #ifdef MICROBEE
     static uint32_t mb_adc_last_sample_time = 0;
-    static uint32_t mb_heart_beat_last_time = 0;
+    //static uint32_t mb_heart_beat_last_time = 0;
     uint32_t mb_current_time = micros();
     
     // send gas sensor readings to ground station at 20 Hz
@@ -734,6 +734,7 @@ void taskMainPidLoop(void)
 
         mbspSendMeasurements();
     }
+    /*
     // send status to ground station at 0.5 Hz
     else if (mb_current_time - mb_heart_beat_last_time > 500000)
     {
@@ -742,6 +743,7 @@ void taskMainPidLoop(void)
         // send heart beat (include ARM/DISARM and bat volt)
         mbspSendHeartBeat();
     }
+    */
 #endif
 }
 
