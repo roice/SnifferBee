@@ -137,7 +137,9 @@ bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector
             for (int j = 0; j < 2; j++)
                 temp_sum_hd[j] += temp_hd_p[j]*feature.at(i).credit;
 
+if (feature.at(i).type) {
 printf("feature %d, type = %d, toa = { %f, %f, %f } temp_hd_p = { %f, %f }, sum_value = %f\n", i, feature.at(i).type, feature.at(i).toa[0], feature.at(i).toa[1], feature.at(i).toa[2], temp_hd_p[0], temp_hd_p[1], feature.at(i).sum_abs_top_level_wt_value);
+}
 
         }
     }

@@ -40,7 +40,11 @@
 //#define FILE "../data/Record_2016-12-26_20-09-14.h5" // no alcohol, wind
 //#define FILE "../data/Record_2016-12-26_20-14-25.h5" // alcohol blow ahead to red
 //#define FILE "../data/Record_2016-12-26_20-42-10.h5"
-#define FILE "../data/Record_2016-12-26_22-16-19.h5" // alcohol blow ahead to red, hovering
+//#define FILE "../data/Record_2016-12-26_22-16-19.h5" // alcohol blow ahead to red, hovering
+//#define FILE "../data/Record_2016-12-27_20-42-37.h5"
+//#define FILE "../data/Record_2016-12-27_21-07-35.h5"
+//#define FILE "../data/Record_2016-12-27_21-18-44.h5"
+#define FILE "../data/Record_2016-12-28_21-36-30.h5"
 
 int main(int argc, char* argv[])
 {
