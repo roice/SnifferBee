@@ -28,7 +28,7 @@ typedef struct {
 } Thread_Arguments_t;
 
 /* serial_mbsp.cxx */
-//#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // measurements include motor value
+#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // measurements include motor value
 bool mbsp_init(std::string*, int);
 void mbsp_close(void);
 

@@ -597,7 +597,7 @@ void RobotPanel::cb_robot_rc_button(Fl_Widget* w, void* data) {
         if (((Fl_Button*)w)->value()) // if pressed
         {
             Fl_Window* window = w->window(); // find the nearest parent window of this button, i.e., RobotPanel
-            hs.remoter_panel = new RemoterPanel(window->x()+window->w(), window->y(), 
+            hs.remoter_panel = new RemoterPanel(window->x()-window->w(), window->y(), 
                 300, window->h(), "RC Control");
             hs.remoter_panel->remoter_button = (Fl_Button*)w;
         }
@@ -613,7 +613,7 @@ void RobotPanel::get_value_from_configs(RobotPanel_Widgets* ws) {
     if (configs->system.remoter_panel_opened) {
         // open remoter panel
         Fl_Window* window = ws->robot_rc_button->window();
-        hs.remoter_panel = new RemoterPanel(window->x()+window->w(), window->y(), 
+        hs.remoter_panel = new RemoterPanel(window->x()-window->w(), window->y(), 
                 300, window->h(), "RC Control");
         hs.remoter_panel->remoter_button = ws->robot_rc_button;
         ws->robot_rc_button->value(1);
@@ -1087,7 +1087,7 @@ void ToolBar::cb_button_robot(Fl_Widget *w, void *data)
         if (((Fl_Button*)w)->value()) // if pressed
         {
             Fl_Window* window=(Fl_Window*)data;
-            hs.robot_panel = new RobotPanel(window->x(), window->y()+window->h()+40, 
+            hs.robot_panel = new RobotPanel(window->x(), window->y()+window->h()+100, 
                 window->w(), 200, "Robot Panel");
             hs.robot_panel->robot_button = (Fl_Button*)w;
         }
@@ -1125,7 +1125,7 @@ void ToolBar::restore_from_configs(ToolBar_Widgets* ws, void *data)
     // check whether to open robot panel or not
     if (configs->system.robot_panel_opened) {
         Fl_Window* window = (Fl_Window*)data;
-        hs.robot_panel = new RobotPanel(window->x(), window->y()+window->h()+40, 
+        hs.robot_panel = new RobotPanel(window->x(), window->y()+window->h()+100, 
             window->w(), 200, "Robot Panel");
         hs.robot_panel->robot_button = ws->robot;
         ws->robot->value(1);

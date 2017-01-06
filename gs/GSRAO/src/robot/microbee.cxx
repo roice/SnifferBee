@@ -506,9 +506,14 @@ static void microbee_leso(float dt, int robot_index, float* pos, float* vel, flo
 
     float factor_z3_to_wind = 1.0;
     Robot_State_t* robot_state = robot_get_state();
+    /*
     robot_state[robot_index].wind[0] = factor_z3_to_wind*(state[robot_index][0].z3 - 0.0927989075586);
     robot_state[robot_index].wind[1] = factor_z3_to_wind*(state[robot_index][1].z3 + 0.00826646558869);
     robot_state[robot_index].wind[2] = factor_z3_to_wind*(state[robot_index][2].z3 + 0.00428738381195);
+    */
+    robot_state[robot_index].wind[0] = factor_z3_to_wind*(state[robot_index][0].z3);
+    robot_state[robot_index].wind[1] = factor_z3_to_wind*(state[robot_index][1].z3);
+    robot_state[robot_index].wind[2] = factor_z3_to_wind*(state[robot_index][2].z3);
 
     // for debug
     Anemometer_Data_t* wind_data = sonic_anemometer_get_wind_data();
