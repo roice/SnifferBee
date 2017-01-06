@@ -41,7 +41,7 @@
 #define MBSP_CMD_STATUS         101 // status of MicroBee
 #define MBSP_CMD_MEASUREMENTS   102 // readings of (three)gas sensors & motor values (if required)
 
-//#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // send motor values
+#define MB_MEASUREMENTS_INCLUDE_MOTOR_VALUE    // send motor values
 
 volatile mbspPort_t   mbspPort;
 
