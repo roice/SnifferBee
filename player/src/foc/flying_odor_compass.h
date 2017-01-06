@@ -25,6 +25,7 @@
 #define FOC_MOX_INTERP_FACTOR       10      // samples/symbol, > 4, int
 #define FOC_LEN_RECENT_INFO         (15*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)    // approx. 15 s
 #define FOC_LEN_WAVELET             (3*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)    // approx. 3 s
+#define FOC_RECENT_TIME_TO_EST      15.0    // seconds
 #define FOC_WT_LEVELS               100       // wavelet transform levels
 #define FOC_MAX_PARTICLES           400     // max number of particles
 #define FOC_MAX_HIST_PARTICLES      100     // max history particles
@@ -122,16 +123,21 @@ typedef struct {
 } FOC_Maxline_t;
 
 typedef struct {
+// foc_feature.cxx
     int type; // sign
     int idx_ml[FOC_NUM_SENSORS]; // index of data_maxline this feature extracts from
     float toa[FOC_NUM_SENSORS]; // second
     float sum_abs_top_level_wt_value; // sum of the abs of top level wt value
-//Debug
     float sum_abs_tdoa; // sum of abs(tdoa), s
     float sum_llh_mls_t; // sum of likelihood of time of maxlines, -FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!)  ~ FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!)
     float sum_llh_mls_value; // sum of likelihood of value of maxlines, -FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!) ~ FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!)
     float sum_llh_mls_levels; // sum of diff of levels of maxlines, 0. ~ FOC_NUM_SENSORS!/(2!(FOC_NUM_SENSORS-2)!)
+    float belief_llh; // belief of likelihood of this comb
     float credit; // contribution of this feature to all features list
+// foc_estimate.cxx
+    bool valid_to_infer_direction;
+    float direction[3]; // earth coord (ENU)
+    float direction_p[3]; // aircraft coord
 } FOC_Feature_t;
 
 class Flying_Odor_Compass

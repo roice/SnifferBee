@@ -43,5 +43,6 @@ for i in range(NUM_SENSORS):
         maxline_value = fd[ds_name_value][...]
         for k in range(len(maxline_levels)):
             axes[i].plot((maxline_t[k, 0:maxline_levels[k]]+LEN_WAVELET/2)/(float)(MOX_DAQ_FREQ*MOX_INTERP_FACTOR), maxline_value[k, 0:maxline_levels[k]])
+    axes[i].set_xlabel('time (s)')
 
 plt.show()

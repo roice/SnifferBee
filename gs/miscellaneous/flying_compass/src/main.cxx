@@ -44,7 +44,18 @@
 //#define FILE "../data/Record_2016-12-27_20-42-37.h5"
 //#define FILE "../data/Record_2016-12-27_21-07-35.h5"
 //#define FILE "../data/Record_2016-12-27_21-18-44.h5"
-#define FILE "../data/Record_2016-12-28_21-36-30.h5"
+//#define FILE "../data/Record_2016-12-28_21-36-30.h5"
+//#define FILE "../data/Record_2017-01-02_22-58-37.h5"
+//#define FILE "../data/Record_2017-01-02_22-58-37.h5"
+//#define FILE "../data/Record_2017-01-03_17-55-39.h5" // static, alcohol, blow ahead to red
+//#define FILE "../data/Record_2017-01-05_16-56-00.h5"
+//#define FILE "../data/Record_2017-01-05_16-59-54.h5"
+//#define FILE "../data/Record_2017-01-05_17-47-48.h5"
+//#define FILE "../data/Record_2017-01-05_17-50-39.h5"
+//#define FILE "../data/Record_2017-01-05_19-38-45.h5" // alcohol, below 15cm, blow ahead to red, static
+//#define FILE "../data/Record_2017-01-05_19-42-01.h5" // alcohol, below 15cm, blow ahead to red, hovering
+//#define FILE "../data/Record_2017-01-05_20-18-15.h5" // alcohol, below 20cm, blow ahead to red, static
+#define FILE "../data/Record_2017-01-05_20-21-41.h5" // alcohol, below 20cm, blow ahead to red, hovering
 
 int main(int argc, char* argv[])
 {
@@ -76,7 +87,7 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    for (int i = 20*60*0; i < 20*60*1; i++)
+    for (int i = 20*60*0; i < 20*60*2; i++)
     //for (int i = 0; i < 800; i++)
     //for (int i = 6000; i < 7000; i++)
     {

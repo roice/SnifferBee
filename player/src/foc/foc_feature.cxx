@@ -6,7 +6,7 @@
 #include "foc/flying_odor_compass.h"
 
 #define FOC_FEATURE_ML_LEVELS_THRESHOLD     30
-#define FOC_FEATURE_ML_VALUE_THRESHOLD      0.1
+#define FOC_FEATURE_ML_VALUE_THRESHOLD      0.2
 #define FOC_FEATURE_MLS_T_THRESHOLD         (FOC_RADIUS/FOC_WIND_MIN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR) // 1 s
 
 void foc_feature_extraction_init(std::vector<FOC_Feature_t> &data_feature)
@@ -112,13 +112,31 @@ int factorial(int n)
         return 1;
 }
 
+void fill_new_feature_struct(FOC_Feature_t &new_feature, Comb_Maxlines_t &comb_ml, std::vector<FOC_Maxline_t> data_maxline[FOC_NUM_SENSORS][2], int sign)
+{
+    memset(&new_feature, 0, sizeof(new_feature));
+    new_feature.type = sign;
+    memcpy(new_feature.idx_ml, comb_ml.idx, FOC_NUM_SENSORS*sizeof(int));
+    for (int i = 0; i < FOC_NUM_SENSORS; i++)
+        new_feature.toa[i] = (float)(data_maxline[i][sign].at(comb_ml.idx[i]).t[0]+FOC_LEN_WAVELET/2)/(float)(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+    new_feature.sum_abs_tdoa = comb_ml.sum_abs_tdoa;
+    for (int i = 0; i < FOC_NUM_SENSORS; i++)
+        new_feature.sum_abs_top_level_wt_value += std::abs(data_maxline[i][sign].at(comb_ml.idx[i]).value[data_maxline[i][sign].at(comb_ml.idx[i]).levels-1]);
+    new_feature.sum_llh_mls_t = comb_ml.sum_llh_mls_t;
+    new_feature.sum_llh_mls_value = comb_ml.sum_llh_mls_value;
+    new_feature.sum_llh_mls_levels = comb_ml.sum_llh_mls_levels;
+    new_feature.belief_llh = comb_ml.belief;
+    new_feature.credit = (new_feature.sum_llh_mls_t*0.1 + new_feature.sum_llh_mls_value*0.45 + new_feature.sum_llh_mls_levels*0.45)*(new_feature.type == 0?0.3:0.7);
+}
+
 bool foc_feature_extraction_update(std::vector<FOC_Maxline_t> data_maxline[FOC_NUM_SENSORS][2], std::vector<FOC_Feature_t> &data_feature, int size_of_signal)
 {
     for (int i = 0; i < FOC_NUM_SENSORS; i++)
         for (int j = 0; j < 2; j++)
             if (data_maxline[i][j].size() == 0) return false;
 
-    data_feature.clear();
+    bool find_new_feature = false;
+
     FOC_Feature_t new_feature;
 
     int num_permutation = factorial(FOC_NUM_SENSORS)/factorial(2)/factorial(FOC_NUM_SENSORS-2);
@@ -134,6 +152,7 @@ bool foc_feature_extraction_update(std::vector<FOC_Maxline_t> data_maxline[FOC_N
     std::vector<bool> mask(FOC_NUM_SENSORS); // sort 2 from FOC_NUM_SENSORS 
     int temp_t;
     float temp_belief_comb; int temp_idx_comb;
+    static std::vector<int> temp_idx_combs[2];
     for (int sign = 0; sign < 2; sign++) {
         // threshold maxlines
         for (int idx_s = 0; idx_s < FOC_NUM_SENSORS; idx_s++) {
@@ -175,7 +194,7 @@ bool foc_feature_extraction_update(std::vector<FOC_Maxline_t> data_maxline[FOC_N
                 break;
         }
 
-        // t thresholding 
+        // t thresholding, inter-sensors
         for (int i = 0; i < comb_mls[sign].size(); i++) {
             std::fill(mask.begin(), mask.end(), false);
             std::fill(mask.begin(), mask.begin()+2, true); // FOC_NUM_SENSORS > 2
@@ -191,7 +210,7 @@ bool foc_feature_extraction_update(std::vector<FOC_Maxline_t> data_maxline[FOC_N
                     comb_mls[sign].at(i).possible = false;
                 comb_mls[sign].at(i).sum_abs_tdoa += ((float)std::abs(temp_t))/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR;
             } while (std::prev_permutation(mask.begin(), mask.end()));
-        }
+        } 
 
         // calculate likelihood of maxlines in a combination
         for (int i = 0; i < comb_mls[sign].size(); i++) {
@@ -235,6 +254,7 @@ for (int i = 0; i < comb_mls[sign].size(); i++) {
 #endif
 
         // find optimum combination
+        temp_idx_combs[sign].clear();
         while (true) {
             temp_belief_comb = 0;
             for (int i = 0; i < comb_mls[sign].size(); i++) {// find max belief comb
@@ -246,19 +266,7 @@ for (int i = 0; i < comb_mls[sign].size(); i++) {
             } 
             if (temp_belief_comb == 0) // no valid combs found, end finding
                 break;
-            // save to data_feature
-            memset(&new_feature, 0, sizeof(new_feature));
-            new_feature.type = sign;
-            memcpy(new_feature.idx_ml, comb_mls[sign].at(temp_idx_comb).idx, FOC_NUM_SENSORS*sizeof(int));
-            for (int i = 0; i < FOC_NUM_SENSORS; i++)
-                new_feature.toa[i] = (float)(data_maxline[i][sign].at(comb_mls[sign].at(temp_idx_comb).idx[i]).t[0]+FOC_LEN_WAVELET/2)/(float)(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
-            new_feature.sum_abs_tdoa = comb_mls[sign].at(temp_idx_comb).sum_abs_tdoa;
-            for (int i = 0; i < FOC_NUM_SENSORS; i++)
-                new_feature.sum_abs_top_level_wt_value += std::abs(data_maxline[i][sign].at(comb_mls[sign].at(temp_idx_comb).idx[i]).value[data_maxline[i][sign].at(comb_mls[sign].at(temp_idx_comb).idx[i]).levels-1]);
-            new_feature.sum_llh_mls_t = comb_mls[sign].at(temp_idx_comb).sum_llh_mls_t;
-            new_feature.sum_llh_mls_value = comb_mls[sign].at(temp_idx_comb).sum_llh_mls_value;
-            new_feature.sum_llh_mls_levels = comb_mls[sign].at(temp_idx_comb).sum_llh_mls_levels;
-            data_feature.push_back(new_feature);
+            temp_idx_combs[sign].push_back(temp_idx_comb);
             // chop off other combs related to maxlines of this comb
             for (int i = 0; i < comb_mls[sign].size(); i++) {
                 if (!comb_mls[sign].at(i).possible) continue;
@@ -267,7 +275,11 @@ for (int i = 0; i < comb_mls[sign].size(); i++) {
                         comb_mls[sign].at(i).possible = false;
                         break;
                     }
-            }
+            } 
+        }
+        if (temp_idx_combs[sign].size() > 0) {
+            for (int i = 0; i < temp_idx_combs[sign].size(); i++)
+                comb_mls[sign].at(temp_idx_combs[sign].at(i)).possible = true;
         }
     }
 
@@ -275,7 +287,48 @@ for (int i = 0; i < comb_mls[sign].size(); i++) {
 // DEBUG
 for (int sign = 0; sign < 2; sign++)
     printf("comb_mls[%d].size() = %d\n", sign, comb_mls[sign].size());
+#endif
 
+    // maintain features
+    if (data_feature.size() > 0) {
+        for (int sign = 0; sign < 2; sign++) {
+            for (int idx_c = 0; idx_c < comb_mls[sign].size(); idx_c++) {
+                if (!comb_mls[sign].at(idx_c).possible) continue;
+                // judge
+                for (int idx_f = (int)data_feature.size()-50>=0?data_feature.size()-50:0; idx_f < data_feature.size(); idx_f++) {
+                    if (data_feature.at(idx_f).type == sign) {
+                        for (int idx_s = 0; idx_s < FOC_NUM_SENSORS; idx_s++) {
+                            if (data_feature.at(idx_f).idx_ml[idx_s] == comb_mls[sign].at(idx_c).idx[idx_s]) {
+                                if (data_feature.at(idx_f).belief_llh < comb_mls[sign].at(idx_c).belief) {
+                                    // substitute
+                                    fill_new_feature_struct(new_feature, comb_mls[sign].at(idx_c), data_maxline, sign);
+                                    memcpy(&(data_feature.at(idx_f)), &new_feature, sizeof(FOC_Feature_t));
+                                    comb_mls[sign].at(idx_c).possible = false;
+                                    find_new_feature = true;
+                                    break;
+                                }
+                                else {
+                                    comb_mls[sign].at(idx_c).possible = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for (int sign = 0; sign < 2; sign++) {
+        for (int idx_c = 0; idx_c < comb_mls[sign].size(); idx_c++) {
+            if (comb_mls[sign].at(idx_c).possible) {
+                fill_new_feature_struct(new_feature, comb_mls[sign].at(idx_c), data_maxline, sign);
+                data_feature.push_back(new_feature);
+                find_new_feature = true;
+            }
+        }
+    }
+
+#if 0
 if (data_feature.size() > 0) {
     for (int i = 0; i < data_feature.size(); i++) {
         printf("data_feature.at(%d).type = %d, t = ", i, data_feature.at(i).type);
@@ -289,19 +342,13 @@ if (data_feature.size() > 0) {
 else
     printf("no feature\n");
 #endif
-  
-    if (data_feature.size() > 0) {
-        // calculate credit of every feature
-        float temp_sum_credit = 0;
-        for (int i = 0; i < data_feature.size(); i++) {
-            data_feature.at(i).credit = (data_feature.at(i).sum_llh_mls_t*0.1 + data_feature.at(i).sum_llh_mls_value*0.45 + data_feature.at(i).sum_llh_mls_levels*0.45)*(data_feature.at(i).type == 0?0.3:0.7);
-            temp_sum_credit += data_feature.at(i).credit;
-        }
-        for (int i = 0; i < data_feature.size(); i++) {
-            data_feature.at(i).credit /= temp_sum_credit;
-        }
+
+#if 0
+printf("data_feature.size() = %d\n", data_feature.size());
+#endif
+
+    if (find_new_feature)
         return true;
-    }
     else
         return false;
 }

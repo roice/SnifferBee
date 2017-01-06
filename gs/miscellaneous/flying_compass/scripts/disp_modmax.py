@@ -18,6 +18,7 @@ for i in range(NUM_SENSORS):
         ds_name = '/FOC/wt_maxima_s'+str(i)+'_l'+str(j)
         modmax = fd[ds_name][...]
         print "num of maxima of sensor " + str(i) + ' level ' + str(j) + ' is ' + str(len(modmax))
-        axes[i].scatter(modmax[:,0], modmax[:,1])
+        axes[i].scatter((modmax[:,0]+LEN_WAVELET/2)/(float)(MOX_DAQ_FREQ*MOX_INTERP_FACTOR), modmax[:,1])
+    axes[i].set_xlabel('time (s)')
 
 plt.show()

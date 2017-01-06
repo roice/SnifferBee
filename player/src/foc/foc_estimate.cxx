@@ -120,10 +120,12 @@ bool estimate_horizontal_plume_dispersion_direction_according_to_toa(FOC_Feature
  *      feature     feature of combinations of sensor maxlines, containing TDOA etc. info
  *      est         direction estimation
  */
-bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector<FOC_Estimation_t>& est)
+bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector<FOC_Estimation_t>& data_est, int size_of_signal)
 {
     if (feature.size() == 0)
         return false;
+
+    float current_time = (float)(size_of_signal+FOC_LEN_WAVELET/2)/(float)(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
 
     FOC_Estimation_t new_est;
 
@@ -131,20 +133,56 @@ bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector
  *  Step 1 Phase 1: estimate horizontal direction where the odor comes from */
     float est_horizontal_odor_trans_direction[3] = {0};   // estimated horizontal odor transport direction, e/n
     float est_horizontal_odor_std_deviation[FOC_NUM_SENSORS] = {0};   // standard deviations of odor sensors
-    float temp_hd[3], temp_hd_p[3], temp_sum_hd[3] = {0};
+    float temp_sum_sum_abs_top_level_wt_value = 0;
+    int count_num_valid_features = 0;
+    float temp_sum_hd[3] = {0};
     for (int i = 0; i < feature.size(); i++) {
-        if(estimate_horizontal_plume_dispersion_direction_according_to_toa(feature.at(i), temp_hd_p)) {
+        if (feature.at(i).toa[0] < current_time - FOC_RECENT_TIME_TO_EST)
+            continue;
+
+estimate_horizontal_plume_dispersion_direction_according_to_toa(feature.at(i), feature.at(i).direction_p);
+
+        if (feature.at(i).type != 1) // only concern odor contact
+            continue;
+        if(estimate_horizontal_plume_dispersion_direction_according_to_toa(feature.at(i), feature.at(i).direction_p)) {
+            feature.at(i).valid_to_infer_direction = true;
+            temp_sum_sum_abs_top_level_wt_value += feature.at(i).sum_abs_top_level_wt_value;
+            count_num_valid_features ++;
+        }
+        else
+            feature.at(i).valid_to_infer_direction = false;
+    }
+    if (count_num_valid_features == 0)
+        return false;
+    float temp_average_sum_abs_top_level_wt_value = temp_sum_sum_abs_top_level_wt_value / count_num_valid_features;
+    for (int i = 0; i < feature.size(); i++) {
+        if (feature.at(i).type == 1 and feature.at(i).valid_to_infer_direction == true) {
+            if (feature.at(i).sum_abs_top_level_wt_value < temp_average_sum_abs_top_level_wt_value)
+                continue;
             for (int j = 0; j < 2; j++)
-                temp_sum_hd[j] += temp_hd_p[j]*feature.at(i).credit;
-
-if (feature.at(i).type) {
-printf("feature %d, type = %d, toa = { %f, %f, %f } temp_hd_p = { %f, %f }, sum_value = %f\n", i, feature.at(i).type, feature.at(i).toa[0], feature.at(i).toa[1], feature.at(i).toa[2], temp_hd_p[0], temp_hd_p[1], feature.at(i).sum_abs_top_level_wt_value);
-}
-
+                temp_sum_hd[j] += feature.at(i).direction_p[j]*feature.at(i).credit*feature.at(i).sum_abs_top_level_wt_value;
         }
     }
+    float temp_mod_sum_hd = std::sqrt(temp_sum_hd[0]*temp_sum_hd[0]+temp_sum_hd[1]*temp_sum_hd[1]);
+    for (int i = 0; i < 2; i++)
+        temp_sum_hd[i] /= temp_mod_sum_hd;
 
-printf("temp_sum_hd = { %f, %f }\n", temp_sum_hd[0], temp_sum_hd[1]);
+    memcpy(new_est.direction, temp_sum_hd, 3*sizeof(float));
+    data_est.push_back(new_est);
+
+#if 0
+if (temp_sum_hd[1] > -1.5) {
+    printf("current time = %f\n", current_time);
+    printf("temp_sum_hd = { %f, %f }\n", temp_sum_hd[0], temp_sum_hd[1]);
+    for (int i = 0; i < feature.size(); i++) {
+        if (feature.at(i).toa[0] < current_time - FOC_RECENT_TIME_TO_EST)
+            continue;
+        if (feature.at(i).valid_to_infer_direction or feature.at(i).type == 0)
+            printf("feature.at(%d): type = %d, toa = [ %f, %f, %f ], direction_p = [ %f, %f ], satlwv = %f, credit = %f\n", i, feature.at(i).type, feature.at(i).toa[0], feature.at(i).toa[1], feature.at(i).toa[2], feature.at(i).direction_p[0], feature.at(i).direction_p[1], feature.at(i).sum_abs_top_level_wt_value, feature.at(i).credit);
+    }
+}
+#endif
+
 
 #if 0
     float est_horizontal_odor_trans_direction_clustering = 0;   // clustering of odor trans direction

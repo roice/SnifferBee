@@ -18,6 +18,7 @@ fig, axes = plt.subplots(nrows=NUM_SENSORS, figsize=(6,6))
 
 for i in range(NUM_SENSORS):
     for j in range(WT_LEVELS):
-        axes[i].plot(wt_out[:, j, i])
+        axes[i].plot((np.asarray(range(len(wt_out[:,j,i])))+LEN_WAVELET/2)/(float)(MOX_DAQ_FREQ*MOX_INTERP_FACTOR), wt_out[:, j, i])
+    axes[i].set_xlabel('time (s)')
 
 plt.show()
