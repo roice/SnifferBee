@@ -1,0 +1,423 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+Base	./kf/LinearizedMeasurementModel.hpp	/^        typedef MeasurementModel<StateType, MeasurementType, CovarianceBase> Base;$/;"	t	class:Kalman::LinearizedMeasurementModel
+Base	./kf/LinearizedSystemModel.hpp	/^        typedef SystemModel<StateType, ControlType, CovarianceBase> Base;$/;"	t	class:Kalman::LinearizedSystemModel
+Base	./kf/Matrix.hpp	/^        typedef Matrix<T, N, 1> Base;$/;"	t	class:Kalman::Vector
+Base	./kf/SquareRootFilterBase.hpp	/^        typedef SquareRootBase<StateType> Base;$/;"	t	class:Kalman::SquareRootFilterBase
+Base	./kf/StandardFilterBase.hpp	/^        typedef StandardBase<StateType> Base;$/;"	t	class:Kalman::StandardFilterBase
+Base	./kf/UnscentedKalmanFilterBase.hpp	/^        typedef KalmanFilterBase<StateType> Base;$/;"	t	class:Kalman::UnscentedKalmanFilterBase
+C	./mox_model_ukf.hpp	/^    typedef Control<T> C; \/\/ not used$/;"	t	class:MOX_Sensor::SystemModel
+CalculateRotationMatrix	./foc_estimate.cxx	/^static void CalculateRotationMatrix(float* vectorBefore, float* vectorAfter, float* rotationMatrix)$/;"	f	file:
+Cholesky	./kf/Matrix.hpp	/^        Cholesky() : Eigen::LLT< _MatrixType, _UpLo >() {}$/;"	f	class:Kalman::Cholesky
+Cholesky	./kf/Matrix.hpp	/^        Cholesky(const _MatrixType& m ) : Eigen::LLT< _MatrixType, _UpLo >(m) {}$/;"	f	class:Kalman::Cholesky
+Cholesky	./kf/Matrix.hpp	/^    class Cholesky : public Eigen::LLT< _MatrixType, _UpLo >$/;"	c	namespace:Kalman
+Comb_Maxlines_t	./foc_feature.cxx	/^} Comb_Maxlines_t;$/;"	t	typeref:struct:__anon1	file:
+Control	./kf/SystemModel.hpp	/^        typedef ControlType Control;$/;"	t	class:Kalman::SystemModel
+Control	./mox_model_ukf.hpp	/^class Control : public Kalman::Vector<T, 0> $/;"	c	namespace:MOX_Sensor
+CreateGaussianKernel	./foc_smooth.cxx	/^static void CreateGaussianKernel(float sigma, float* gKernel, int nWindowSize) {$/;"	f	file:
+CreateKernel	./foc_noise_reduction.cxx	/^static void CreateKernel(float sigma, int order, float* gKernel, int nWindowSize) {$/;"	f	file:
+CrossProduct	./foc_estimate.cxx	/^static void CrossProduct(float* a, float* b, float* c)$/;"	f	file:
+DotProduct	./foc_estimate.cxx	/^static float DotProduct(float* a, float* b)$/;"	f	file:
+Dynamic	./kf/Matrix.hpp	/^    const int Dynamic = Eigen::Dynamic;$/;"	m	namespace:Kalman
+ERROR_CUDA_H	./error_cuda.h	2;"	d
+ExtendedKalmanFilter	./kf/ExtendedKalmanFilter.hpp	/^        ExtendedKalmanFilter()$/;"	f	class:Kalman::ExtendedKalmanFilter
+ExtendedKalmanFilter	./kf/ExtendedKalmanFilter.hpp	/^    class ExtendedKalmanFilter : public KalmanFilterBase<StateType>,$/;"	c	namespace:Kalman
+F	./kf/LinearizedSystemModel.hpp	/^        Jacobian<State, State> F;$/;"	m	class:Kalman::LinearizedSystemModel
+FLYING_ODOR_COMPASS	./flying_odor_compass.h	14;"	d
+FOC_ChangePoints_t	./flying_odor_compass.h	/^} FOC_ChangePoints_t;$/;"	t	typeref:struct:__anon13
+FOC_DIFF_H	./foc_diff.h	2;"	d
+FOC_EDGE_H	./foc_edge.h	2;"	d
+FOC_ESTIMATE_DEBUG	./flying_odor_compass.h	35;"	d
+FOC_ESTIMATE_H	./foc_estimate.h	2;"	d
+FOC_Edge_t	./flying_odor_compass.h	/^} FOC_Edge_t;$/;"	t	typeref:struct:__anon12
+FOC_Estimation_t	./flying_odor_compass.h	/^} FOC_Estimation_t;$/;"	t	typeref:struct:__anon11
+FOC_FEATURE_H	./foc_feature.h	2;"	d
+FOC_FEATURE_MLS_T_THRESHOLD	./foc_feature.cxx	10;"	d	file:
+FOC_FEATURE_ML_LEVELS_THRESHOLD	./foc_feature.cxx	8;"	d	file:
+FOC_FEATURE_ML_VALUE_THRESHOLD	./foc_feature.cxx	9;"	d	file:
+FOC_Feature_t	./flying_odor_compass.h	/^} FOC_Feature_t;$/;"	t	typeref:struct:__anon16
+FOC_GRADIENT_H	./foc_gradient.h	2;"	d
+FOC_INTERP_H	./foc_interp.h	2;"	d
+FOC_Input_t	./flying_odor_compass.h	/^} FOC_Input_t; \/\/ data type input to FOC$/;"	t	typeref:struct:__anon3
+FOC_LEN_RECENT_INFO	./flying_odor_compass.h	26;"	d
+FOC_LEN_WAVELET	./flying_odor_compass.h	27;"	d
+FOC_MAX_HIST_PARTICLES	./flying_odor_compass.h	31;"	d
+FOC_MAX_PARTICLES	./flying_odor_compass.h	30;"	d
+FOC_MOX_DAQ_FREQ	./flying_odor_compass.h	24;"	d
+FOC_MOX_INTERP_FACTOR	./flying_odor_compass.h	25;"	d
+FOC_Maxline_t	./flying_odor_compass.h	/^} FOC_Maxline_t;$/;"	t	typeref:struct:__anon15
+FOC_ModMax_t	./flying_odor_compass.h	/^} FOC_ModMax_t;$/;"	t	typeref:struct:__anon14
+FOC_NOISE_REDUCTION_H	./foc_noise_reduction.h	2;"	d
+FOC_NUM_SENSORS	./flying_odor_compass.h	18;"	d
+FOC_Particle_t	./flying_odor_compass.h	/^} FOC_Particle_t;$/;"	t	typeref:struct:__anon10
+FOC_Puff_t	./flying_odor_compass.h	/^} FOC_Puff_t;$/;"	t	typeref:struct:__anon9
+FOC_RADIUS	./flying_odor_compass.h	19;"	d
+FOC_RECENT_TIME_TO_EST	./flying_odor_compass.h	28;"	d
+FOC_RECORD_LEN	./flying_odor_compass.h	32;"	d
+FOC_Reading_t	./flying_odor_compass.h	/^} FOC_Reading_t; \/\/ mox reading data type processed in FOC$/;"	t	typeref:struct:__anon5
+FOC_SIGNAL_DELAY	./flying_odor_compass.h	22;"	d
+FOC_SMOOTH_BASE_SIGMA	./foc_smooth.cxx	8;"	d	file:
+FOC_SMOOTH_H	./foc_smooth.h	2;"	d
+FOC_STD_H	./foc_std.h	2;"	d
+FOC_STD_t	./flying_odor_compass.h	/^} FOC_STD_t;$/;"	t	typeref:struct:__anon8
+FOC_TDOA_DELAY	./flying_odor_compass.h	23;"	d
+FOC_TDOA_H	./foc_tdoa.h	2;"	d
+FOC_TDOA_t	./flying_odor_compass.h	/^} FOC_TDOA_t; \/\/ delta time\/varince (feature extracted from mox reading)$/;"	t	typeref:struct:__anon7
+FOC_Vector_t	./flying_odor_compass.h	/^} FOC_Vector_t;$/;"	t	typeref:struct:__anon4
+FOC_WAVELET_H	./foc_wavelet.h	2;"	d
+FOC_WIND_H	./foc_wind.h	2;"	d
+FOC_WIND_MAX	./flying_odor_compass.h	21;"	d
+FOC_WIND_MIN	./flying_odor_compass.h	20;"	d
+FOC_WT_H	./foc_wt.h	2;"	d
+FOC_WT_LEVELS	./flying_odor_compass.h	29;"	d
+FOC_Wind_t	./flying_odor_compass.h	/^} FOC_Wind_t;$/;"	t	typeref:struct:__anon6
+Flying_Odor_Compass	./flying_odor_compass.cxx	/^Flying_Odor_Compass::Flying_Odor_Compass(void)$/;"	f	class:Flying_Odor_Compass
+Flying_Odor_Compass	./flying_odor_compass.h	/^class Flying_Odor_Compass$/;"	c
+GetRotationMatrix	./foc_estimate.cxx	/^static void GetRotationMatrix(float angle, float* axis, float* rotationMatrix)$/;"	f	file:
+H	./kf/LinearizedMeasurementModel.hpp	/^        Jacobian<Measurement, State> H;$/;"	m	class:Kalman::LinearizedMeasurementModel
+HANDLE_ERROR	./error_cuda.h	15;"	d
+HANDLE_NULL	./error_cuda.h	18;"	d
+H_LEN	./foc_smooth.cxx	9;"	d	file:
+HandleError	./error_cuda.h	/^static void HandleError( cudaError_t err,$/;"	f
+KALMAN_EXTENDEDKALMANFILTER_HPP_	./kf/ExtendedKalmanFilter.hpp	23;"	d
+KALMAN_KALMANFILTERBASE_HPP_	./kf/KalmanFilterBase.hpp	23;"	d
+KALMAN_LINEARIZEDMEASUREMENTMODEL_HPP_	./kf/LinearizedMeasurementModel.hpp	23;"	d
+KALMAN_LINEARIZEDSYSTEMMODEL_HPP_	./kf/LinearizedSystemModel.hpp	23;"	d
+KALMAN_MATRIX_HPP_	./kf/Matrix.hpp	23;"	d
+KALMAN_MEASUREMENTMODEL_HPP_	./kf/MeasurementModel.hpp	23;"	d
+KALMAN_SQUAREROOTBASE_HPP_	./kf/SquareRootBase.hpp	23;"	d
+KALMAN_SQUAREROOTEXTENDEDKALMANFILTER_HPP_	./kf/SquareRootExtendedKalmanFilter.hpp	23;"	d
+KALMAN_SQUAREROOTFILTERBASE_HPP_	./kf/SquareRootFilterBase.hpp	23;"	d
+KALMAN_SQUAREROOTUNSCENTEDKALMANFILTER_HPP_	./kf/SquareRootUnscentedKalmanFilter.hpp	23;"	d
+KALMAN_STANDARDBASE_HPP_	./kf/StandardBase.hpp	23;"	d
+KALMAN_STANDARDFILTERBASE_HPP_	./kf/StandardFilterBase.hpp	23;"	d
+KALMAN_SYSTEMMODEL_HPP_	./kf/SystemModel.hpp	23;"	d
+KALMAN_TYPES_HPP_	./kf/Types.hpp	23;"	d
+KALMAN_UNSCENTEDKALMANFILTERBASE_HPP_	./kf/UnscentedKalmanFilterBase.hpp	23;"	d
+KALMAN_UNSCENTEDKALMANFILTER_HPP_	./kf/UnscentedKalmanFilter.hpp	23;"	d
+KALMAN_VECTOR	./kf/Matrix.hpp	29;"	d
+Kalman	./kf/ExtendedKalmanFilter.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/KalmanFilterBase.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/LinearizedMeasurementModel.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/LinearizedSystemModel.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/Matrix.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/MeasurementModel.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/SquareRootBase.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/SquareRootExtendedKalmanFilter.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/SquareRootFilterBase.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/SquareRootUnscentedKalmanFilter.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/StandardBase.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/StandardFilterBase.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/SystemModel.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/Types.hpp	/^namespace Kalman$/;"	n
+Kalman	./kf/UnscentedKalmanFilter.hpp	/^namespace Kalman {$/;"	n
+Kalman	./kf/UnscentedKalmanFilterBase.hpp	/^namespace Kalman {$/;"	n
+KalmanBase	./kf/ExtendedKalmanFilter.hpp	/^        typedef KalmanFilterBase<StateType> KalmanBase;$/;"	t	class:Kalman::ExtendedKalmanFilter
+KalmanBase	./kf/SquareRootExtendedKalmanFilter.hpp	/^        typedef KalmanFilterBase<StateType> KalmanBase;$/;"	t	class:Kalman::SquareRootExtendedKalmanFilter
+KalmanFilterBase	./kf/KalmanFilterBase.hpp	/^        KalmanFilterBase()$/;"	f	class:Kalman::KalmanFilterBase
+KalmanFilterBase	./kf/KalmanFilterBase.hpp	/^    class KalmanFilterBase$/;"	c	namespace:Kalman
+LinearizedMeasurementModel	./kf/LinearizedMeasurementModel.hpp	/^        LinearizedMeasurementModel()$/;"	f	class:Kalman::LinearizedMeasurementModel
+LinearizedMeasurementModel	./kf/LinearizedMeasurementModel.hpp	/^    class LinearizedMeasurementModel : public MeasurementModel<StateType, MeasurementType, CovarianceBase>$/;"	c	namespace:Kalman
+LinearizedSystemModel	./kf/LinearizedSystemModel.hpp	/^        LinearizedSystemModel()$/;"	f	class:Kalman::LinearizedSystemModel
+LinearizedSystemModel	./kf/LinearizedSystemModel.hpp	/^    class LinearizedSystemModel : public SystemModel<StateType, ControlType, CovarianceBase>$/;"	c	namespace:Kalman
+M	./mox_model_ukf.hpp	/^    typedef Measurement<T> M;$/;"	t	class:MOX_Sensor::MeasurementModel
+MOX_MODEL_UKF_HPP	./mox_model_ukf.hpp	12;"	d
+MOX_Sensor	./mox_model_ukf.hpp	/^namespace MOX_Sensor$/;"	n
+MR_K	./foc_tdoa.cxx	10;"	d	file:
+Measurement	./kf/MeasurementModel.hpp	/^        typedef MeasurementType Measurement;$/;"	t	class:Kalman::MeasurementModel
+Measurement	./mox_model_ukf.hpp	/^class Measurement : public Kalman::Vector<T, 1> $/;"	c	namespace:MOX_Sensor
+MeasurementModel	./kf/MeasurementModel.hpp	/^        MeasurementModel() {}$/;"	f	class:Kalman::MeasurementModel
+MeasurementModel	./kf/MeasurementModel.hpp	/^    class MeasurementModel : public CovarianceBase<MeasurementType>$/;"	c	namespace:Kalman
+MeasurementModel	./mox_model_ukf.hpp	/^    MeasurementModel()$/;"	f	class:MOX_Sensor::MeasurementModel
+MeasurementModel	./mox_model_ukf.hpp	/^class MeasurementModel : public Kalman::MeasurementModel<State<T>, Measurement<T>, CovarianceBase>$/;"	c	namespace:MOX_Sensor
+N	./foc_std.cxx	8;"	d	file:
+N	./foc_tdoa.cxx	9;"	d	file:
+N_PUFFS	./virtual_plume.h	7;"	d
+Normalize	./foc_estimate.cxx	/^static float Normalize(float* v)$/;"	f	file:
+P	./kf/StandardBase.hpp	/^        Covariance<StateType> P;$/;"	m	class:Kalman::StandardBase
+POSSIBLE_ANG_RANGE	./foc_estimate.cxx	14;"	d	file:
+QR_MOTOR_DISTANCE	./wake_qr.h	6;"	d
+QR_PROP_RADIUS	./wake_qr.h	7;"	d
+QR_WAKE_RINGS	./wake_qr.h	8;"	d
+S	./kf/SquareRootBase.hpp	/^        CovarianceSquareRoot<StateType> S;$/;"	m	class:Kalman::SquareRootBase
+S	./mox_model_ukf.hpp	/^    typedef State<T> S;$/;"	t	class:MOX_Sensor::MeasurementModel
+S	./mox_model_ukf.hpp	/^    typedef State<T> S;$/;"	t	class:MOX_Sensor::SystemModel
+SIGN	./flying_odor_compass.cxx	25;"	d	file:
+SigmaPointCount	./kf/UnscentedKalmanFilterBase.hpp	/^        static constexpr int SigmaPointCount = 2 * State::RowsAtCompileTime + 1;$/;"	m	class:Kalman::UnscentedKalmanFilterBase
+SigmaWeights	./kf/UnscentedKalmanFilterBase.hpp	/^        typedef Vector<T, SigmaPointCount> SigmaWeights;$/;"	t	class:Kalman::UnscentedKalmanFilterBase
+SquareRootBase	./kf/SquareRootBase.hpp	/^        SquareRootBase()$/;"	f	class:Kalman::SquareRootBase
+SquareRootBase	./kf/SquareRootBase.hpp	/^    class SquareRootBase$/;"	c	namespace:Kalman
+SquareRootBase	./kf/SquareRootExtendedKalmanFilter.hpp	/^        typedef SquareRootFilterBase<StateType> SquareRootBase;$/;"	t	class:Kalman::SquareRootExtendedKalmanFilter
+SquareRootBase	./kf/SquareRootUnscentedKalmanFilter.hpp	/^        typedef SquareRootFilterBase<StateType> SquareRootBase;$/;"	t	class:Kalman::SquareRootUnscentedKalmanFilter
+SquareRootExtendedKalmanFilter	./kf/SquareRootExtendedKalmanFilter.hpp	/^        SquareRootExtendedKalmanFilter()$/;"	f	class:Kalman::SquareRootExtendedKalmanFilter
+SquareRootExtendedKalmanFilter	./kf/SquareRootExtendedKalmanFilter.hpp	/^    class SquareRootExtendedKalmanFilter : public KalmanFilterBase<StateType>,$/;"	c	namespace:Kalman
+SquareRootFilterBase	./kf/SquareRootFilterBase.hpp	/^    class SquareRootFilterBase : public SquareRootBase<StateType>$/;"	c	namespace:Kalman
+SquareRootUnscentedKalmanFilter	./kf/SquareRootUnscentedKalmanFilter.hpp	/^        SquareRootUnscentedKalmanFilter(T alpha = T(1), T beta = T(2), T kappa = T(0))$/;"	f	class:Kalman::SquareRootUnscentedKalmanFilter
+SquareRootUnscentedKalmanFilter	./kf/SquareRootUnscentedKalmanFilter.hpp	/^    class SquareRootUnscentedKalmanFilter : public UnscentedKalmanFilterBase<StateType>,$/;"	c	namespace:Kalman
+StandardBase	./kf/ExtendedKalmanFilter.hpp	/^        typedef StandardFilterBase<StateType> StandardBase;$/;"	t	class:Kalman::ExtendedKalmanFilter
+StandardBase	./kf/StandardBase.hpp	/^        StandardBase()$/;"	f	class:Kalman::StandardBase
+StandardBase	./kf/StandardBase.hpp	/^    class StandardBase$/;"	c	namespace:Kalman
+StandardBase	./kf/UnscentedKalmanFilter.hpp	/^        typedef StandardFilterBase<StateType> StandardBase;$/;"	t	class:Kalman::UnscentedKalmanFilter
+StandardFilterBase	./kf/StandardFilterBase.hpp	/^    class StandardFilterBase : public StandardBase<StateType>$/;"	c	namespace:Kalman
+State	./kf/KalmanFilterBase.hpp	/^        typedef StateType State;$/;"	t	class:Kalman::KalmanFilterBase
+State	./kf/MeasurementModel.hpp	/^        typedef StateType State;$/;"	t	class:Kalman::MeasurementModel
+State	./kf/SystemModel.hpp	/^        typedef StateType State;$/;"	t	class:Kalman::SystemModel
+State	./mox_model_ukf.hpp	/^class State : public Kalman::Vector<T, 2> $/;"	c	namespace:MOX_Sensor
+SystemModel	./kf/SystemModel.hpp	/^        SystemModel() {}$/;"	f	class:Kalman::SystemModel
+SystemModel	./kf/SystemModel.hpp	/^    class SystemModel : public CovarianceBase<StateType>$/;"	c	namespace:Kalman
+SystemModel	./mox_model_ukf.hpp	/^class SystemModel : public Kalman::SystemModel<State<T>, Control<T>, CovarianceBase> $/;"	c	namespace:MOX_Sensor
+T	./foc_noise_reduction.cxx	/^typedef float T;$/;"	t	file:
+T	./kf/KalmanFilterBase.hpp	/^        typedef typename StateType::Scalar T;$/;"	t	class:Kalman::KalmanFilterBase
+UnscentedBase	./kf/SquareRootUnscentedKalmanFilter.hpp	/^        typedef UnscentedKalmanFilterBase<StateType> UnscentedBase;$/;"	t	class:Kalman::SquareRootUnscentedKalmanFilter
+UnscentedBase	./kf/UnscentedKalmanFilter.hpp	/^        typedef UnscentedKalmanFilterBase<StateType> UnscentedBase;$/;"	t	class:Kalman::UnscentedKalmanFilter
+UnscentedKalmanFilter	./kf/UnscentedKalmanFilter.hpp	/^        UnscentedKalmanFilter(T alpha = T(1), T beta = T(2), T kappa = T(0))$/;"	f	class:Kalman::UnscentedKalmanFilter
+UnscentedKalmanFilter	./kf/UnscentedKalmanFilter.hpp	/^    class UnscentedKalmanFilter : public UnscentedKalmanFilterBase<StateType>,$/;"	c	namespace:Kalman
+UnscentedKalmanFilterBase	./kf/UnscentedKalmanFilterBase.hpp	/^        UnscentedKalmanFilterBase(T _alpha = T(1), T _beta = T(2), T _kappa = T(0)) : alpha(_alpha), beta(_beta), kappa(_kappa)$/;"	f	class:Kalman::UnscentedKalmanFilterBase
+UnscentedKalmanFilterBase	./kf/UnscentedKalmanFilterBase.hpp	/^    class UnscentedKalmanFilterBase : public KalmanFilterBase<StateType>$/;"	c	namespace:Kalman
+V	./kf/LinearizedMeasurementModel.hpp	/^        Jacobian<Measurement, Measurement> V;$/;"	m	class:Kalman::LinearizedMeasurementModel
+VIRTUAL_PLUME_DT	./virtual_plume.h	8;"	d
+VIRTUAL_PLUME_H	./virtual_plume.h	2;"	d
+Vector	./kf/Matrix.hpp	/^        Vector(const Eigen::MatrixBase<OtherDerived>& other)$/;"	f	class:Kalman::Vector
+Vector	./kf/Matrix.hpp	/^        Vector(void) : Matrix<T, N, 1>() {}$/;"	f	class:Kalman::Vector
+Vector	./kf/Matrix.hpp	/^    class Vector : public Matrix<T, N, 1>$/;"	c	namespace:Kalman
+W	./kf/LinearizedSystemModel.hpp	/^        Jacobian<State, State> W;$/;"	m	class:Kalman::LinearizedSystemModel
+WAKE_QR_H	./wake_qr.h	2;"	d
+WAKE_QR_VRM	./wake_qr.cxx	11;"	d	file:
+Wake_QR_ring_t	./wake_qr.h	/^} Wake_QR_ring_t;$/;"	t	typeref:struct:__anon2
+X	./mox_model_ukf.hpp	/^    static constexpr size_t X = 0;$/;"	m	class:MOX_Sensor::State
+Z	./mox_model_ukf.hpp	/^    static constexpr size_t Z = 0;$/;"	m	class:MOX_Sensor::Measurement
+abs	./flying_odor_compass.h	/^    float abs[FOC_NUM_SENSORS]; \/\/ absolute, to calculate belief later$/;"	m	struct:__anon7
+alpha	./kf/UnscentedKalmanFilterBase.hpp	/^        T alpha;    \/\/!< Scaling parameter for spread of sigma points (usually \\f$ 1E-4 \\leq \\alpha \\leq 1 \\f$)$/;"	m	class:Kalman::UnscentedKalmanFilterBase
+alpha_d	./utils/adj_mox.py	/^alpha_d = 0.5;$/;"	v
+alpha_r	./utils/adj_mox.py	/^alpha_r = 1;$/;"	v
+are_change_points_of_different_sensors	./foc_tdoa.cxx	/^static bool are_change_points_of_different_sensors(std::vector<FOC_Edge_t>& edge_cps, int start)$/;"	f	file:
+are_changepoints_overlapping	./foc_tdoa.cxx	/^static bool are_changepoints_overlapping(FOC_ChangePoints_t& a, FOC_ChangePoints_t& b)$/;"	f	file:
+att	./wake_qr.h	/^    float att[3];$/;"	m	struct:__anon2
+attitude	./flying_odor_compass.h	/^    float attitude[3];$/;"	m	struct:__anon3
+belief	./foc_feature.cxx	/^    float belief;   \/\/ 0. ~ 1. $/;"	m	struct:__anon1	file:
+belief_llh	./flying_odor_compass.h	/^    float belief_llh; \/\/ belief of likelihood of this comb$/;"	m	struct:__anon16
+beta	./kf/UnscentedKalmanFilterBase.hpp	/^        T beta;     \/\/!< Parameter for prior knowledge about the distribution (\\f$ \\beta = 2 \\f$ is optimal for Gaussian)$/;"	m	class:Kalman::UnscentedKalmanFilterBase
+calculate_delta	./foc_tdoa.cxx	/^static bool calculate_delta(std::vector<FOC_ChangePoints_t>& cps, int previous_size, $/;"	f	file:
+calculate_likelihood_t_of_two_mls	./foc_feature.cxx	/^static float calculate_likelihood_t_of_two_mls(FOC_Maxline_t &ml_x, FOC_Maxline_t &ml_y)$/;"	f	file:
+calculate_likelihood_value_of_two_mls	./foc_feature.cxx	/^static float calculate_likelihood_value_of_two_mls(FOC_Maxline_t &ml_x, FOC_Maxline_t &ml_y)$/;"	f	file:
+calculate_virtual_tdoa_and_std	./virtual_plume_cpu.cxx	/^void calculate_virtual_tdoa_and_std(std::vector<FOC_Puff_t>* plume, float* pos, float* att, FOC_Particle_t& particle)$/;"	f
+check_if_its_new_cps	./foc_tdoa.cxx	/^static bool check_if_its_new_cps(FOC_ChangePoints_t& cp, std::vector<FOC_ChangePoints_t>& cps)$/;"	f	file:
+clustering	./flying_odor_compass.h	/^    float clustering;   \/\/ degree of aggregation$/;"	m	struct:__anon11
+complete_elliptic_int_first	./wake_qr.cxx	/^static float complete_elliptic_int_first(float k)$/;"	f	file:
+complete_elliptic_int_second	./wake_qr.cxx	/^static float complete_elliptic_int_second(float k)$/;"	f	file:
+computeCovarianceFromSigmaPoints	./kf/UnscentedKalmanFilter.hpp	/^        bool computeCovarianceFromSigmaPoints(  const Type& mean, const SigmaPoints<Type>& sigmaPoints, $/;"	f	class:Kalman::UnscentedKalmanFilter
+computeCovarianceSquareRootFromSigmaPoints	./kf/SquareRootUnscentedKalmanFilter.hpp	/^        bool computeCovarianceSquareRootFromSigmaPoints(const Type& mean, const SigmaPoints<Type>& sigmaPoints, $/;"	f	class:Kalman::SquareRootUnscentedKalmanFilter
+computeKalmanGain	./kf/SquareRootExtendedKalmanFilter.hpp	/^        bool computeKalmanGain( const Jacobian<Measurement, State>& H,$/;"	f	class:Kalman::SquareRootExtendedKalmanFilter
+computeKalmanGain	./kf/SquareRootUnscentedKalmanFilter.hpp	/^        bool computeKalmanGain( const Measurement& y,$/;"	f	class:Kalman::SquareRootUnscentedKalmanFilter
+computeKalmanGain	./kf/UnscentedKalmanFilter.hpp	/^        bool computeKalmanGain( const Measurement& y,$/;"	f	class:Kalman::UnscentedKalmanFilter
+computeMeasurementPrediction	./kf/UnscentedKalmanFilterBase.hpp	/^        Measurement computeMeasurementPrediction(const MeasurementModelType<Measurement, CovarianceBase>& m, SigmaPoints<Measurement>& sigmaMeasurementPoints)$/;"	f	class:Kalman::UnscentedKalmanFilterBase
+computePredictedCovarianceSquareRoot	./kf/SquareRootExtendedKalmanFilter.hpp	/^        bool computePredictedCovarianceSquareRoot(  const Jacobian<Type, State>& A, const CovarianceSquareRoot<State>& S,$/;"	f	class:Kalman::SquareRootExtendedKalmanFilter
+computePredictionFromSigmaPoints	./kf/UnscentedKalmanFilterBase.hpp	/^        Type computePredictionFromSigmaPoints(const SigmaPoints<Type>& sigmaPoints)$/;"	f	class:Kalman::UnscentedKalmanFilterBase
+computeSigmaPointMeasurements	./kf/UnscentedKalmanFilterBase.hpp	/^        void computeSigmaPointMeasurements(const MeasurementModelType<Measurement, CovarianceBase>& m, SigmaPoints<Measurement>& sigmaMeasurementPoints)$/;"	f	class:Kalman::UnscentedKalmanFilterBase
+computeSigmaPointTransition	./kf/UnscentedKalmanFilterBase.hpp	/^        void computeSigmaPointTransition(const SystemModelType<Control, CovarianceBase>& s, const Control& u)$/;"	f	class:Kalman::UnscentedKalmanFilterBase
+computeSigmaPoints	./kf/SquareRootUnscentedKalmanFilter.hpp	/^        bool computeSigmaPoints()$/;"	f	class:Kalman::SquareRootUnscentedKalmanFilter
+computeSigmaPoints	./kf/UnscentedKalmanFilter.hpp	/^        bool computeSigmaPoints()$/;"	f	class:Kalman::UnscentedKalmanFilter
+computeStatePrediction	./kf/UnscentedKalmanFilterBase.hpp	/^        State computeStatePrediction(const SystemModelType<Control, CovarianceBase>& s, const Control& u)$/;"	f	class:Kalman::UnscentedKalmanFilterBase
+computeWeights	./kf/UnscentedKalmanFilterBase.hpp	/^        void computeWeights()$/;"	f	class:Kalman::UnscentedKalmanFilterBase
+count	./flying_odor_compass.h	/^    int count;$/;"	m	struct:__anon3
+credit	./flying_odor_compass.h	/^    float credit; \/\/ contribution of this feature to all features list$/;"	m	struct:__anon16
+d	./utils/adj_mox.py	/^d = []$/;"	v
+dX	./mox_model_ukf.hpp	/^    static constexpr size_t dX = 1;$/;"	m	class:MOX_Sensor::State
+d_	./utils/adj_mox.py	/^            d_ = 0.8$/;"	v
+d_	./utils/adj_mox.py	/^        d_ = d[i-1]-alpha_d*(d[i-1]-0.8)*0.1$/;"	v
+data_denoise	./flying_odor_compass.h	/^        std::vector<FOC_Reading_t>      data_denoise;$/;"	m	class:Flying_Odor_Compass
+data_est	./flying_odor_compass.h	/^        std::vector<FOC_Estimation_t>   data_est;$/;"	m	class:Flying_Odor_Compass
+data_feature	./flying_odor_compass.h	/^        std::vector<FOC_Feature_t>      data_feature;$/;"	m	class:Flying_Odor_Compass
+data_interp	./flying_odor_compass.h	/^        std::vector<float>              data_interp[FOC_NUM_SENSORS];$/;"	m	class:Flying_Odor_Compass
+data_maxline	./flying_odor_compass.h	/^        std::vector<FOC_Maxline_t>      data_maxline[FOC_NUM_SENSORS][2]; \/\/ maxima lines$/;"	m	class:Flying_Odor_Compass
+data_modmax	./flying_odor_compass.h	/^        std::vector<FOC_ModMax_t>       data_modmax[FOC_NUM_SENSORS][FOC_WT_LEVELS][2]; \/\/ modulus maxima points, points are sequentially placed in the order of level 0, 1, 2, ..., FOC_WT_LEVELS-1$/;"	m	class:Flying_Odor_Compass
+data_raw	./flying_odor_compass.h	/^        std::vector<FOC_Input_t>        data_raw;$/;"	m	class:Flying_Odor_Compass
+data_wind	./flying_odor_compass.h	/^        std::vector<FOC_Wind_t>         data_wind;$/;"	m	class:Flying_Odor_Compass
+data_wt_out	./flying_odor_compass.h	/^        std::vector<float>              data_wt_out[FOC_NUM_SENSORS][FOC_WT_LEVELS]; \/\/ wavelet transform of signals$/;"	m	class:Flying_Odor_Compass
+data_wvs	./flying_odor_compass.h	/^        float                           data_wvs[FOC_WT_LEVELS*FOC_LEN_WAVELET]; \/\/ wavelets of multi-scales$/;"	m	class:Flying_Odor_Compass
+data_wvs_idx	./flying_odor_compass.h	/^        std::vector<int>                data_wvs_idx; \/\/ index of every scale wavelet in data_wvs$/;"	m	class:Flying_Odor_Compass
+direction	./flying_odor_compass.h	/^    float direction[3]; \/\/ direction of gas source$/;"	m	struct:__anon11
+direction	./flying_odor_compass.h	/^    float direction[3]; \/\/ earth coord (ENU)$/;"	m	struct:__anon16
+direction_p	./flying_odor_compass.h	/^    float direction_p[3]; \/\/ aircraft coord$/;"	m	struct:__anon16
+disp	./flying_odor_compass.h	/^    int disp;$/;"	m	struct:__anon13
+dreading	./mox_model_ukf.hpp	/^    T dreading()       const { return (*this)[ dX ]; }$/;"	f	class:MOX_Sensor::State
+dreading	./mox_model_ukf.hpp	/^    T& dreading()      { return (*this)[ dX ]; }$/;"	f	class:MOX_Sensor::State
+dt	./flying_odor_compass.h	/^    float dt;$/;"	m	struct:__anon11
+dt	./flying_odor_compass.h	/^    float dt;$/;"	m	struct:__anon7
+dt	./mox_model_ukf.hpp	/^    float dt = 1.0\/FOC_MOX_DAQ_FREQ;$/;"	m	class:MOX_Sensor::SystemModel
+estimate_horizontal_plume_dispersion_direction_according_to_toa	./foc_estimate.cxx	/^bool estimate_horizontal_plume_dispersion_direction_according_to_toa(FOC_Feature_t& feature, float* out)$/;"	f
+f	./foc_smooth.cxx	/^static firfilt_rrrf f[FOC_DIFF_GROUPS][FOC_DIFF_LAYERS_PER_GROUP+1][FOC_NUM_SENSORS];$/;"	v	file:
+f	./mox_model_ukf.hpp	/^    S f(const S& x, const C& u) const$/;"	f	class:MOX_Sensor::SystemModel
+f_w	./foc_wind.cxx	/^static firfilt_rrrf f_w[3]; \/\/ xyz, filter for wind$/;"	v	file:
+factorial	./foc_feature.cxx	/^int factorial(int n)$/;"	f
+fill_new_feature_struct	./foc_feature.cxx	/^void fill_new_feature_struct(FOC_Feature_t &new_feature, Comb_Maxlines_t &comb_ml, std::vector<FOC_Maxline_t> data_maxline[FOC_NUM_SENSORS][2], int sign)$/;"	f
+find_pairs_of_change_points	./foc_tdoa.cxx	/^static void find_pairs_of_change_points(std::vector<FOC_Edge_t>& edge_cps, std::vector<FOC_ChangePoints_t>& cps)$/;"	f	file:
+foc_diff_init	./foc_diff.cxx	/^void foc_diff_init(std::vector<FOC_Reading_t>* out)$/;"	f
+foc_diff_update	./foc_diff.cxx	/^bool foc_diff_update(std::vector<FOC_Reading_t>* in, std::vector<FOC_Reading_t>* out)$/;"	f
+foc_edge_init	./foc_edge.cxx	/^void foc_edge_init(std::vector<FOC_Reading_t>* out_max, std::vector<FOC_Reading_t>* out_min)$/;"	f
+foc_edge_update	./foc_edge.cxx	/^bool foc_edge_update(std::vector<FOC_Reading_t>* in, std::vector<FOC_Reading_t>* out_max, std::vector<FOC_Reading_t>* out_min)$/;"	f
+foc_estimate_source_init	./foc_estimate.cxx	/^void foc_estimate_source_init(std::vector<FOC_Estimation_t>& out)$/;"	f
+foc_estimate_source_update	./foc_estimate.cxx	/^bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector<FOC_Estimation_t>& data_est, std::vector<FOC_Input_t>& data_raw, int size_of_signal)$/;"	f
+foc_feature_extraction_init	./foc_feature.cxx	/^void foc_feature_extraction_init(std::vector<FOC_Feature_t> &data_feature)$/;"	f
+foc_feature_extraction_update	./foc_feature.cxx	/^bool foc_feature_extraction_update(std::vector<FOC_Maxline_t> data_maxline[FOC_NUM_SENSORS][2], std::vector<FOC_Feature_t> &data_feature, int size_of_signal)$/;"	f
+foc_gradient_init	./foc_gradient.cxx	/^void foc_gradient_init(std::vector<FOC_Reading_t>& out)$/;"	f
+foc_gradient_update	./foc_gradient.cxx	/^bool foc_gradient_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Reading_t>& out)$/;"	f
+foc_interp_init	./foc_interp.cxx	/^void foc_interp_init(std::vector<float>* samples, int k = 4, int m = 3, float s = 60)$/;"	f
+foc_interp_terminate	./foc_interp.cxx	/^void foc_interp_terminate(void)$/;"	f
+foc_interp_update	./foc_interp.cxx	/^bool foc_interp_update(float* symbol, std::vector<float>* samples)$/;"	f
+foc_noise_reduction_gaussian_filter	./foc_noise_reduction.cxx	/^bool foc_noise_reduction_gaussian_filter(std::vector<FOC_Reading_t>* input,$/;"	f
+foc_noise_reduction_ukf_init	./foc_noise_reduction.cxx	/^void foc_noise_reduction_ukf_init(void)$/;"	f
+foc_noise_reduction_ukf_update	./foc_noise_reduction.cxx	/^FOC_Reading_t foc_noise_reduction_ukf_update(FOC_Input_t& new_in)$/;"	f
+foc_smooth_init	./foc_smooth.cxx	/^void foc_smooth_init(std::vector<FOC_Reading_t>* out)$/;"	f
+foc_smooth_terminate	./foc_smooth.cxx	/^void foc_smooth_terminate(void)$/;"	f
+foc_smooth_update	./foc_smooth.cxx	/^bool foc_smooth_update(std::vector<FOC_Reading_t>& in, std::vector<FOC_Reading_t>* out)$/;"	f
+foc_std_init	./foc_std.cxx	/^void foc_std_init(std::vector<FOC_STD_t>* out)$/;"	f
+foc_std_update	./foc_std.cxx	/^bool foc_std_update(std::vector<FOC_Reading_t>* diff, std::vector<FOC_STD_t>* out)$/;"	f
+foc_tdoa_init	./foc_tdoa.cxx	/^void foc_tdoa_init(std::vector<FOC_ChangePoints_t>* cp_max, std::vector<FOC_ChangePoints_t>* cp_min, std::vector<FOC_TDOA_t>* out)$/;"	f
+foc_tdoa_update	./foc_tdoa.cxx	/^bool foc_tdoa_update(std::vector<FOC_Reading_t>* diff, std::vector<FOC_Reading_t>* edge_max, std::vector<FOC_Reading_t>* edge_min, std::vector<FOC_ChangePoints_t>* cp_max, std::vector<FOC_ChangePoints_t>* cp_min, std::vector<FOC_TDOA_t>* out)$/;"	f
+foc_wind_smooth_init	./foc_wind.cxx	/^void foc_wind_smooth_init(std::vector<FOC_Wind_t>& out)$/;"	f
+foc_wind_smooth_update	./foc_wind.cxx	/^void foc_wind_smooth_update(FOC_Input_t& new_in, std::vector<FOC_Wind_t>& out)$/;"	f
+foc_wt_init	./foc_wt.cxx	/^void foc_wt_init(std::vector<double>* out, std::vector<int>* length, std::vector<double>* flag)$/;"	f
+foc_wt_update	./foc_wt.cxx	/^bool foc_wt_update(std::vector<double>* readings, std::vector<double>* out, std::vector<int>* length, std::vector<double>* flag)$/;"	f
+g_tune	./foc_smooth.cxx	/^static float g_tune[FOC_DIFF_GROUPS][FOC_DIFF_LAYERS_PER_GROUP+1][FOC_NUM_SENSORS];$/;"	v	file:
+gamma	./kf/UnscentedKalmanFilterBase.hpp	/^        T gamma;    \/\/!< \\f$ \\gamma = \\sqrt{L + \\lambda} \\f$ with \\f$ L \\f$ being the state dimensionality$/;"	m	class:Kalman::UnscentedKalmanFilterBase
+getCovariance	./kf/SquareRootBase.hpp	/^        Covariance<StateType> getCovariance() const$/;"	f	class:Kalman::SquareRootBase
+getCovariance	./kf/StandardBase.hpp	/^        const Covariance<StateType>& getCovariance() const$/;"	f	class:Kalman::StandardBase
+getCovarianceSquareRoot	./kf/SquareRootBase.hpp	/^        const CovarianceSquareRoot<StateType>& getCovarianceSquareRoot() const$/;"	f	class:Kalman::SquareRootBase
+getCovarianceSquareRoot	./kf/StandardBase.hpp	/^        CovarianceSquareRoot<StateType> getCovarianceSquareRoot() const$/;"	f	class:Kalman::StandardBase
+getState	./kf/KalmanFilterBase.hpp	/^        const State& getState() const$/;"	f	class:Kalman::KalmanFilterBase
+get_strength_dispersion_of_the_pair	./foc_tdoa.cxx	/^static int get_strength_dispersion_of_the_pair(std::vector<FOC_Edge_t>& edge_cps, int start)$/;"	f	file:
+get_strength_of_the_pair	./foc_tdoa.cxx	/^static float get_strength_of_the_pair(std::vector<FOC_Edge_t>& edge_cps, int start)$/;"	f	file:
+get_time_dispersion_of_the_pair	./foc_tdoa.cxx	/^static int get_time_dispersion_of_the_pair(std::vector<FOC_Edge_t>& edge_cps, int start)$/;"	f	file:
+h	./foc_smooth.cxx	/^static float h[FOC_DIFF_GROUPS][FOC_DIFF_LAYERS_PER_GROUP+1][FOC_NUM_SENSORS][H_LEN];$/;"	v	file:
+h	./mox_model_ukf.hpp	/^    M h(const S& x) const$/;"	f	class:MOX_Sensor::MeasurementModel
+hist_particles	./flying_odor_compass.h	/^    std::vector<FOC_Particle_t>* hist_particles;$/;"	m	struct:__anon11
+idx	./foc_feature.cxx	/^    int idx[FOC_NUM_SENSORS]; \/\/ index of data_maxline$/;"	m	struct:__anon1	file:
+idx_ml	./flying_odor_compass.h	/^    int idx_ml[FOC_NUM_SENSORS]; \/\/ index of data_maxline this feature extracts from$/;"	m	struct:__anon16
+index	./flying_odor_compass.h	/^    int index; \/\/ index of first sensor in edge sequence$/;"	m	struct:__anon7
+index	./flying_odor_compass.h	/^    int index[FOC_NUM_SENSORS]; \/\/ indices of change points$/;"	m	struct:__anon13
+index_in_reading	./foc_diff.cxx	/^static int index_in_reading = FOC_SIGNAL_DELAY*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR; \/\/ skip FIR init fluctuation$/;"	v	file:
+index_in_reading	./foc_edge.cxx	/^static int index_in_reading[FOC_DIFF_GROUPS][FOC_DIFF_LAYERS_PER_GROUP] = {0};$/;"	v	file:
+index_in_reading	./foc_gradient.cxx	/^static int index_in_reading = 1;$/;"	v	file:
+index_in_reading	./foc_smooth.cxx	/^static int index_in_reading = 0;$/;"	v	file:
+index_sensor	./flying_odor_compass.h	/^    int     index_sensor;$/;"	m	struct:__anon12
+index_time	./flying_odor_compass.h	/^    int     index_time;$/;"	m	struct:__anon12
+induced_velocity_vortex_ring	./wake_qr.cxx	/^static void induced_velocity_vortex_ring(float* center_ring, float radius_ring, float Gamma_ring, float core_radius_ring, float* att_ring, float*pos, float* vel)$/;"	f	file:
+init	./kf/KalmanFilterBase.hpp	/^        void init(const State& initialState)$/;"	f	class:Kalman::KalmanFilterBase
+init_particles	./foc_estimate.cxx	/^static void init_particles(unsigned int seed, int num, float radius_particle_to_robot, float* rot_m, FOC_Estimation_t& new_out)$/;"	f	file:
+interp_factor	./foc_interp.cxx	/^static int interp_factor = 4;$/;"	v	file:
+isIdentity	./kf/Matrix.hpp	/^        bool isIdentity() const$/;"	f	class:Kalman::Cholesky
+kappa	./kf/UnscentedKalmanFilterBase.hpp	/^        T kappa;    \/\/!< Secondary scaling parameter (usually 0)$/;"	m	class:Kalman::UnscentedKalmanFilterBase
+lambda	./kf/UnscentedKalmanFilterBase.hpp	/^        T lambda;   \/\/!< \\f$ \\lambda = \\alpha^2 ( L + \\kappa ) - L\\f$ with \\f$ L \\f$ being the state dimensionality$/;"	m	class:Kalman::UnscentedKalmanFilterBase
+level	./flying_odor_compass.h	/^    int     level;  \/\/ this maxima point belongs to which level$/;"	m	struct:__anon14
+levels	./flying_odor_compass.h	/^    int levels; \/\/ the number of levels this maxline grows through$/;"	m	struct:__anon15
+mox_reading	./flying_odor_compass.h	/^    float mox_reading[FOC_NUM_SENSORS];$/;"	m	struct:__anon3
+operator =	./kf/Matrix.hpp	/^        Vector& operator= (const Eigen::MatrixBase <OtherDerived>& other)$/;"	f	class:Kalman::Vector
+particles	./flying_odor_compass.h	/^    std::vector<FOC_Particle_t>* particles; \/\/ particles, virtual sources$/;"	m	struct:__anon11
+plume	./flying_odor_compass.h	/^    std::vector<FOC_Puff_t>* plume; \/\/ virtual plume$/;"	m	struct:__anon10
+pos	./flying_odor_compass.h	/^    float pos[3];$/;"	m	struct:__anon9
+pos	./wake_qr.h	/^    float pos[4][3];$/;"	m	struct:__anon2
+pos_r	./flying_odor_compass.h	/^    float pos_r[3]; \/\/ relative position from particle to robot$/;"	m	struct:__anon10
+position	./flying_odor_compass.h	/^    float position[3];$/;"	m	struct:__anon3
+possible	./foc_feature.cxx	/^    bool possible; \/\/ true or not$/;"	m	struct:__anon1	file:
+predict	./kf/ExtendedKalmanFilter.hpp	/^        const State& predict( SystemModelType<Control, CovarianceBase>& s )$/;"	f	class:Kalman::ExtendedKalmanFilter
+predict	./kf/ExtendedKalmanFilter.hpp	/^        const State& predict( SystemModelType<Control, CovarianceBase>& s, const Control& u )$/;"	f	class:Kalman::ExtendedKalmanFilter
+predict	./kf/SquareRootExtendedKalmanFilter.hpp	/^        const State& predict( SystemModelType<Control, CovarianceBase>& s )$/;"	f	class:Kalman::SquareRootExtendedKalmanFilter
+predict	./kf/SquareRootExtendedKalmanFilter.hpp	/^        const State& predict( SystemModelType<Control, CovarianceBase>& s, const Control& u )$/;"	f	class:Kalman::SquareRootExtendedKalmanFilter
+predict	./kf/SquareRootUnscentedKalmanFilter.hpp	/^        const State& predict( const SystemModelType<Control, CovarianceBase>& s )$/;"	f	class:Kalman::SquareRootUnscentedKalmanFilter
+predict	./kf/SquareRootUnscentedKalmanFilter.hpp	/^        const State& predict( const SystemModelType<Control, CovarianceBase>& s, const Control& u )$/;"	f	class:Kalman::SquareRootUnscentedKalmanFilter
+predict	./kf/UnscentedKalmanFilter.hpp	/^        const State& predict( const SystemModelType<Control, CovarianceBase>& s )$/;"	f	class:Kalman::UnscentedKalmanFilter
+predict	./kf/UnscentedKalmanFilter.hpp	/^        const State& predict( const SystemModelType<Control, CovarianceBase>& s, const Control& u )$/;"	f	class:Kalman::UnscentedKalmanFilter
+previous_time	./foc_noise_reduction.cxx	/^double previous_time = -1;$/;"	v
+q	./foc_interp.cxx	/^static firinterp_rrrf q[FOC_NUM_SENSORS];$/;"	v	file:
+r	./flying_odor_compass.h	/^    float r;$/;"	m	struct:__anon9
+r	./utils/adj_mox.py	/^r = []$/;"	v
+r_	./utils/adj_mox.py	/^            r_ = 3.3$/;"	v
+r_	./utils/adj_mox.py	/^        r_ = r[i-1]+alpha_r*(3.3-r[i-1])*0.1$/;"	v
+radius_particle_to_robot	./flying_odor_compass.h	/^    float radius_particle_to_robot;$/;"	m	struct:__anon11
+rand_fn	./foc_estimate.cxx	/^float rand_fn[128];$/;"	v
+rand_kn	./foc_estimate.cxx	/^unsigned int rand_kn[128];$/;"	v
+rand_seed	./foc_estimate.cxx	/^unsigned int rand_seed; \/\/ seed to generate random numbers$/;"	v
+rand_wn	./foc_estimate.cxx	/^float rand_wn[128];$/;"	v
+reading	./flying_odor_compass.h	/^    float   reading;$/;"	m	struct:__anon12
+reading	./flying_odor_compass.h	/^    float reading[FOC_NUM_SENSORS];$/;"	m	struct:__anon5
+reading	./mox_model_ukf.hpp	/^    T reading()       const { return (*this)[ X ]; }$/;"	f	class:MOX_Sensor::State
+reading	./mox_model_ukf.hpp	/^    T& reading()      { return (*this)[ X ]; }$/;"	f	class:MOX_Sensor::State
+recent_readings	./foc_wt.cxx	/^static std::vector<double> recent_readings[FOC_NUM_SENSORS];$/;"	v	file:
+release_virtual_plume	./virtual_plume_cpu.cxx	/^void release_virtual_plume(float* pos_r, float* pos_qr, float* att_qr, float* wind, std::vector<FOC_Puff_t>* plume)$/;"	f
+reorganize_edge_to_a_vector	./foc_tdoa.cxx	/^static void reorganize_edge_to_a_vector(std::vector<FOC_Reading_t>& edge, int num, std::vector<FOC_Edge_t>& v) $/;"	f	file:
+rotate_vector	./vector_rotation.cxx	/^void rotate_vector(const float* vector, float* out, float yaw, float pitch, float roll)$/;"	f
+sensor_reading_filter	./foc_noise_reduction.cxx	/^void* sensor_reading_filter[FOC_NUM_SENSORS]; \/\/ ukf filters$/;"	v
+sensor_reading_mm	./foc_noise_reduction.cxx	/^void* sensor_reading_mm[FOC_NUM_SENSORS]; \/\/ measurement model$/;"	v
+sensor_reading_state	./foc_noise_reduction.cxx	/^void* sensor_reading_state[FOC_NUM_SENSORS]; \/\/ state vectors$/;"	v
+sensor_reading_sys	./foc_noise_reduction.cxx	/^void* sensor_reading_sys[FOC_NUM_SENSORS]; \/\/ system model$/;"	v
+sensor_reading_var_measurement_noise	./foc_noise_reduction.cxx	/^float sensor_reading_var_measurement_noise;$/;"	v
+sensor_reading_var_process_noise	./foc_noise_reduction.cxx	/^float sensor_reading_var_process_noise;$/;"	v
+sensor_reading_z	./foc_noise_reduction.cxx	/^void* sensor_reading_z[FOC_NUM_SENSORS]; \/\/ measurement$/;"	v
+setCovariance	./kf/SquareRootBase.hpp	/^        bool setCovariance(const Covariance<StateType>& covariance)$/;"	f	class:Kalman::SquareRootBase
+setCovariance	./kf/StandardBase.hpp	/^        bool setCovariance(const Covariance<StateType>& covariance)$/;"	f	class:Kalman::StandardBase
+setIdentity	./kf/Matrix.hpp	/^        Cholesky& setIdentity()$/;"	f	class:Kalman::Cholesky
+setL	./kf/Matrix.hpp	/^        Cholesky& setL(const Eigen::MatrixBase <Derived>& matrix)$/;"	f	class:Kalman::Cholesky
+setU	./kf/Matrix.hpp	/^        Cholesky& setU(const Eigen::MatrixBase <Derived>& matrix)$/;"	f	class:Kalman::Cholesky
+sigmaStatePoints	./kf/UnscentedKalmanFilterBase.hpp	/^        SigmaPoints<State> sigmaStatePoints;$/;"	m	class:Kalman::UnscentedKalmanFilterBase
+sigmaWeights_c	./kf/UnscentedKalmanFilterBase.hpp	/^        SigmaWeights sigmaWeights_c;$/;"	m	class:Kalman::UnscentedKalmanFilterBase
+split_new_particles	./foc_estimate.cxx	/^static void split_new_particles(unsigned int seed, float nor_std, int num, float radius_particle_to_robot, float* rot_m, float weight, FOC_Estimation_t& new_out)$/;"	f	file:
+std	./flying_odor_compass.h	/^    FOC_STD_t std;$/;"	m	struct:__anon10
+std	./flying_odor_compass.h	/^    float std[FOC_NUM_SENSORS];$/;"	m	struct:__anon11
+std	./flying_odor_compass.h	/^    float std[FOC_NUM_SENSORS];$/;"	m	struct:__anon8
+sum_abs_tdoa	./flying_odor_compass.h	/^    float sum_abs_tdoa; \/\/ sum of abs(tdoa), s$/;"	m	struct:__anon16
+sum_abs_tdoa	./foc_feature.cxx	/^    float sum_abs_tdoa; \/\/ sum of abs(tdoa), s$/;"	m	struct:__anon1	file:
+sum_abs_top_level_wt_value	./flying_odor_compass.h	/^    float sum_abs_top_level_wt_value; \/\/ sum of the abs of top level wt value$/;"	m	struct:__anon16
+sum_llh_mls_levels	./flying_odor_compass.h	/^    float sum_llh_mls_levels; \/\/ sum of diff of levels of maxlines, 0. ~ FOC_NUM_SENSORS!\/(2!(FOC_NUM_SENSORS-2)!)$/;"	m	struct:__anon16
+sum_llh_mls_levels	./foc_feature.cxx	/^    float sum_llh_mls_levels; \/\/ sum of diff of levels of maxlines, 0. ~ FOC_NUM_SENSORS!\/(2!(FOC_NUM_SENSORS-2)!)$/;"	m	struct:__anon1	file:
+sum_llh_mls_t	./flying_odor_compass.h	/^    float sum_llh_mls_t; \/\/ sum of likelihood of time of maxlines, -FOC_NUM_SENSORS!\/(2!(FOC_NUM_SENSORS-2)!)  ~ FOC_NUM_SENSORS!\/(2!(FOC_NUM_SENSORS-2)!)$/;"	m	struct:__anon16
+sum_llh_mls_t	./foc_feature.cxx	/^    float sum_llh_mls_t; \/\/ sum of likelihood of time of maxlines, -FOC_NUM_SENSORS!\/(2!(FOC_NUM_SENSORS-2)!)  ~ FOC_NUM_SENSORS!\/(2!(FOC_NUM_SENSORS-2)!)$/;"	m	struct:__anon1	file:
+sum_llh_mls_value	./flying_odor_compass.h	/^    float sum_llh_mls_value; \/\/ sum of likelihood of value of maxlines, -FOC_NUM_SENSORS!\/(2!(FOC_NUM_SENSORS-2)!) ~ FOC_NUM_SENSORS!\/(2!(FOC_NUM_SENSORS-2)!)$/;"	m	struct:__anon16
+sum_llh_mls_value	./foc_feature.cxx	/^    float sum_llh_mls_value; \/\/ sum of likelihood of value of maxlines, -FOC_NUM_SENSORS!\/(2!(FOC_NUM_SENSORS-2)!) ~ FOC_NUM_SENSORS!\/(2!(FOC_NUM_SENSORS-2)!)$/;"	m	struct:__anon1	file:
+t	./flying_odor_compass.h	/^    int   t;      \/\/ time of this maxima occurs$/;"	m	struct:__anon14
+t	./flying_odor_compass.h	/^    int t[FOC_WT_LEVELS]; \/\/ time of modmax$/;"	m	struct:__anon15
+t	./utils/adj_mox.py	/^t = np.linspace(0., 10, 100)$/;"	v
+time	./flying_odor_compass.h	/^    double time;$/;"	m	struct:__anon3
+time	./flying_odor_compass.h	/^    double time;$/;"	m	struct:__anon5
+toa	./flying_odor_compass.h	/^    float toa[FOC_NUM_SENSORS]; \/\/ second$/;"	m	struct:__anon16
+toa	./flying_odor_compass.h	/^    float toa[FOC_NUM_SENSORS]; \/\/ time of arrival$/;"	m	struct:__anon7
+type	./flying_odor_compass.h	/^    int type; \/\/ sign$/;"	m	struct:__anon16
+update	./flying_odor_compass.cxx	/^bool Flying_Odor_Compass::update(FOC_Input_t& new_in)$/;"	f	class:Flying_Odor_Compass
+update	./kf/ExtendedKalmanFilter.hpp	/^        const State& update( MeasurementModelType<Measurement, CovarianceBase>& m, const Measurement& z )$/;"	f	class:Kalman::ExtendedKalmanFilter
+update	./kf/SquareRootExtendedKalmanFilter.hpp	/^        const State& update( MeasurementModelType<Measurement, CovarianceBase>& m, const Measurement& z )$/;"	f	class:Kalman::SquareRootExtendedKalmanFilter
+update	./kf/SquareRootUnscentedKalmanFilter.hpp	/^        const State& update( const MeasurementModelType<Measurement, CovarianceBase>& m, const Measurement& z )$/;"	f	class:Kalman::SquareRootUnscentedKalmanFilter
+update	./kf/UnscentedKalmanFilter.hpp	/^        const State& update( const MeasurementModelType<Measurement, CovarianceBase>& m, const Measurement& z )$/;"	f	class:Kalman::UnscentedKalmanFilter
+updateJacobians	./kf/LinearizedMeasurementModel.hpp	/^        virtual void updateJacobians( const State& x )$/;"	f	class:Kalman::LinearizedMeasurementModel
+updateJacobians	./kf/LinearizedSystemModel.hpp	/^        virtual void updateJacobians( const State& x, const Control& u )$/;"	f	class:Kalman::LinearizedSystemModel
+updateStateCovariance	./kf/SquareRootExtendedKalmanFilter.hpp	/^        bool updateStateCovariance( const KalmanGain<Measurement>& K,$/;"	f	class:Kalman::SquareRootExtendedKalmanFilter
+updateStateCovariance	./kf/SquareRootUnscentedKalmanFilter.hpp	/^        bool updateStateCovariance(const KalmanGain<Measurement>& K, const CovarianceSquareRoot<Measurement>& S_y)$/;"	f	class:Kalman::SquareRootUnscentedKalmanFilter
+updateStateCovariance	./kf/UnscentedKalmanFilter.hpp	/^        bool updateStateCovariance(const KalmanGain<Measurement>& K, const Covariance<Measurement>& P_yy)$/;"	f	class:Kalman::UnscentedKalmanFilter
+update_puff_info	./virtual_plume_cpu.cxx	/^static void update_puff_info(float* pos_qr, float* att_qr, float* wind, FOC_Puff_t& puff, float dt)$/;"	f	file:
+valid	./flying_odor_compass.h	/^    bool valid; \/\/ this result is valid or not$/;"	m	struct:__anon11
+valid_to_infer_direction	./flying_odor_compass.h	/^    bool valid_to_infer_direction;$/;"	m	struct:__anon16
+value	./flying_odor_compass.h	/^    float   value;  \/\/ value of this maxima point$/;"	m	struct:__anon14
+value	./flying_odor_compass.h	/^    float value[FOC_WT_LEVELS]; \/\/ value of modmax$/;"	m	struct:__anon15
+wake_qr_calculate_velocity	./wake_qr.cxx	/^void wake_qr_calculate_velocity(float* pos_qr, float* att_qr, float* pos, float* vel_wind, float* vel)$/;"	f
+wake_qr_get_info_vortex_rings	./wake_qr.cxx	/^std::vector<Wake_QR_ring_t>* wake_qr_get_info_vortex_rings(void)$/;"	f
+wake_qr_rings	./wake_qr.cxx	/^static std::vector<Wake_QR_ring_t> wake_qr_rings;$/;"	v	file:
+weight	./flying_odor_compass.h	/^    float weight;$/;"	m	struct:__anon10
+wind	./flying_odor_compass.h	/^    float wind[3];      \/\/ e\/n\/u earth coordinate$/;"	m	struct:__anon6
+wind	./flying_odor_compass.h	/^    float wind[3];      \/\/ global coord, e\/n$/;"	m	struct:__anon11
+wind	./flying_odor_compass.h	/^    float wind[3];$/;"	m	struct:__anon3
+wind_filtered	./flying_odor_compass.h	/^    float wind_filtered[3];$/;"	m	struct:__anon6
+wind_p	./flying_odor_compass.h	/^    float wind_p[3];    \/\/ plane coord, x\/y$/;"	m	struct:__anon11
+wind_p	./flying_odor_compass.h	/^    float wind_p[3];    \/\/ plane coordinate$/;"	m	struct:__anon6
+x	./flying_odor_compass.h	/^    float x;$/;"	m	struct:__anon4
+x	./kf/KalmanFilterBase.hpp	/^        State x;$/;"	m	class:Kalman::KalmanFilterBase
+y	./flying_odor_compass.h	/^    float y;$/;"	m	struct:__anon4
+z	./flying_odor_compass.h	/^    float z;$/;"	m	struct:__anon4
+z	./mox_model_ukf.hpp	/^    T z()  const { return (*this)[ Z ]; }$/;"	f	class:MOX_Sensor::Measurement
+z	./mox_model_ukf.hpp	/^    T& z() { return (*this)[ Z ]; }$/;"	f	class:MOX_Sensor::Measurement
+~LinearizedMeasurementModel	./kf/LinearizedMeasurementModel.hpp	/^        ~LinearizedMeasurementModel() {}$/;"	f	class:Kalman::LinearizedMeasurementModel
+~LinearizedSystemModel	./kf/LinearizedSystemModel.hpp	/^        ~LinearizedSystemModel() {}$/;"	f	class:Kalman::LinearizedSystemModel
+~MeasurementModel	./kf/MeasurementModel.hpp	/^        virtual ~MeasurementModel() {}$/;"	f	class:Kalman::MeasurementModel
+~SystemModel	./kf/SystemModel.hpp	/^        virtual ~SystemModel() {}$/;"	f	class:Kalman::SystemModel

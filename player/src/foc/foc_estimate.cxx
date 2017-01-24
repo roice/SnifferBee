@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <cmath>
@@ -10,14 +11,16 @@
 #include "foc/vector_rotation.h"
 
 // latest samples
-#define POSSIBLE_ANG_RANGE      180.0*M_PI/180.0  // possible angle range to resample/init particles
+#define POSSIBLE_ANG_RANGE      120.0*M_PI/180.0  // possible angle range to resample/init particles
 
 unsigned int rand_seed; // seed to generate random numbers
 float rand_fn[128];
 unsigned int rand_kn[128];
 float rand_wn[128];
 
-static void init_particles(unsigned int, int, float, float*, FOC_Estimation_t&);
+std::vector<FOC_Particle_t> particles;
+
+static void init_particles(unsigned int, int, int, float, float*, std::vector<FOC_Particle_t>&);
 static void split_new_particles(unsigned int, float, int, float, float*, float, FOC_Estimation_t&);
 static void CalculateRotationMatrix(float*, float*, float*);
 
@@ -30,6 +33,15 @@ void foc_estimate_source_init(std::vector<FOC_Estimation_t>& out)
 
     // setup normal distributed random number generator
     r4_nor_setup ( rand_kn, rand_fn, rand_wn );
+
+    // init particles vector
+    FOC_Particle_t new_particle;
+    particles.clear();
+    for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
+        new_particle.plume = new std::vector<FOC_Puff_t>;
+        new_particle.plume->reserve(N_PUFFS);
+        particles.push_back(new_particle);
+    }
 
     out.clear();
 }
@@ -115,12 +127,111 @@ bool estimate_horizontal_plume_dispersion_direction_according_to_toa(FOC_Feature
     return true;
 }
 
+int sign(float x) {
+    if (x > 0) return 1;
+    else if (x < 0) return -1;
+    else
+        return 0;
+}
+
+static float calculate_likelihood_of_two_std(float* x, float* y)
+{
+#if 0
+    float nrm_x = cblas_snrm2(FOC_NUM_SENSORS, x, 1);
+    float nrm_y = cblas_snrm2(FOC_NUM_SENSORS, y, 1);
+    if (nrm_x == 0 and nrm_y == 0)
+        return 1.0;
+    else if (nrm_y == 0)
+        return 0;
+    else if (nrm_x == 0)
+        return 0;
+
+    float angle = std::acos(cblas_sdot(FOC_NUM_SENSORS, x, 1, y, 1) / (nrm_x*nrm_y));
+    if (angle == 0)
+        return 1.0;
+    else
+        return (1.0 - angle/M_PI)*((nrm_y)/(nrm_x));
+#endif
+
+    float dx[FOC_NUM_SENSORS-1], dy[FOC_NUM_SENSORS-1];
+    for (int i = 0; i < FOC_NUM_SENSORS-1; i++) {
+        dx[i] = x[i+1] - x[i];
+        dy[i] = y[i+1] - y[i];
+    }
+    for (int i = 0; i < FOC_NUM_SENSORS-1; i++) {
+        if (sign(dx[i]) != sign(dy[i]))
+            return 0;
+    }
+
+    float ratio_x[FOC_NUM_SENSORS-1], ratio_y[FOC_NUM_SENSORS-1];
+    for (int i = 0; i < FOC_NUM_SENSORS-1; i++) {
+        ratio_x[i] = x[i+1] / x[i];
+        ratio_y[i] = y[i+1] / y[i];
+    }
+    float nrm_rx = cblas_snrm2(FOC_NUM_SENSORS-1, ratio_x, 1);
+    float nrm_ry = cblas_snrm2(FOC_NUM_SENSORS-1, ratio_y, 1);
+    if (nrm_rx == 0 and nrm_ry == 0)
+        return 0.0;
+    else if (nrm_ry == 0)
+        return 0;
+    else if (nrm_rx == 0)
+        return 0;
+
+    float angle = std::acos(cblas_sdot(FOC_NUM_SENSORS-1, ratio_x, 1, ratio_y, 1) / (nrm_rx*nrm_ry));
+    if (angle == 0)
+        return 1.0;
+    else
+        return (1.0 - angle/M_PI);
+        //return 1.0/std::exp(angle);
+}
+
+static float calculate_likelihood_of_two_tdoa(float* x, float* y)
+{/**/
+
+    float dx[FOC_NUM_SENSORS-1], dy[FOC_NUM_SENSORS-1];
+    for (int i = 0; i < FOC_NUM_SENSORS-1; i++) {
+        dx[i] = x[i+1] - x[i];
+        dy[i] = y[i+1] - y[i];
+    }
+    for (int i = 0; i < FOC_NUM_SENSORS-1; i++) {
+        if (sign(dx[i]) != sign(dy[i]))
+            return 0;
+    }
+
+    float nrm_dx = cblas_snrm2(FOC_NUM_SENSORS-1, dx, 1);
+    float nrm_dy = cblas_snrm2(FOC_NUM_SENSORS-1, dy, 1);
+    if (nrm_dx == 0 and nrm_dy == 0)
+        return 0.0;
+    else if (nrm_dy == 0)
+        return 0;
+    else if (nrm_dx == 0)
+        return 0;
+
+    double ratio_nrm_dy_dx = nrm_dx/nrm_dy; 
+    if (ratio_nrm_dy_dx > 2.)
+        ratio_nrm_dy_dx = 2.; // 0. ~ 2.
+    ratio_nrm_dy_dx -= 1.0; // -1. ~ 1.
+    float likeli_speed = 1.0 - std::abs(ratio_nrm_dy_dx); // 0. ~ 1.
+    likeli_speed = 1.0;
+
+    float angle = std::acos(cblas_sdot(FOC_NUM_SENSORS-1, dx, 1, dy, 1) / (nrm_dx*nrm_dy));
+    if (angle == 0)
+        return 1.0*likeli_speed;
+    else if (angle > M_PI/2.)
+        return 0;
+    else
+        return (1.0 - angle/(M_PI/2.0))*likeli_speed;
+        //return 1.0/std::exp(angle);
+}
+
+//#define FOC_2D
+
 /* Estimate the 3D direction the odor comes from 
  * Args:
  *      feature     feature of combinations of sensor maxlines, containing TDOA etc. info
  *      est         direction estimation
  */
-bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector<FOC_Estimation_t>& data_est, int size_of_signal)
+bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector<FOC_Estimation_t>& data_est, std::vector<FOC_Input_t>& data_raw, int size_of_signal)
 {
     if (feature.size() == 0)
         return false;
@@ -129,148 +240,256 @@ bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector
 
     FOC_Estimation_t new_est;
 
-/* ===============  Step 1: Prepare to release particles  =====================
- *  Step 1 Phase 1: estimate horizontal direction where the odor comes from */
+#ifdef FOC_2D
+/* ===============  Calculate horizontal flow vector of odor parcel  ===================== */
     float est_horizontal_odor_trans_direction[3] = {0};   // estimated horizontal odor transport direction, e/n
     float est_horizontal_odor_std_deviation[FOC_NUM_SENSORS] = {0};   // standard deviations of odor sensors
-    float temp_sum_sum_abs_top_level_wt_value = 0;
-    int count_num_valid_features = 0;
-    float temp_sum_hd[3] = {0};
+    float temp_sum_sum_abs_top_level_wt_value[2] = {0};
+    float temp_average_sum_abs_top_level_wt_value[2];
+    int count_num_valid_features[2] = {0};
+    float temp_sum_hd[2][3] = {0};
     for (int i = 0; i < feature.size(); i++) {
         if (feature.at(i).toa[0] < current_time - FOC_RECENT_TIME_TO_EST)
             continue;
-
-estimate_horizontal_plume_dispersion_direction_according_to_toa(feature.at(i), feature.at(i).direction_p);
-
-        if (feature.at(i).type != 1) // only concern odor contact
-            continue;
         if(estimate_horizontal_plume_dispersion_direction_according_to_toa(feature.at(i), feature.at(i).direction_p)) {
+            memset(feature.at(i).direction, 0, 3*sizeof(float));
+            rotate_vector(feature.at(i).direction_p, feature.at(i).direction, data_raw.at(int(feature.at(i).toa[0]*FOC_MOX_DAQ_FREQ)).attitude[2], 0, 0); // vehicle coord to ENU coord
+
+/*
+            feature.at(i).direction[0] += data_raw.at(int(feature.at(i).toa[0]*FOC_MOX_DAQ_FREQ)).wind[0];
+            feature.at(i).direction[1] += data_raw.at(int(feature.at(i).toa[0]*FOC_MOX_DAQ_FREQ)).wind[1];
+*/
+
             feature.at(i).valid_to_infer_direction = true;
-            temp_sum_sum_abs_top_level_wt_value += feature.at(i).sum_abs_top_level_wt_value;
-            count_num_valid_features ++;
+            temp_sum_sum_abs_top_level_wt_value[feature.at(i).type] += feature.at(i).sum_abs_top_level_wt_value;
+            count_num_valid_features[feature.at(i).type] ++;
         }
         else
             feature.at(i).valid_to_infer_direction = false;
     }
-    if (count_num_valid_features == 0)
-        return false;
-    float temp_average_sum_abs_top_level_wt_value = temp_sum_sum_abs_top_level_wt_value / count_num_valid_features;
-    for (int i = 0; i < feature.size(); i++) {
-        if (feature.at(i).type == 1 and feature.at(i).valid_to_infer_direction == true) {
-            if (feature.at(i).sum_abs_top_level_wt_value < temp_average_sum_abs_top_level_wt_value)
-                continue;
-            for (int j = 0; j < 2; j++)
-                temp_sum_hd[j] += feature.at(i).direction_p[j]*feature.at(i).credit*feature.at(i).sum_abs_top_level_wt_value;
+    for (int sign = 0; sign < 2; sign++) {
+        if (count_num_valid_features[sign] == 0)
+            continue;
+        temp_average_sum_abs_top_level_wt_value[sign] = temp_sum_sum_abs_top_level_wt_value[sign] / count_num_valid_features[sign];
+        for (int i = 0; i < feature.size(); i++) {
+            if (feature.at(i).toa[0] >= current_time - FOC_RECENT_TIME_TO_EST and feature.at(i).type == sign and feature.at(i).valid_to_infer_direction == true) {
+                if (feature.at(i).sum_abs_top_level_wt_value < temp_average_sum_abs_top_level_wt_value[sign])
+                    continue;
+                for (int j = 0; j < 2; j++)
+                    temp_sum_hd[sign][j] += feature.at(i).direction[j]*feature.at(i).credit*std::sqrt(feature.at(i).sum_abs_top_level_wt_value);
+            }
         }
     }
-    float temp_mod_sum_hd = std::sqrt(temp_sum_hd[0]*temp_sum_hd[0]+temp_sum_hd[1]*temp_sum_hd[1]);
-    for (int i = 0; i < 2; i++)
-        temp_sum_hd[i] /= temp_mod_sum_hd;
-
-    memcpy(new_est.direction, temp_sum_hd, 3*sizeof(float));
-    data_est.push_back(new_est);
+    
+    float temp_mod_sum_hd;
+    for (int sign = 0; sign < 2; sign++) {
+        temp_mod_sum_hd = std::sqrt(temp_sum_hd[sign][0]*temp_sum_hd[sign][0]+temp_sum_hd[sign][1]*temp_sum_hd[sign][1]);
+        for (int i = 0; i < 2; i++)
+            temp_sum_hd[sign][i] /= temp_mod_sum_hd;
+    }
 
 #if 0
-if (temp_sum_hd[1] > -1.5) {
+if (temp_sum_hd[0][1] > 0 or temp_sum_hd[1][1] > 0) {
     printf("current time = %f\n", current_time);
-    printf("temp_sum_hd = { %f, %f }\n", temp_sum_hd[0], temp_sum_hd[1]);
+    for (int sign = 0; sign < 2; sign++)
+        printf("temp_sum_hd[%d] = {%f, %f}\n", temp_sum_hd[sign][0], temp_sum_hd[sign][1]);
     for (int i = 0; i < feature.size(); i++) {
         if (feature.at(i).toa[0] < current_time - FOC_RECENT_TIME_TO_EST)
             continue;
-        if (feature.at(i).valid_to_infer_direction or feature.at(i).type == 0)
+        if (feature.at(i).valid_to_infer_direction)
             printf("feature.at(%d): type = %d, toa = [ %f, %f, %f ], direction_p = [ %f, %f ], satlwv = %f, credit = %f\n", i, feature.at(i).type, feature.at(i).toa[0], feature.at(i).toa[1], feature.at(i).toa[2], feature.at(i).direction_p[0], feature.at(i).direction_p[1], feature.at(i).sum_abs_top_level_wt_value, feature.at(i).credit);
     }
 }
 #endif
 
-
-#if 0
-    float est_horizontal_odor_trans_direction_clustering = 0;   // clustering of odor trans direction
+    float hd[3] = {0};
+    for (int i = 0; i < 2; i++)
+        /* TODO:
+         * Note: for ground robots, it can only consider odor arrival events, so 0.1:0.9 is OK
+         *     But for flying robots, 0.3:0.7 is appropriate */
+        //hd[i] = 0.3*temp_sum_hd[0][i] + 0.7*temp_sum_hd[1][i];
+        hd[i] = 0.2*temp_sum_hd[0][i] + 0.8*temp_sum_hd[1][i];
     
-    double temp_sum_hd[3] = {0}; double temp_norm_hd = 0;
-    std::vector<FOC_Vector_t>* hds = new std::vector<FOC_Vector_t>;
-    FOC_Vector_t new_hd_v = {0}; int temp_count = 0;
-    e() -1;
-        while (index_tdoa >= 0) {
-            if (tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa).index > tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].back().index - deep_traceback) {
-                if (tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa).dt < FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR*FOC_RADIUS/FOC_WIND_MAX) {
-                    index_tdoa --;
-                    continue;
-                }
-                memset(temp_hd_p, 0, sizeof(temp_hd_p));
-                memset(temp_hd, 0, sizeof(temp_hd));
-                if (!estimate_horizontal_direction_according_to_tdoa(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa), temp_hd_p)) {
-                    index_tdoa --;
-                    continue;
-                }
-                rotate_vector(temp_hd_p, temp_hd, raw.at(tdoa[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].at(index_tdoa).index/FOC_MOX_INTERP_FACTOR).attitude[2], 0, 0);
-                for (int j = 0; j < 3; j++)
-                    temp_sum_hd[j] += temp_hd[j];
-                // save temp_hd to calculate belief later
-                new_hd_v.x = temp_hd[0];
-                new_hd_v.y = temp_hd[1];
-                hds->push_back(new_hd_v);
-            }
-            index_tdoa --;
-        }    
-        temp_norm_hd = std::sqrt(temp_sum_hd[0]*temp_sum_hd[0] + temp_sum_hd[1]*temp_sum_hd[1] + temp_sum_hd[2]*temp_sum_hd[2]);
-        for (int j = 0; j < 3; j++)
-            est_horizontal_odor_trans_direction[j] += temp_sum_hd[j] / temp_norm_hd;
-        for (int j = 0; j < FOC_NUM_SENSORS; j++)
-            est_horizontal_odor_std_deviation[j] += std[grp*FOC_DIFF_LAYERS_PER_GROUP+lyr].back().std[j];
-    }
-    if (hds->size() > 0)
-    {
-        // calculate belief
-        for (int i = 0; i < hds->size(); i++) {
-            if ( std::abs(std::acos((hds->at(i).x*est_horizontal_odor_trans_direction[0]+hds->at(i).y*est_horizontal_odor_trans_direction[1])/std::sqrt((hds->at(i).x*hds->at(i).x+hds->at(i).y*hds->at(i).y)*(est_horizontal_odor_trans_direction[0]*est_horizontal_odor_trans_direction[0]+est_horizontal_odor_trans_direction[1]*est_horizontal_odor_trans_direction[1])))) < 60.0*M_PI/180.0 )
-                temp_count ++;
+    memcpy(new_est.direction, hd, 3*sizeof(float));
+    data_est.push_back(new_est);
+
+#else /* 3D, default */
+    float est_horizontal_odor_trans_direction[3] = {0};   // estimated horizontal odor transport direction, e/n
+    float est_horizontal_odor_std_deviation[FOC_NUM_SENSORS] = {0};   // standard deviations of odor sensors
+/*======== Step 1: calculate horizontal direction ========*/ 
+    float temp_sum_sum_abs_top_level_wt_value[2] = {0};
+    float temp_average_sum_abs_top_level_wt_value[2];
+    int count_num_valid_features[2] = {0};
+    // Phase 1: calculate horizontal odor direction for every combination
+    for (int i = 0; i < feature.size(); i++) {
+        if (feature.at(i).toa[0] < current_time - FOC_RECENT_TIME_TO_EST)
+            continue;
+        if(estimate_horizontal_plume_dispersion_direction_according_to_toa(feature.at(i), feature.at(i).direction_p)) {
+            memset(feature.at(i).direction, 0, 3*sizeof(float));
+            rotate_vector(feature.at(i).direction_p, feature.at(i).direction, data_raw.at(int(feature.at(i).toa[0]*FOC_MOX_DAQ_FREQ)).attitude[2], 0, 0); // vehicle coord to ENU coord
+            feature.at(i).valid_to_infer_direction = true;
+            temp_sum_sum_abs_top_level_wt_value[feature.at(i).type] += feature.at(i).sum_abs_top_level_wt_value;
+            count_num_valid_features[feature.at(i).type] ++;
         }
-        est_horizontal_odor_trans_direction_clustering = (float)temp_count / (float)hds->size();
-        delete hds;
+        else
+            feature.at(i).valid_to_infer_direction = false;
     }
-    else {
-        delete hds;
-        return false;
+#if 0 // experiments show better results achieved without this part of routine. -_-!
+    // select the important combinations
+    for (int sign = 0; sign < 2; sign++) {
+        if (count_num_valid_features[sign] == 0)
+            continue;
+        temp_average_sum_abs_top_level_wt_value[sign] = temp_sum_sum_abs_top_level_wt_value[sign] / count_num_valid_features[sign];
+        for (int i = 0; i < feature.size(); i++) {
+            if (feature.at(i).toa[0] >= current_time - FOC_RECENT_TIME_TO_EST and feature.at(i).type == sign and feature.at(i).valid_to_infer_direction == true) {
+                if (feature.at(i).sum_abs_top_level_wt_value < temp_average_sum_abs_top_level_wt_value[sign])
+                    feature.at(i).valid_to_infer_direction = false;
+            }
+        }
     }
-    // save wind info into new_out
-    new_out.wind[0] = wind.back().wind[0];
-    new_out.wind[1] = wind.back().wind[1];
-    new_out.wind[2] = wind.back().wind[2];
-
-/*  Step 1 Phase 2: compute the center of the recent trajectory of the robot */
-    float robot_traj_center[3] = {0};
-    for (int i = 0; i < 3; i++) {
-        for (int j = raw.size()-FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ; j < raw.size(); j++)
-            robot_traj_center[i] += raw.at(j).position[i];
-        robot_traj_center[i] /= FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ;
-    }
-
-/*  Step 1 Phase 3: compute the max deviation of the robot trajectory, and compute the radius of the particles to the robot */
-    float robot_traj_deviation = 0; float temp_distance;
-    for (int j = raw.size()-FOC_TIME_RECENT_INFO*FOC_MOX_DAQ_FREQ; j < raw.size(); j++) {
-        temp_distance = std::pow(raw.at(j).position[0]-robot_traj_center[0], 2) + std::pow(raw.at(j).position[1]-robot_traj_center[1], 2) + std::pow(raw.at(j).position[2]-robot_traj_center[2], 2);
-        if (temp_distance > robot_traj_deviation)   // find max deviation
-            robot_traj_deviation = temp_distance;
-    }
-    robot_traj_deviation = sqrt(robot_traj_deviation);
-    float radius_particle_to_robot = robot_traj_deviation + 6*FOC_RADIUS; // 6 is empirical value
-#ifdef FOC_ESTIMATE_DEBUG
-    new_out.radius_particle_to_robot = radius_particle_to_robot;
 #endif
 
-/*  Step 1 Phase 4: calculate wind */
-    float wind_est[3];
-    for (int i = 0; i < 3; i++)
-        wind_est[i] = wind.back().wind[i];
+    // Phase 2: odor & wind joint direction */
+    double sigma_odor_hd = 30./180.*M_PI;
+    double sigma_wind_hd = 20./180.*M_PI;
+    double sigma_joint_hd = std::sqrt(sigma_odor_hd*sigma_odor_hd*sigma_wind_hd*sigma_wind_hd/(sigma_odor_hd*sigma_odor_hd+sigma_wind_hd*sigma_wind_hd));
+    float e_odor_hd[2], e_wind_hd[2];
+    float angle_odor_wind_hds; // angle between odor and wind directions
+    for (int i = 0; i < feature.size(); i++) {
+        if (feature.at(i).toa[0] >= current_time - FOC_RECENT_TIME_TO_EST and feature.at(i).valid_to_infer_direction == true) {
+            if (cblas_snrm2(2, data_raw.at(int(feature.at(i).toa[0]*FOC_MOX_DAQ_FREQ)).wind, 1) < FOC_WIND_MIN) // no valid wind, use only odor direction
+                continue;
+            // retrieve odor & wind directions
+            for (int j = 0; j < 2; j++) {
+                e_odor_hd[j] = feature.at(i).direction[j]/cblas_snrm2(2, feature.at(i).direction, 1);
+                e_wind_hd[j] = data_raw.at(int(feature.at(i).toa[0]*FOC_MOX_DAQ_FREQ)).wind[j]/cblas_snrm2(2, data_raw.at(int(feature.at(i).toa[0]*FOC_MOX_DAQ_FREQ)).wind, 1);
+            } 
+            angle_odor_wind_hds = std::acos(cblas_sdot(2, e_odor_hd, 1, e_wind_hd, 1) / cblas_snrm2(2, e_odor_hd, 1) / cblas_snrm2(2, e_wind_hd, 1));
+            if (angle_odor_wind_hds > M_PI/2)
+                feature.at(i).valid_to_infer_direction = false;
+            else {
+                for (int j = 0; j < 2; j++)
+                    feature.at(i).direction[j] = (e_odor_hd[j]*sigma_wind_hd*sigma_wind_hd + e_wind_hd[j]*sigma_odor_hd*sigma_odor_hd)/(sigma_odor_hd*sigma_odor_hd+sigma_wind_hd*sigma_wind_hd);
+            }
+        }
+    }
 
-/* ====================  Step 2: init particles / resample particles =================== */ 
-    // compute rotation matrix to rotate unit_z to reverse direction of wind
-    float unit_z[3] = {0., 0., 1.};
-    float wind_est_reverse[3] = {-wind.back().wind[0], -wind.back().wind[1], -wind.back().wind[2]};
-    float rot_m_init[9]; // rotation matrix to generate new particles
-    CalculateRotationMatrix(unit_z, wind_est_reverse, rot_m_init);
-    // Resampling / init particles
+    // Phase 3: save result
+    float joint_hd_odor_wind[3] = {0};
+    for (int i = 0; i < feature.size(); i++) {
+        if (feature.at(i).toa[0] <= current_time - FOC_RECENT_TIME_TO_EST or feature.at(i).valid_to_infer_direction == false)
+            continue;
+        for (int j = 0; j < 2; j++)
+            joint_hd_odor_wind[j] += feature.at(i).direction[j];
+    }
+    for (int i = 0; i < 2; i++)
+        new_est.direction[i] = joint_hd_odor_wind[i];
+
+#if 0 // for debug
+    memcpy(new_est.direction, hd, 3*sizeof(float));
+    data_est.push_back(new_est);
+#endif
+
+/*======== Step 2: Estimate altitude ========*/ 
+    float radius_particle_to_robot = 0.5; // m 
+   
+    // Phase 0: calculate average wind vector & attitude & position
+    float average_wind[3] = {0};
+    float average_att[3] = {0};
+    float average_pos[3] = {0};
+    int count_valid_features = 0;
+    for (int idx_f = 0; idx_f < feature.size(); idx_f++) {
+        if (feature.at(idx_f).toa[0] <= current_time - FOC_RECENT_TIME_TO_EST or feature.at(idx_f).valid_to_infer_direction == false)
+            continue;
+        for (int i = 0; i < 3; i++) {
+            average_wind[i] += data_raw.at(int(feature.at(idx_f).toa[0]*FOC_MOX_DAQ_FREQ)).wind[i];
+            average_att[i] += data_raw.at(int(feature.at(idx_f).toa[0]*FOC_MOX_DAQ_FREQ)).attitude[i];
+            average_pos[i] += data_raw.at(int(feature.at(idx_f).toa[0]*FOC_MOX_DAQ_FREQ)).position[i];
+        }
+        count_valid_features++;
+    }
+    if (count_valid_features == 0) return false;
+    for (int i = 0; i < 3; i++) {
+        average_wind[i] /= (float)count_valid_features;
+        average_att[i] /= (float)count_valid_features;
+        average_pos[i] /= (float)count_valid_features;
+    }
+
+    // Phase 1: add up fluctuations
+    float fluct[FOC_NUM_SENSORS] = {0}; // sum of fluctuations (std)
+    for (int idx_f = 0; idx_f < feature.size(); idx_f++) {
+        if (feature.at(idx_f).toa[0] <= current_time - FOC_RECENT_TIME_TO_EST or feature.at(idx_f).valid_to_infer_direction == false)
+            continue;
+        for (int i = 0; i < FOC_NUM_SENSORS; i++)
+            fluct[i] += feature.at(idx_f).abs_top_level_wt_value[i];
+    }
+
+//printf("fluct = [ %f, %f, %f ]\n", fluct[0], fluct[1], fluct[2]);
+for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
+//    printf("particles.at(%d).std = [ %f, %f, %f ]\n", i, particles.at(i).std.std[0], particles.at(i).std.std[1], particles.at(i).std.std[2]);
+}
+
+    // Phase 2: spread particles
+    float reverse_joint_hd[3] = {0}; // reverse of joint (odor & wind) horizontal direction
+    for (int i = 0; i < 2; i++)
+        reverse_joint_hd[i] = -joint_hd_odor_wind[i];
+    init_particles(rand_seed, 0, FOC_MAX_PARTICLES, radius_particle_to_robot, reverse_joint_hd, particles);
+
+    // Phase 3: release virtual plumes and calculate weights
+    release_virtual_plumes_and_calculate_weights(&particles, average_pos, average_att, average_wind, fluct);
+
+    // Phase 3:
+    float sum_weight = 0;
+    for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
+        sum_weight += particles.at(i).weight;
+    }
+    if (sum_weight == 0) {
+        printf("No weights\n");
+        return false;
+    }
+
+    for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
+//        printf("particles.at(%d).weight = %f, alt = %f\n", i, particles.at(i).weight, particles.at(i).pos_r[2]);
+    }
+
+    //   find the max weight
+    float temp_weight = 0;
+    int idx_max_weight = FOC_MAX_PARTICLES;
+    for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
+        if (particles.at(i).weight > temp_weight) {
+            temp_weight = particles.at(i).weight;
+            idx_max_weight = i;
+        }
+    }
+    if (idx_max_weight == FOC_MAX_PARTICLES) {
+        printf(" No max found\n");
+        return false;
+    }
+
+    printf("max alt = %f\n", std::asin(particles.at(idx_max_weight).pos_r[2]/radius_particle_to_robot)*180./M_PI);
+
+#if 0 
+    float hd[3] = {0};
+    for (int i = 0; i < feature.size(); i++) {
+        if (feature.at(i).toa[0] <= current_time - FOC_RECENT_TIME_TO_EST or feature.at(i).valid_to_infer_direction == false)
+            continue;
+        for (int j = 0; j < 3; j++)
+            hd[j] += feature.at(i).direction[j];
+    }
+    memcpy(new_est.direction, hd, 3*sizeof(float));
+#endif
+    //printf("alt = %f\n", hd[2]);
+
+//    if (alt_est_valid_count == 0)
+//    return false;
+    new_est.direction[2] = std::asin(particles.at(idx_max_weight).pos_r[2]/radius_particle_to_robot);
+    new_est.particles = &particles;
+    data_est.push_back(new_est);
+
+#endif
+
+#if 0
+    
     float temp_ang, possibility_to_survive;
     int num_new_particles_to_split;
     float rot_m_split[9]; // rotation matrix to split important particles
@@ -405,7 +624,7 @@ if (temp_sum_hd[1] > -1.5) {
 
     /*
     memset(new_out.direction, 0, 3*sizeof(float));
-    float temp_direct[10][3];
+    float teminit_particles(unsigned int seed, int num, float radius_particle_to_robot, float* rot_m, std::vector<FOC_Particle_t>& out)p_direct[10][3];
     memset(temp_direct, 0, sizeof(temp_direct));
     for (int i = (int)delta.size() - 10 >= 0 ? delta.size() - 10 : 0; i < delta.size(); i++)
         estimate_horizontal_direction_according_to_tdoa(delta.at(i), temp_direct[delta.size()-i-1]);
@@ -424,31 +643,41 @@ if (temp_sum_hd[1] > -1.5) {
 /* init particles
  * Args:
  *      seed        seed to generate random numbers
+ *      insert_idx  index of particle vector to begin to insert
  *      num         number of particles to init/generate, N > 0
  *      radius..    radius from robot to particle
- *      rot_m       rotation matrix
+ *      e           direction of joint
  *      new_out     the estimation data of this iteration
  */
-static void init_particles(unsigned int seed, int num, float radius_particle_to_robot, float* rot_m, FOC_Estimation_t& new_out)
+static void init_particles(unsigned int seed, int insert_idx, int num, float radius_particle_to_robot, float* e, std::vector<FOC_Particle_t>& out)
 {
     if (num <= 0) return;
+    if (insert_idx < 0) return;
+    if (insert_idx + num > FOC_MAX_PARTICLES) return;
 
-    FOC_Particle_t new_particle;
     float temp_pos[3];
-    for (int i = 0; i < num; i++) {
+    float temp_e[3];
+    for (int i = insert_idx; i < insert_idx+num; i++) {
         //float angle_z = r4_uni(seed)*POSSIBLE_ANG_RANGE; // particles are uniformly distributed
         //float angle_xy = r4_uni(seed)*2*M_PI;
-        float angle_z = ((float)rand()/(float)RAND_MAX)*POSSIBLE_ANG_RANGE; // particles are uniformly distributed
-        float angle_xy = ((float)rand()/(float)RAND_MAX)*2*M_PI;
+#if 0
+        float angle_z = (((float)rand()/(float)RAND_MAX)-0.5)*POSSIBLE_ANG_RANGE+M_PI/2.0; // particles are uniformly distributed
+#else
+        float angle_z = ((float)(i-insert_idx)/(float)num)*M_PI/2.0;
+#endif
+
+#if 1
+        float angle_xy = std::atan2(e[1], e[0]);
+#else
+        memset(temp_e, 0, 3*sizeof(float));
+        rotate_vector(e, temp_e, ((float)rand()/(float)RAND_MAX-0.5)*M_PI, 0, 0);
+        float angle_xy = std::atan2(temp_e[1], temp_e[0]);
+#endif
         temp_pos[0] = std::cos(angle_xy)*std::sin(angle_z)*radius_particle_to_robot;
         temp_pos[1] = std::sin(angle_xy)*std::sin(angle_z)*radius_particle_to_robot;
         temp_pos[2] = std::cos(angle_z)*radius_particle_to_robot;
-        memset(new_particle.pos_r, 0, 3*sizeof(float));
-        cblas_sgemv(CblasRowMajor, CblasNoTrans, 3, 3, 1.0, rot_m, 3, temp_pos, 1, 1.0, new_particle.pos_r, 1);
-        new_particle.weight = 1.0/FOC_MAX_PARTICLES;
-        new_particle.plume = new std::vector<FOC_Puff_t>;
-        new_particle.plume->reserve(N_PUFFS);
-        new_out.particles->push_back(new_particle);
+        memcpy(out.at(i).pos_r, temp_pos, 3*sizeof(float));
+        out.at(i).weight = 1.0/FOC_MAX_PARTICLES;
     }
 }
 

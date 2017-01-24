@@ -13,7 +13,7 @@ void release_virtual_plume(float*, float*, float*, float*, std::vector<FOC_Puff_
 void calculate_virtual_tdoa_and_std(std::vector<FOC_Puff_t>*, float*, float*, FOC_Particle_t&);
 #else
 // GPU verstion
-void release_virtual_plumes_and_calculate_virtual_tdoa_std(std::vector<FOC_Particle_t>*, FOC_Input_t&, float*);
+void release_virtual_plumes_and_calculate_weights(std::vector<FOC_Particle_t>*, float*, float*, float*, float*);
 #endif
 
 #endif

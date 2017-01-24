@@ -68,11 +68,11 @@ std::vector<Wake_QR_ring_t>* wake_qr_get_info_vortex_rings(void)
 
 static float complete_elliptic_int_first(float k)
 {
-    return M_PI/2.0*(1.0 + 0.5*0.5*k*k + 0.5*0.5*0.75*0.75*std::pow(k, 4));
+    return M_PI/2.0*(1.0 + 0.5*0.5*k*k + 0.5*0.5*0.75*0.75*k*k*k*k);
 }
 static float complete_elliptic_int_second(float k)
 {
-    return M_PI/2.0*(1.0 - 0.5*0.5*k*k - 0.5*0.5*0.75*0.75*std::pow(k, 4)/3.0);
+    return M_PI/2.0*(1.0 - 0.5*0.5*k*k - 0.5*0.5*0.75*0.75*(k*k*k*k)/3.0);
 }
 /* vel += vel + result */
 static void induced_velocity_vortex_ring(float* center_ring, float radius_ring, float Gamma_ring, float core_radius_ring, float* att_ring, float*pos, float* vel)

@@ -17,9 +17,9 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 # Project name
 set(PRJ_NAME RAO_Player)
 # Debug version
-#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Debug)
 # Release version
-set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Release)
 # ===================================================
 
 #====================================================
@@ -35,6 +35,7 @@ if(APPLE)
     message("Compile on APPLE MACOSX")
 elseif(UNIX)
     message("Compile on UNIX")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
     set(GPU_COMPUTING     "enable")
     add_definitions(-DGPU_COMPUTING)
 endif()
@@ -79,7 +80,7 @@ endif()
 if(UNIX AND NOT APPLE)
     find_package(CUDA REQUIRED)
     # nvcc flags
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math;-ccbin gcc-5)
 endif()
 
 #---- External HDF5 related, for data recording
@@ -147,19 +148,23 @@ else()
 endif()
 add_library(${LIB_FOC_NAME}
     src/foc/flying_odor_compass.cxx
-    src/foc/foc_noise_reduction.cxx
+    #src/foc/foc_noise_reduction.cxx
     src/foc/foc_interp.cxx
-    src/foc/foc_smooth.cxx
-    src/foc/foc_diff.cxx
-    src/foc/foc_edge.cxx
-    src/foc/foc_std.cxx
-    src/foc/foc_tdoa.cxx
+    src/foc/foc_feature.cxx
+    #src/foc/foc_smooth.cxx
+    #src/foc/foc_diff.cxx
+    #src/foc/foc_edge.cxx
+    #src/foc/foc_std.cxx
+    #src/foc/foc_tdoa.cxx
     src/foc/foc_estimate.cxx
     src/foc/foc_wind.cxx
     src/foc/vector_rotation.cxx
     ../3rdparty/ziggurat/ziggurat.cpp
     )
+cuda_add_library(foc_wt_gpu src/foc/foc_wavelet.cu)
 target_compile_features(${LIB_FOC_NAME} PRIVATE cxx_constexpr)
+# link foc_wt_gpu
+target_link_libraries(${LIB_FOC_NAME} foc_wt_gpu)
 # link vplume
 target_link_libraries(${LIB_FOC_NAME} vplume)
 # link external liquid-dsp library

@@ -24,9 +24,9 @@
 #include "robot/robot.h"
 
 #define MAX_LEN_READ_BUFFER (60*60*20)    // 60 min, 20 Hz
-#define PLAY_SPEED  8
+#define PLAY_SPEED  1
 
-std::string file_to_play = "/home/roice/workspace/ExPlat/SnifferBee/player/data/Record_2016-09-25_16-42-59.h5";
+std::string file_to_play = "/home/roice/workspace/ExPlat/SnifferBee/gs/miscellaneous/flying_compass/data/Record_2017-01-20_20-56-55.h5";
 
 Flying_Odor_Compass* foc = NULL;
 

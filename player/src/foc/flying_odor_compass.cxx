@@ -121,7 +121,7 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 #if 1
 /* Step 6: Estimate source
  * Warning: FOC_NUM_SENSORS = 3 */
-    if (!foc_estimate_source_update(data_feature, data_est, data_wt_out[0][0].size()))
+    if (!foc_estimate_source_update(data_feature, data_est, data_raw, data_wt_out[0][0].size()))
         return false;
 #endif
 

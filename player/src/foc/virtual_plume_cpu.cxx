@@ -75,14 +75,14 @@ void calculate_virtual_tdoa_and_std(std::vector<FOC_Puff_t>* plume, float* pos, 
     
     // calculate tdoa
     double temp_dis[3] = {
-        std::sqrt(std::pow(plume->front().pos[0]-pos_s[0][0], 2)+std::pow(plume->front().pos[1]-pos_s[0][1], 2)+std::pow(plume->front().pos[2]-pos_s[0][2], 2)), 
-        std::sqrt(std::pow(plume->front().pos[0]-pos_s[1][0], 2)+std::pow(plume->front().pos[1]-pos_s[1][1], 2)+std::pow(plume->front().pos[2]-pos_s[1][2], 2)),
-        std::sqrt(std::pow(plume->front().pos[0]-pos_s[2][0], 2)+std::pow(plume->front().pos[1]-pos_s[2][1], 2)+std::pow(plume->front().pos[2]-pos_s[2][2], 2)) }; // FOC_NUM_SENSORS = 3
+        std::sqrt((plume->front().pos[0]-pos_s[0][0])*(plume->front().pos[0]-pos_s[0][0]) + (plume->front().pos[1]-pos_s[0][1])*(plume->front().pos[1]-pos_s[0][1]) + (plume->front().pos[2]-pos_s[0][2])*(plume->front().pos[2]-pos_s[0][2])), 
+        std::sqrt((plume->front().pos[0]-pos_s[1][0])*(plume->front().pos[0]-pos_s[1][0]) + (plume->front().pos[1]-pos_s[1][1])*(plume->front().pos[1]-pos_s[1][1]) + (plume->front().pos[2]-pos_s[1][2])*(plume->front().pos[2]-pos_s[1][2])),
+        std::sqrt((plume->front().pos[0]-pos_s[2][0])*(plume->front().pos[0]-pos_s[2][0]) + (plume->front().pos[1]-pos_s[2][1])*(plume->front().pos[1]-pos_s[2][1]) + (plume->front().pos[2]-pos_s[2][2])*(plume->front().pos[2]-pos_s[2][2])) }; // FOC_NUM_SENSORS = 3
     double temp_distance;
     int temp_idx[3] = {0};
     for (int i = 0; i < N_PUFFS; i++) {
         for (int j = 0; j < 3; j++) { // FOC_NUM_SENSORS = 3
-            temp_distance = std::sqrt(std::pow(plume->at(i).pos[0]-pos_s[j][0], 2)+std::pow(plume->at(i).pos[1]-pos_s[j][1], 2)+std::pow(plume->at(i).pos[2]-pos_s[j][2], 2));
+            temp_distance = std::sqrt((plume->at(i).pos[0]-pos_s[j][0])*(plume->at(i).pos[0]-pos_s[j][0]) + (plume->at(i).pos[1]-pos_s[j][1])*(plume->at(i).pos[1]-pos_s[j][1]) + (plume->at(i).pos[2]-pos_s[j][2])*(plume->at(i).pos[2]-pos_s[j][2]));
             if (temp_distance < temp_dis[j]) {
                 temp_dis[j] = temp_distance;
                 temp_idx[j] = i;

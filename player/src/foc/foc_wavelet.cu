@@ -44,7 +44,7 @@ bool sample_wavelets(std::string wavelet_name, float* wvs, int len, int num_leve
         // normalize
         sum_h = 0;
         for (int j = 0; j < len; j++)
-            sum_h += std::pow(wvs[i*len+j],2);
+            sum_h += (wvs[i*len+j]*wvs[i*len+j]);
         for (int j = 0; j < len; j++)
             wvs[i*len+j] /= std::sqrt(sum_h);
     }
@@ -261,8 +261,10 @@ void foc_chain_maxline_init(std::vector<FOC_Maxline_t> data_maxline[FOC_NUM_SENS
 
 float decision_function_chain_maxline(float s1, float s2, float alpha, float n, float m, float wf_s1, float wf_s2)
 {
-    float delta = std::exp(-std::abs(n-m)*std::pow(s1,-alpha));
-    float D = std::exp( -std::abs(std::log(std::abs(wf_s2)/std::abs(wf_s1))/std::log(s2/s1)-0.5)*std::pow(s1,alpha) );
+    /* Note:
+        s1, s2 >= 0 */
+    float delta = std::exp(-std::abs(n-m)*(s1>0.?std::pow(s1,-alpha):0.));
+    float D = std::exp( -std::abs(std::log(std::abs(wf_s2)/std::abs(wf_s1))/std::log(s2/s1)-0.5)*(s1>0.?std::pow(s1,alpha):0.) );
     return delta*D;
 }
 

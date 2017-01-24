@@ -49,8 +49,8 @@ void draw_foc(void)
     if (data_est.size() > 0)
     {
         // draw particles
-        //draw_particles(data_raw, data_est.back().particles);
-        draw_main_particles(data_est.back().hist_particles);
+        draw_particles(data_raw, data_est.back().particles);
+        //draw_main_particles(data_est.back().particles);
         // draw qr wakes
         //draw_wakes(wake_rings);
         // draw virtual plumes
@@ -177,7 +177,7 @@ static void draw_particles(std::vector<FOC_Input_t>& raw, std::vector<FOC_Partic
         for (int i = 0; i < particles->size(); i++) // for each filament
         {
             for (int axis = 0; axis < 3; axis++)
-                pos[axis] = raw.back().position[axis] + particles->at(i).pos_r[axis];
+                pos[axis] = particles->at(i).plume->at(0).pos[axis];
             glPushMatrix();
             glTranslatef(pos[0], pos[2], -pos[1]);
             glPushAttrib(GL_LIGHTING_BIT);

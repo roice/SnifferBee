@@ -34,12 +34,12 @@ __device__ void RotateVector(float* vector, float* out, float yaw, float pitch, 
 
 __device__ float CompleteEllipticIntFirst(float k)
 {
-    return PI/2.0*(1.0 + 0.5*0.5*k*k + 0.5*0.5*0.75*0.75*powf(k,4));
+    return PI/2.0*(1.0 + 0.5*0.5*k*k + 0.5*0.5*0.75*0.75*(k*k*k*k));
 }
 
 __device__ float CompleteEllipticIntSecond(float k)
 {
-    return PI/2.0*(1.0 - 0.5*0.5*k*k - 0.5*0.5*0.75*0.75*powf(k,4)/3.0);
+    return PI/2.0*(1.0 - 0.5*0.5*k*k - 0.5*0.5*0.75*0.75*(k*k*k*k)/3.0);
 }
 
 __device__ void InducedVelocityVortexRing(float* center_ring, float radius_ring, float Gamma_ring, float core_radius_ring, float* att_ring, float*pos, float* vel)
@@ -133,7 +133,9 @@ __device__ void WakeQRCalculateVelocity(float* pos_qr, float* att_qr, float* pos
     vel[0] = 0; vel[1] = 0; vel[2] = 0;
     for (int i = 0; i < QR_WAKE_RINGS; i++)
         for (int j = 0; j < 4; j++)
+            //InducedVelocityVortexRing(wake_qr_rings[i].pos[j], QR_PROP_RADIUS, 0.134125, 0.005, wake_qr_rings[i].att, pos, vel);
             InducedVelocityVortexRing(wake_qr_rings[i].pos[j], QR_PROP_RADIUS, 0.134125, 0.005, wake_qr_rings[i].att, pos, vel);
+
 }
 
 __global__ void CalculateVirtualPlumes(FOC_Particle_t* particles, FOC_Puff_t* puffs, FOC_Input_t* raw, float* wind, int num_plumes)
@@ -180,14 +182,14 @@ __global__ void CalculateVirtualTDOAandSTD(FOC_Particle_t* particles, FOC_Puff_t
     
     // calculate tdoa
     double temp_dis[3] = {
-        sqrtf(powf(puffs[tid*N_PUFFS].pos[0]-pos_s[0][0], 2)+powf(puffs[tid*N_PUFFS].pos[1]-pos_s[0][1], 2)+powf(puffs[tid*N_PUFFS].pos[2]-pos_s[0][2], 2)), 
-        sqrtf(powf(puffs[tid*N_PUFFS].pos[0]-pos_s[1][0], 2)+powf(puffs[tid*N_PUFFS].pos[1]-pos_s[1][1], 2)+powf(puffs[tid*N_PUFFS].pos[2]-pos_s[1][2], 2)),
-        sqrtf(powf(puffs[tid*N_PUFFS].pos[0]-pos_s[2][0], 2)+powf(puffs[tid*N_PUFFS].pos[1]-pos_s[2][1], 2)+powf(puffs[tid*N_PUFFS].pos[2]-pos_s[2][2], 2)) }; // FOC_NUM_SENSORS = 3
+        sqrtf((puffs[tid*N_PUFFS].pos[0]-pos_s[0][0])*(puffs[tid*N_PUFFS].pos[0]-pos_s[0][0]) + (puffs[tid*N_PUFFS].pos[1]-pos_s[0][1])*(puffs[tid*N_PUFFS].pos[1]-pos_s[0][1]) + (puffs[tid*N_PUFFS].pos[2]-pos_s[0][2])*(puffs[tid*N_PUFFS].pos[2]-pos_s[0][2])), 
+        sqrtf((puffs[tid*N_PUFFS].pos[0]-pos_s[1][0])*(puffs[tid*N_PUFFS].pos[0]-pos_s[1][0]) + (puffs[tid*N_PUFFS].pos[1]-pos_s[1][1])*(puffs[tid*N_PUFFS].pos[1]-pos_s[1][1]) + (puffs[tid*N_PUFFS].pos[2]-pos_s[1][2])*(puffs[tid*N_PUFFS].pos[2]-pos_s[1][2])),
+        sqrtf((puffs[tid*N_PUFFS].pos[0]-pos_s[2][0])*(puffs[tid*N_PUFFS].pos[0]-pos_s[2][0]) + (puffs[tid*N_PUFFS].pos[1]-pos_s[2][1])*(puffs[tid*N_PUFFS].pos[1]-pos_s[2][1]) + (puffs[tid*N_PUFFS].pos[2]-pos_s[2][2])*(puffs[tid*N_PUFFS].pos[2]-pos_s[2][2])) }; // FOC_NUM_SENSORS = 3
     double temp_distance;
     int temp_idx[3] = {0};
     for (int i = 0; i < N_PUFFS; i++) {
         for (int j = 0; j < 3; j++) { // FOC_NUM_SENSORS = 3
-            temp_distance = sqrtf(powf(puffs[tid*N_PUFFS+i].pos[0]-pos_s[j][0], 2)+powf(puffs[tid*N_PUFFS+i].pos[1]-pos_s[j][1], 2)+powf(puffs[tid*N_PUFFS+i].pos[2]-pos_s[j][2], 2));
+            temp_distance = sqrtf((puffs[tid*N_PUFFS+i].pos[0]-pos_s[j][0])*(puffs[tid*N_PUFFS+i].pos[0]-pos_s[j][0]) + (puffs[tid*N_PUFFS+i].pos[1]-pos_s[j][1])*(puffs[tid*N_PUFFS+i].pos[1]-pos_s[j][1]) + (puffs[tid*N_PUFFS+i].pos[2]-pos_s[j][2])*(puffs[tid*N_PUFFS+i].pos[2]-pos_s[j][2]));
             if (temp_distance < temp_dis[j]) {
                 temp_dis[j] = temp_distance;
                 temp_idx[j] = i;
@@ -195,15 +197,111 @@ __global__ void CalculateVirtualTDOAandSTD(FOC_Particle_t* particles, FOC_Puff_t
         }
     }
     for (int i = 0; i < 3; i++) {
-        particles[tid].tdoa.toa[i] = temp_idx[0] - temp_idx[i];
+        particles[tid].tdoa.toa[i] = (float)(temp_idx[i])*VIRTUAL_PLUME_DT;
     }
-    
+
     // calculate standard deviation
+    double distance[3] = {temp_dis[0], temp_dis[1], temp_dis[2]};
     for (int i = 0; i < 3; i++)
-        particles[tid].std.std[i] = std::exp(temp_dis[i]);
+        //particles[tid].std.std[i] = 10.0/exp(distance[i]*distance[i]);
+        particles[tid].std.std[i] = 1.0/(distance[i]*distance[i]);
+        //particles[tid].std.std[i] = temp_dis[0];
+        //particles[tid].std.std[i] = temp_idx[i];
 }
 
-void release_virtual_plumes_and_calculate_virtual_tdoa_std(std::vector<FOC_Particle_t>* particles, FOC_Input_t& raw, float* est_wind)
+#define NUM_DIST_PROJECTION  20
+__global__ void CalculateWeights(FOC_Particle_t* particles, FOC_Input_t* raw, float* wind, float* std, int num_plumes)
+{
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (tid >= num_plumes)   return;
+
+    float* pos = raw->position;
+    float* att = raw->attitude;
+
+    // calculate position of sensors
+    float pos_s[3][3] = {{0}, {0}, {0}};
+    float temp_s[3][3] = { {0, FOC_RADIUS, 0},
+        {FOC_RADIUS*(-0.8660254), FOC_RADIUS*(-0.5), 0},
+        {FOC_RADIUS*0.8660254, FOC_RADIUS*(-0.5), 0} };
+    for (int i = 0; i < 3; i++) // relative position of sensors
+        RotateVector(temp_s[i], pos_s[i], att[2], att[1], att[0]);
+    for (int i = 0; i < 3; i++) // absolute position of sensors
+        for (int j = 0; j < 3; j++)
+            pos_s[i][j] += pos[j];
+
+    // calculate e_wind
+    float e_wind[2];
+    float nrm_wind = sqrtf(wind[0]*wind[0]+wind[1]*wind[1]);
+    if (nrm_wind == 0) {
+        particles[tid].weight = 0;
+        return;
+    }
+    for (int i = 0; i < 2; i++)
+        e_wind[i] = wind[i]/nrm_wind;
+
+    // distance from sensor to points on e_wind
+    float dist[3][NUM_DIST_PROJECTION]; // FOC_NUM_SENSORS = 3
+    float temp_pos[3] = {0};
+    for (int i = 0; i < NUM_DIST_PROJECTION; i++) {
+        for (int j = 0; j < 2; j++) {
+            temp_pos[j] = e_wind[j]*((float)i*(2.0*FOC_RADIUS)/(float)NUM_DIST_PROJECTION-FOC_RADIUS);
+            temp_pos[j] += pos[j];
+        }
+        temp_pos[2] = pos[2];
+        for (int j = 0; j < 3; j++)
+            dist[j][i] = sqrtf((pos_s[j][0]-temp_pos[0])*(pos_s[j][0]-temp_pos[0]) + (pos_s[j][1]-temp_pos[1])*(pos_s[j][1]-temp_pos[1]) + (pos_s[j][2]-temp_pos[2])*(pos_s[j][2]-temp_pos[2]));
+    }
+
+    // sequence
+    float virt_seq[NUM_DIST_PROJECTION] = {0}, real_seq[NUM_DIST_PROJECTION] = {0};
+    for (int i = 0; i < NUM_DIST_PROJECTION; i++) {
+        for (int j = 0; j < 3; j++) {
+            virt_seq[i] += particles[tid].std.std[j]*1.0/exp(dist[j][i]*dist[j][i]);//*std::exp(dist[j][i]*dist[j][i]);
+            real_seq[i] += std[j]*1.0/exp(dist[j][i]*dist[j][i]);//*std::exp(dist[j][i]*dist[j][i]);
+        }
+    }
+    
+    // normalize
+    double sum_virt_seq = 0, sum_real_seq = 0;
+    double mean_virt_seq, mean_real_seq;
+    for (int i = 0; i < NUM_DIST_PROJECTION; i++) {
+        sum_virt_seq += virt_seq[i];
+        sum_real_seq += real_seq[i];
+    }
+    if (sum_virt_seq == 0 or sum_real_seq == 0) {
+        particles[tid].weight = 0;
+        return;
+    }
+    mean_virt_seq = sum_virt_seq / (float)NUM_DIST_PROJECTION;
+    mean_real_seq = sum_real_seq / (float)NUM_DIST_PROJECTION;
+    for (int i = 0; i < NUM_DIST_PROJECTION; i++) {
+        virt_seq[i] -= mean_virt_seq;
+        real_seq[i] -= mean_real_seq;
+    }
+    sum_virt_seq = 0; sum_real_seq = 0;
+    float sum_virt_real_seq = 0;
+    for (int i = 0; i < NUM_DIST_PROJECTION; i++) {
+        sum_virt_seq += virt_seq[i]*virt_seq[i];
+        sum_real_seq += real_seq[i]*real_seq[i];
+        sum_virt_real_seq += virt_seq[i]*real_seq[i];
+    }
+    float corr = sum_virt_real_seq / sqrt(sum_virt_seq*sum_real_seq);
+    if (corr < 0) {
+        particles[tid].weight = 0;
+        return;
+    }
+    
+    // correlation
+    //float corr = 0;
+    //for (int i = 0; i < NUM_DIST_PROJECTION; i++) {
+    //    corr += virt_seq[i]*real_seq[i];
+    //}
+    particles[tid].weight = corr;
+    //particles[tid].weight = real_seq[tid];
+}
+
+void release_virtual_plumes_and_calculate_weights(std::vector<FOC_Particle_t>* particles, float* position, float* attitude, float* est_wind, float* raw_std)
 {
     /* get the properties of all the graphic cards this machine has */
     cudaDeviceProp prop;
@@ -216,6 +314,11 @@ void release_virtual_plumes_and_calculate_virtual_tdoa_std(std::vector<FOC_Parti
     else    // default the 1st
         HANDLE_ERROR( cudaGetDeviceProperties(&prop, 0) );
 
+    // save position and attitude to raw
+    FOC_Input_t raw;
+    memcpy(raw.position, position, 3*sizeof(float));
+    memcpy(raw.attitude, attitude, 3*sizeof(float));
+
     // puffs
     FOC_Puff_t*     host_puffs;
     FOC_Particle_t* host_particles;
@@ -223,6 +326,7 @@ void release_virtual_plumes_and_calculate_virtual_tdoa_std(std::vector<FOC_Parti
     FOC_Particle_t* dev_particles;
     FOC_Input_t*    dev_raw;    // contains pos, att...
     float*          dev_wind;
+    float*          dev_std;
     
     int num_plumes = particles->size();
 
@@ -243,6 +347,8 @@ void release_virtual_plumes_and_calculate_virtual_tdoa_std(std::vector<FOC_Parti
     HANDLE_ERROR( cudaMalloc((void**)&dev_raw, sizeof(*dev_raw)) );
     // allocate device memory for dev_wind
     HANDLE_ERROR( cudaMalloc((void**)&dev_wind, 3*sizeof(*dev_wind)) );
+    // allocate device memory for dev_std
+    HANDLE_ERROR( cudaMalloc((void**)&dev_std, FOC_NUM_SENSORS*sizeof(*dev_std)) );
 
     // Phase 2: copy info to GPU's memory
     for (int i = 0; i < num_plumes; i++)
@@ -253,12 +359,15 @@ void release_virtual_plumes_and_calculate_virtual_tdoa_std(std::vector<FOC_Parti
                 sizeof(FOC_Input_t), cudaMemcpyHostToDevice) );
     HANDLE_ERROR( cudaMemcpy(dev_wind, est_wind, 
                 3*sizeof(float), cudaMemcpyHostToDevice) );
+    HANDLE_ERROR( cudaMemcpy(dev_std, raw_std, 
+                3*sizeof(float), cudaMemcpyHostToDevice) );
 
     // Phase 3: release virtual plumes & calculate tdoa/std
     int threads = std::min(prop.warpSize, prop.maxThreadsPerBlock);
     int blocks = (num_plumes + threads -1)/threads;
     CalculateVirtualPlumes<<<blocks, threads>>>(dev_particles, dev_puffs, dev_raw, dev_wind, num_plumes);
     CalculateVirtualTDOAandSTD<<<blocks, threads>>>(dev_particles, dev_puffs, dev_raw, num_plumes);
+    CalculateWeights<<<blocks, threads>>>(dev_particles, dev_raw, dev_wind, dev_std, num_plumes);
 
     // Phase 4: copy cuda memory to CPU memory
     HANDLE_ERROR( cudaMemcpy(host_particles, dev_particles, 
@@ -266,13 +375,14 @@ void release_virtual_plumes_and_calculate_virtual_tdoa_std(std::vector<FOC_Parti
     HANDLE_ERROR( cudaMemcpy(host_puffs, dev_puffs, 
                 num_plumes*N_PUFFS*sizeof(*host_puffs), cudaMemcpyDeviceToHost) );
 
-    // Phase 5: save puffs and tdoa/std info
+    // Phase 5: save puffs, tdoa/std and weights info
     for (int i = 0; i < num_plumes; i++) {
         particles->at(i).plume->clear();
         for (int j = 0; j < N_PUFFS; j++)
             particles->at(i).plume->push_back(host_puffs[i*N_PUFFS+j]);
         memcpy(&(particles->at(i).tdoa), &(host_particles[i].tdoa), sizeof(FOC_TDOA_t));
         memcpy(&(particles->at(i).std), &(host_particles[i].std), sizeof(FOC_STD_t));
+        particles->at(i).weight = host_particles[i].weight;
     }
 
     // Phase 6: free memory

@@ -118,15 +118,17 @@ void fill_new_feature_struct(FOC_Feature_t &new_feature, Comb_Maxlines_t &comb_m
     new_feature.type = sign;
     memcpy(new_feature.idx_ml, comb_ml.idx, FOC_NUM_SENSORS*sizeof(int));
     for (int i = 0; i < FOC_NUM_SENSORS; i++)
-        new_feature.toa[i] = (float)(data_maxline[i][sign].at(comb_ml.idx[i]).t[0]+FOC_LEN_WAVELET/2)/(float)(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR);
+        new_feature.toa[i] = (float)(data_maxline[i][sign].at(comb_ml.idx[i]).t[0])/(float)(FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR) + FOC_LEN_WAVELET/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR - FOC_LEN_WAVELET/FOC_MOX_DAQ_FREQ/FOC_MOX_INTERP_FACTOR/2.0 - FOC_SIGNAL_DELAY/2.0;
     new_feature.sum_abs_tdoa = comb_ml.sum_abs_tdoa;
+    for (int i = 0; i < FOC_NUM_SENSORS; i++)
+        new_feature.abs_top_level_wt_value[i] = std::abs(data_maxline[i][sign].at(comb_ml.idx[i]).value[data_maxline[i][sign].at(comb_ml.idx[i]).levels-1]);
     for (int i = 0; i < FOC_NUM_SENSORS; i++)
         new_feature.sum_abs_top_level_wt_value += std::abs(data_maxline[i][sign].at(comb_ml.idx[i]).value[data_maxline[i][sign].at(comb_ml.idx[i]).levels-1]);
     new_feature.sum_llh_mls_t = comb_ml.sum_llh_mls_t;
     new_feature.sum_llh_mls_value = comb_ml.sum_llh_mls_value;
     new_feature.sum_llh_mls_levels = comb_ml.sum_llh_mls_levels;
     new_feature.belief_llh = comb_ml.belief;
-    new_feature.credit = (new_feature.sum_llh_mls_t*0.1 + new_feature.sum_llh_mls_value*0.45 + new_feature.sum_llh_mls_levels*0.45)*(new_feature.type == 0?0.3:0.7);
+    new_feature.credit = (new_feature.sum_llh_mls_t*0.1 + new_feature.sum_llh_mls_value*0.45 + new_feature.sum_llh_mls_levels*0.45); //*(new_feature.type == 0?0.3:0.7);
 }
 
 bool foc_feature_extraction_update(std::vector<FOC_Maxline_t> data_maxline[FOC_NUM_SENSORS][2], std::vector<FOC_Feature_t> &data_feature, int size_of_signal)

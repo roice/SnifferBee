@@ -14,8 +14,8 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 # Project name
 set(PRJ_NAME Flying_Odor_Compass)
 # Debug version
-set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 # ===================================================
 
 #====================================================
@@ -31,6 +31,9 @@ if(APPLE)
     message("Compile on APPLE MACOSX")
 elseif(UNIX AND NOT APPLE)
     message("Compile on LINUX")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+    set(GPU_COMPUTING     "enable")
+    add_definitions(-DGPU_COMPUTING)
 endif()
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -39,7 +42,7 @@ endif()
 #---- External CUDA related settings ----
 find_package(CUDA REQUIRED)
 # nvcc flags
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math;)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math;-ccbin gcc-5)
 #list(APPEND CUDA_DEV_LIBRARIES ${CUDA_cufft_LIBRARY})
 link_directories(${CUDA_LIBRARY_DIRS})
 
@@ -103,10 +106,21 @@ add_library(${LIB_FOC_NAME}
     ../../../player/src/foc/vector_rotation.cxx
     ../../../3rdparty/ziggurat/ziggurat.cpp
     )
+if (GPU_COMPUTING)
+    cuda_add_library(vplume
+        ../../../player/src/foc/virtual_plume_cpu.cxx
+        ../../../player/src/foc/virtual_plume_gpu.cu)
+else()
+    add_library(vplume
+        ../../../player/src/foc/virtual_plume_cpu.cxx
+        ../../../player/src/foc/wake_qr.cxx)
+endif()
 cuda_add_library(foc_wt_gpu ../../../player/src/foc/foc_wavelet.cu)
 target_compile_features(foc PRIVATE cxx_constexpr)
 # link foc_wt_gpu
 target_link_libraries(${LIB_FOC_NAME} foc_wt_gpu)
+# link vplume
+target_link_libraries(${LIB_FOC_NAME} vplume)
 # link external liquid-dsp library
 target_link_libraries(${LIB_FOC_NAME} liquid)
 # compile main file
