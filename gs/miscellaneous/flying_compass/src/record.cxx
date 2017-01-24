@@ -390,6 +390,54 @@ void Record_Data(Flying_Odor_Compass& foc)
     status = H5Sclose(dataspace_id); // Terminate access to the data space. 
     free(char_pointer); // free space
 
+// Debug info
+#if 0
+    /* Create a group named "/Debug" in the file */
+    group_id = H5Gcreate2(file_id, "/Debug", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    
+    // save particels
+    extern std::vector<FOC_Particle_t> particles;
+    data_dims[0] = particles.size();
+    data_dims[1] = 3;
+    dataspace_id = H5Screate_simple(2, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "particles_pos_r", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(particles.at(idx).pos_r[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+    free(data_pointer); // free space
+    
+    dataspace_id = H5Screate_simple(1, data_dims, NULL);
+    dataset_id = H5Dcreate2(group_id, "particles_weight", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        data_pointer[idx] = particles.at(idx).weight;
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+    free(data_pointer); // free space
+
+    for (int i = 0; i < particles.size(); i++) {
+        data_dims[0] = particles.at(i).plume->size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        snprintf(ds_name, sizeof(ds_name), "particle_%d_plume_pos", i);
+        dataset_id = H5Dcreate2(group_id, ds_name, H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+        data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+        for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+            memcpy(&(data_pointer[idx*3]), &(particles.at(i).plume->at(idx).pos[0]), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+        status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+        status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+        free(data_pointer); // free space
+    }
+#endif
+
 #if 0
     // save data_smooth
     for (int i = 0; i < FOC_DIFF_GROUPS; i++)

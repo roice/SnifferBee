@@ -3,9 +3,9 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-fd = h5py.File('../data/Record_2016-10-27_20-16-05.h5', 'r+')
-att = fd['robot1/att'][...]
-pos = fd['robot1/enu'][...]
+fd = h5py.File('FOC_Record.h5', 'r+')
+att = fd['/FOC/attitude'][...]
+pos = fd['/FOC/position'][...]
 
 fig, (ax1, ax2) = plt.subplots(nrows=2)
 

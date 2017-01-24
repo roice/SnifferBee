@@ -6,6 +6,7 @@ import random
 NUM_SENSORS = 3
 MOX_DAQ_FREQ = 20
 MOX_INTERP_FACTOR = 10
+SIGNAL_DELAY = 2 # seconds
 WT_LEVELS = 100
 LEN_WAVELET = (3*MOX_DAQ_FREQ*MOX_INTERP_FACTOR)
 LEN_RECENT_INFO = (15*MOX_DAQ_FREQ*MOX_INTERP_FACTOR)
@@ -39,7 +40,7 @@ for idx in range(NUM_SENSORS):
             maxline_t = fd[min_ds_name_t][...]
             maxline_value = fd[min_ds_name_value][...]
         idx_ml = feature_idx_ml[i,idx]
-        axes[idx].plot((maxline_t[idx_ml, 0:maxline_levels[idx_ml]]+LEN_WAVELET/2)/(float)(MOX_DAQ_FREQ*MOX_INTERP_FACTOR), maxline_value[idx_ml, 0:maxline_levels[idx_ml]], color = (color_map[i,0], color_map[i,1], color_map[i,2]))
+        axes[idx].plot((maxline_t[idx_ml, 0:maxline_levels[idx_ml]]+LEN_WAVELET-LEN_WAVELET/2-SIGNAL_DELAY*MOX_DAQ_FREQ*MOX_INTERP_FACTOR/2)/(float)(MOX_DAQ_FREQ*MOX_INTERP_FACTOR), maxline_value[idx_ml, 0:maxline_levels[idx_ml]], color = (color_map[i,0], color_map[i,1], color_map[i,2]))
 
 for i in range(3):
     axes[i].set_xlabel('time (s)')

@@ -17,6 +17,7 @@
 
 //#define FILE "../data/Record_2016-08-03_17-30-06.h5"
 //#define FILE "../data/Record_2016-08-19_14-32-35.h5"
+//#define FILE "../data/Record_2016-08-19_15-27-58.h5" // illustrating method for paper
 //#define FILE "../data/Record_2016-08-19_16-36-49.h5"
 //#define FILE "../data/Record_2016-08-19_16-45-13.h5"
 //#define FILE "../data/Record_2016-08-19_16-52-27.h5"
@@ -49,13 +50,28 @@
 //#define FILE "../data/Record_2017-01-02_22-58-37.h5"
 //#define FILE "../data/Record_2017-01-03_17-55-39.h5" // static, alcohol, blow ahead to red
 //#define FILE "../data/Record_2017-01-05_16-56-00.h5"
-//#define FILE "../data/Record_2017-01-05_16-59-54.h5"
+//#define FILE "../data/Record_2017-01-05_16-59-54.h5" // experiment for paper
 //#define FILE "../data/Record_2017-01-05_17-47-48.h5"
 //#define FILE "../data/Record_2017-01-05_17-50-39.h5"
 //#define FILE "../data/Record_2017-01-05_19-38-45.h5" // alcohol, below 15cm, blow ahead to red, static
 //#define FILE "../data/Record_2017-01-05_19-42-01.h5" // alcohol, below 15cm, blow ahead to red, hovering
 //#define FILE "../data/Record_2017-01-05_20-18-15.h5" // alcohol, below 20cm, blow ahead to red, static
-#define FILE "../data/Record_2017-01-05_20-21-41.h5" // alcohol, below 20cm, blow ahead to red, hovering
+//#define FILE "../data/Record_2017-01-05_20-21-41.h5" // alcohol, below 20cm, blow ahead to red, hovering
+//#define FILE "../data/Record_2017-01-06_10-05-02.h5" // alcohol, flying
+//#define FILE "../data/Record_2017-01-19_17-28-01.h5" // alcohol, flying at (-0.6,-1.2,1.3)
+//#define FILE "../data/Record_2017-01-19_18-54-20.h5" // alcohol, hovering at (-0.6,-1.3,1.2)
+//#define FILE "../data/Record_2017-01-20_19-57-10.h5" // alcohol, flying at (-0.6,-1.2,1.4), experiment for paper
+//#define FILE "../data/Record_2017-01-20_20-25-29.h5" // alcohol, flying at (-0.6,-1.2,1.25), experiment for paper, fan 25 Hz
+//#define FILE "../data/Record_2017-01-20_20-56-55.h5" // alcohol, flying at (-0.6,-1.2,1.25), experiment for paper, fan not shake, fan 25 Hz
+#define FILE "../data/Record_2017-01-23_17-43-13.h5" // alcohol, flying at (-0.6, -1.2, 1.4), experiment for paper, fan not shake, fan 25 Hz
+//#define FILE "../data/Record_2017-01-23_17-53-24.h5" // alcohol, flying at (-0.6, -1.2, 1.55), experiment for paper, fan not shake, fan 25 Hz
+//#define FILE "../data/Record_2017-01-23_18-09-16.h5" // alcohol, flying at (-0.6, -1.8, 1.20), experiment for paper, fan not shake, fan 25 Hz
+//#define FILE "../data/Record_2017-01-23_18-02-43.h5" // alcohol, flying at (-0.6, -1.8, 1.40), experiment for paper, fan not shake, fan 25 Hz
+//#define FILE "../data/Record_2017-01-23_22-55-12.h5" // alcohol, flying at (-0.6, -1.8, 1.40), experiment for paper, fan not shake, fan 27 Hz
+//#define FILE "../data/Record_2017-01-23_22-15-01.h5" // alcohol, flying at (-0.6, -1.8, 1.20), experiment for paper, fan not shake, fan 27 Hz
+//#define FILE "../data/Record_2017-01-23_22-19-43.h5" // alcohol, flying at (-0.6, -1.8, 1.10), experiment for paper, fan not shake, fan 27 Hz
+
+//#define FILE "../data/Record_2017-01-24_09-09-15.h5"
 
 int main(int argc, char* argv[])
 {
@@ -87,8 +103,8 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    for (int i = 20*60*0; i < 20*60*2; i++)
-    //for (int i = 0; i < 800; i++)
+    for (int i = 20*60*1; i < 20*60*3; i++)
+    //for (int i = 20*20; i < 20*40; i++)
     //for (int i = 6000; i < 7000; i++)
     {
         // read position
@@ -96,7 +112,9 @@ int main(int argc, char* argv[])
         // read attitude
         memcpy(&input.attitude[0], &attitude[i][0], 3*sizeof(float));
         // read wind (disturbance)
-        memcpy(&input.wind[0], &wind[i][0], 3*sizeof(float));
+        //memcpy(&input.wind[0], &wind[i][0], 3*sizeof(float));
+        for (int j = 0; j < 3; j++)
+            input.wind[j] = 3.0*wind[i][j];
 
         input.mox_reading[0] = sensor_reading[i][0];
         input.mox_reading[1] = sensor_reading[i][1];

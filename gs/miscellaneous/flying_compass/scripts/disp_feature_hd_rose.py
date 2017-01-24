@@ -33,7 +33,8 @@ print r
 fig = plt.figure(figsize=(8,6))
 ax = fig.add_subplot(111, projection='polar')
 
-bars = ax.bar(theta[0:35], r[0:35], width=r[0:35]/len(angle), bottom=0.0)
+#bars = ax.bar(theta[0:35], r[0:35], width=r[0:35]/len(angle), bottom=0.0)
+bars = ax.bar(theta[0:35], r[0:35], width=0.1, bottom=0.0)
 
 for radius, bar in zip(r[0:35], bars):
     bar.set_facecolor(plt.cm.jet(radius/10.))
