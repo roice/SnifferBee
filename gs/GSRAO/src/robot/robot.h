@@ -51,6 +51,7 @@ typedef struct {
     float enu[3];
     float heading;
     float wind[3];
+    float wind_p[3];
 } Robot_State_t;
 
 // robot record
@@ -58,7 +59,8 @@ typedef struct {
     float enu[3]; // ENU position
     float att[3]; // roll/pitch/yaw
     float sensor[3]; // sensor readings
-    float wind[3]; // wind measurement/estimation
+    float wind[3]; // wind measurement/estimation, ENU
+    float wind_p[3]; // wind measurement/estimation, robot coord
     int motor[4]; // values of 4 motors
     float bat_volt; // battery voltage
     int count;

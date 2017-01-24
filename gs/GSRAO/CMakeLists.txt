@@ -32,6 +32,7 @@ if(APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa -framework OpenGL -framework GLUT")
     message("Compile on APPLE MACOSX")
 elseif(UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
     message("Compile on UNIX")
 endif()
 
@@ -109,6 +110,7 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 # compile main file
 add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
+    src/GSRAO_thread_comm.cxx
     src/io/serial.cxx src/io/serial_spp.cxx src/io/serial_mbsp.cxx
     src/io/serial_anemometer.cxx src/io/record.cxx
     src/mocap/packet_client.cxx src/mocap/mocap_noise_reduction.cxx

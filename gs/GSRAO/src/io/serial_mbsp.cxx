@@ -19,6 +19,7 @@
 #include "mocap/packet_client.h"
 #include "robot/robot.h"
 #include "robot/microbee.h"
+#include "GSRAO_thread_comm.h"
 
 #define MBSP_ADDRESS_GS         0   // address of ground station
 #define MBSP_ADDRESS_MB_1       1   // address of Microbee No. 1
@@ -175,7 +176,11 @@ static void mbspEvaluateData(int index_mb)
 #endif
                 memcpy(&(record.bat_volt), &(mb[mbsp_data[index_mb].from-1].state.bat_volt), sizeof(float));
                 record.time = mb[mbsp_data[index_mb].from-1].time;
+                GSRAO_thread_comm_t* tc = GSRAO_get_thread_comm();
+                pthread_mutex_lock(&(tc->lock_robot_state));
+                memcpy(record.wind_p, robot_state[mbsp_data[index_mb].from-1].wind_p, 3*sizeof(float));
                 memcpy(record.wind, robot_state[mbsp_data[index_mb].from-1].wind, 3*sizeof(float));
+                pthread_mutex_unlock(&(tc->lock_robot_state));
                 robot_rec[mbsp_data[index_mb].from-1].push_back(record);
                 break;
             }

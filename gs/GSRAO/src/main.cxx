@@ -20,6 +20,7 @@ int main(int, char**) {
 #include "FL/Fl.H"
 #include "ui/UI.h" // control panel and GL view
 #include "GSRAO_Config.h" // settings
+#include "GSRAO_thread_comm.h"
 
 /***************************************************************/
 /**************************** MAIN *****************************/
@@ -29,7 +30,10 @@ int main(int argc, char **argv)
 {
     /* initialize GS settings */
     GSRAO_Config_restore();
-    
+   
+    /* initialize communication among threads */
+    GSRAO_init_thread_comm();
+
     // Create a window for the display of the experiment data
     UI ui(700, 500, "Ground Station of Robot Active Olfaction System");
     

@@ -56,10 +56,11 @@ static void* hover_measure_loop(void* exit)
     Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref state
     // robot 1
     robot_ref[0].enu[0] = -0.6;
-    robot_ref[0].enu[1] = -1.2;
-    robot_ref[0].enu[2] = 1.38;
+    robot_ref[0].enu[1] = -1.8;
+    robot_ref[0].enu[2] = 1.25;
     //robot_ref[0].heading = -M_PI/2; // heading to east
     robot_ref[0].heading = 0; // heading to north
+    //robot_ref[0].heading = M_PI/4; // heading to north-west
     //robot_ref[0].heading = M_PI; // heading to south
 
     // robot 2

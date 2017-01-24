@@ -21,6 +21,7 @@
 #include "io/serial.h"
 #include "common/vector_rotation.h"
 #include "GSRAO_Config.h"
+#include "GSRAO_thread_comm.h"
 /* CBLAS */
 #include "cblas.h"
 /* Liquid */
@@ -152,7 +153,7 @@ static void* microbee_state_loop(void* exit)
 /* microbee control init */
 bool microbee_control_init(int num_of_mbs)
 {
-    /* init thread args */
+    /* init thread args */ 
     for (int i = 0; i < 4; i++) // 4 robots max
     {
         microbee_control_thread_args[i].exit_thread = &exit_microbee_control_thread;
@@ -474,6 +475,7 @@ static void microbee_leso(float dt, int robot_index, float* pos, float* vel, flo
     float w0 = 10.0;
 
     static ADRC_State_t state[4][3] = {{{0},{0}}, {{0},{0}}, {{0},{0}}, {{0},{0}}}; // 4 robots max
+    static float mb_leso_z3_offset[4][3] = {{0.0919253, 0.0771345, 0}, {0}, {0}, {0}};
 
     // LESO
     float leso_err[3] = {pos[0]-state[robot_index][0].z1, pos[1]-state[robot_index][1].z1, pos[2]-state[robot_index][2].z1};
@@ -504,16 +506,19 @@ static void microbee_leso(float dt, int robot_index, float* pos, float* vel, flo
 // DEBUG
 //printf("z3 = [ %f, %f, %f ]\n", state[robot_index][0].z3, state[robot_index][1].z3, state[robot_index][2].z3);
 
+    // convert to wind vector and save to robot state
     float factor_z3_to_wind = 1.0;
     Robot_State_t* robot_state = robot_get_state();
-    /*
-    robot_state[robot_index].wind[0] = factor_z3_to_wind*(state[robot_index][0].z3 - 0.0927989075586);
-    robot_state[robot_index].wind[1] = factor_z3_to_wind*(state[robot_index][1].z3 + 0.00826646558869);
-    robot_state[robot_index].wind[2] = factor_z3_to_wind*(state[robot_index][2].z3 + 0.00428738381195);
-    */
-    robot_state[robot_index].wind[0] = factor_z3_to_wind*(state[robot_index][0].z3);
-    robot_state[robot_index].wind[1] = factor_z3_to_wind*(state[robot_index][1].z3);
+    GSRAO_thread_comm_t* tc = GSRAO_get_thread_comm();
+    pthread_mutex_lock(&(tc->lock_robot_state)); // keep other threads from visiting robot_state
+    //  ENU coord
+    robot_state[robot_index].wind[0] = factor_z3_to_wind*(state[robot_index][0].z3 - mb_leso_z3_offset[robot_index][0]);
+    robot_state[robot_index].wind[1] = factor_z3_to_wind*(state[robot_index][1].z3 - mb_leso_z3_offset[robot_index][1]);
     robot_state[robot_index].wind[2] = factor_z3_to_wind*(state[robot_index][2].z3);
+    //  plane coord
+    memset(robot_state[robot_index].wind_p, 0, 3*sizeof(float));
+    rotate_vector(robot_state[robot_index].wind, robot_state[robot_index].wind_p, -att[2], 0, 0);
+    pthread_mutex_unlock(&(tc->lock_robot_state));
 
     // for debug
     Anemometer_Data_t* wind_data = sonic_anemometer_get_wind_data();
