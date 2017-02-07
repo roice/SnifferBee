@@ -6,11 +6,12 @@ import math
 MOX_DAQ_FREQ = 20
 START_UP_TIME = 20
 
+fd = h5py.File('Record_2017-01-20_09-41-10.h5', 'r+')
 #fd = h5py.File('Record_2017-01-20_12-34-37.h5', 'r+')
 #fd = h5py.File('Record_2017-01-20_17-06-56.h5', 'r+')
 #fd = h5py.File('Record_2017-01-20_17-28-01.h5', 'r+')
-fd =h5py.File('Record_2017-01-20_17-54-03.h5', 'r+')
-wind = fd['robot1/wind'][...]
+#fd =h5py.File('Record_2017-01-20_17-54-03.h5', 'r+')
+wind = fd['anemometers/1'][...]
 wind = wind[START_UP_TIME*MOX_DAQ_FREQ:START_UP_TIME*MOX_DAQ_FREQ+2*60*MOX_DAQ_FREQ]
 
 angle = []

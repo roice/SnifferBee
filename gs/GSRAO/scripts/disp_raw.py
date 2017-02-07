@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-fd = h5py.File('./Record_2016-12-16_10-13-13.h5', 'r+')
+fd = h5py.File('./Record_2017-01-20_19-57-10.h5', 'r+')
 s_readings = fd['robot1/mox']
 
 fig,axes = plt.subplots(nrows=2,figsize=(6,6))

@@ -10,6 +10,7 @@
 #include "method/method.h"
 #include "method/hover_measure.h"
 #include "method/back_forth_measure.h"
+#include "method/circle_measure.h"
 
 static methodName_e current_method = METHOD_NONE;
 
@@ -29,6 +30,11 @@ bool method_start(methodName_e method_name)
             if (result)
                 current_method = METHOD_BACK_FORTH_MEASURE;
             break;
+        case METHOD_CIRCLE_MEASURE:
+            result = circle_measure_init();
+            if (result)
+                current_method = METHOD_CIRCLE_MEASURE;
+            break;
         default:
             break;
     }
@@ -46,6 +52,10 @@ void method_stop(void)
             break;
         case METHOD_BACK_FORTH_MEASURE:
             back_forth_measure_stop();
+            current_method = METHOD_NONE;
+            break;
+        case METHOD_CIRCLE_MEASURE:
+            circle_measure_stop();
             current_method = METHOD_NONE;
             break;
         default:

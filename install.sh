@@ -56,6 +56,12 @@ tar -xzf wavelib.tar.gz
 cd wavelib/linuxstatic
 rm ./libwavelet2s.a
 gcc -c -I ../src/static ../src/static/wavelet2s.cpp -o libwavelet2s.a
+# Complile liquid-dsp
+echo "Start Compiling liquid-dsp"
+cd $prjtop/3rdparty/liquid-dsp
+sh bootstrap.sh
+./configure
+make
 
 ##======== Compile GSRAO ========
 #cd $prjtop/src

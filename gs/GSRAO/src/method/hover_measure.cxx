@@ -57,7 +57,7 @@ static void* hover_measure_loop(void* exit)
     // robot 1
     robot_ref[0].enu[0] = -0.6;
     robot_ref[0].enu[1] = -1.8;
-    robot_ref[0].enu[2] = 1.25;
+    robot_ref[0].enu[2] = 1.22;
     //robot_ref[0].heading = -M_PI/2; // heading to east
     robot_ref[0].heading = 0; // heading to north
     //robot_ref[0].heading = M_PI/4; // heading to north-west

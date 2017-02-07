@@ -77,3 +77,9 @@ apt-get install libqtcore4 libqt4-network libqtgui4
 apt-get install libsuitesparse-dev
 # zlib
 apt-get install zlib1g zlib1g-dev
+# libboost
+apt-get install libboost-dev
+# cmake
+apt-get install cmake
+# eigen
+apt-get install libeigen3-dev
