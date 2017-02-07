@@ -5,7 +5,7 @@
 
 #define QR_MOTOR_DISTANCE       0.22     // m
 #define QR_PROP_RADIUS          0.0725   // m
-#define QR_WAKE_RINGS           4        // 4 wake rings
+#define QR_WAKE_RINGS           1        // 4 wake rings
 
 typedef struct {
     float pos[4][3];

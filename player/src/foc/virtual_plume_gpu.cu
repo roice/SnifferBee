@@ -257,8 +257,10 @@ __global__ void CalculateWeights(FOC_Particle_t* particles, FOC_Input_t* raw, fl
     float virt_seq[NUM_DIST_PROJECTION] = {0}, real_seq[NUM_DIST_PROJECTION] = {0};
     for (int i = 0; i < NUM_DIST_PROJECTION; i++) {
         for (int j = 0; j < 3; j++) {
-            virt_seq[i] += particles[tid].std.std[j]*1.0/exp(dist[j][i]*dist[j][i]);//*std::exp(dist[j][i]*dist[j][i]);
-            real_seq[i] += std[j]*1.0/exp(dist[j][i]*dist[j][i]);//*std::exp(dist[j][i]*dist[j][i]);
+            //virt_seq[i] += particles[tid].std.std[j]*1.0/exp(dist[j][i]*dist[j][i]);//*std::exp(dist[j][i]*dist[j][i]);
+            //real_seq[i] += std[j]*1.0/exp(dist[j][i]*dist[j][i]);//*std::exp(dist[j][i]*dist[j][i]);
+            virt_seq[i] += particles[tid].std.std[j]*1.0/(dist[j][i]*dist[j][i]);//*std::exp(dist[j][i]*dist[j][i]);
+            real_seq[i] += std[j]*1.0/(dist[j][i]*dist[j][i]);//*std::exp(dist[j][i]*dist[j][i]);
         }
     }
     

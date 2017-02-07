@@ -6,7 +6,7 @@
 #include "foc/flying_odor_compass.h"
 
 #define FOC_FEATURE_ML_LEVELS_THRESHOLD     30
-#define FOC_FEATURE_ML_VALUE_THRESHOLD      0.2
+#define FOC_FEATURE_ML_VALUE_THRESHOLD      0.18
 #define FOC_FEATURE_MLS_T_THRESHOLD         (FOC_RADIUS/FOC_WIND_MIN*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR) // 1 s
 
 void foc_feature_extraction_init(std::vector<FOC_Feature_t> &data_feature)

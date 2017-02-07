@@ -63,7 +63,7 @@
 //#define FILE "../data/Record_2017-01-20_19-57-10.h5" // alcohol, flying at (-0.6,-1.2,1.4), experiment for paper
 //#define FILE "../data/Record_2017-01-20_20-25-29.h5" // alcohol, flying at (-0.6,-1.2,1.25), experiment for paper, fan 25 Hz
 //#define FILE "../data/Record_2017-01-20_20-56-55.h5" // alcohol, flying at (-0.6,-1.2,1.25), experiment for paper, fan not shake, fan 25 Hz
-#define FILE "../data/Record_2017-01-23_17-43-13.h5" // alcohol, flying at (-0.6, -1.2, 1.4), experiment for paper, fan not shake, fan 25 Hz
+//#define FILE "../data/Record_2017-01-23_17-43-13.h5" // alcohol, flying at (-0.6, -1.2, 1.4), experiment for paper, fan not shake, fan 25 Hz
 //#define FILE "../data/Record_2017-01-23_17-53-24.h5" // alcohol, flying at (-0.6, -1.2, 1.55), experiment for paper, fan not shake, fan 25 Hz
 //#define FILE "../data/Record_2017-01-23_18-09-16.h5" // alcohol, flying at (-0.6, -1.8, 1.20), experiment for paper, fan not shake, fan 25 Hz
 //#define FILE "../data/Record_2017-01-23_18-02-43.h5" // alcohol, flying at (-0.6, -1.8, 1.40), experiment for paper, fan not shake, fan 25 Hz
@@ -71,7 +71,11 @@
 //#define FILE "../data/Record_2017-01-23_22-15-01.h5" // alcohol, flying at (-0.6, -1.8, 1.20), experiment for paper, fan not shake, fan 27 Hz
 //#define FILE "../data/Record_2017-01-23_22-19-43.h5" // alcohol, flying at (-0.6, -1.8, 1.10), experiment for paper, fan not shake, fan 27 Hz
 
-//#define FILE "../data/Record_2017-01-24_09-09-15.h5"
+//#define FILE "../data/Record_2017-02-02_05-26-21.h5" // 1.4
+//#define FILE "../data/Record_2017-02-02_05-36-54.h5" // 1.22
+
+#define FILE "../data/Record_2017-02-06_15-34-59.h5" // alcohol, flying from (-1.6-0.6, -1.2, 1.25) to (1.6-0.6, -1.2, 1.25), fan shake, fan 25 Hz
+//#define FILE "../data/Record_2017-02-05_20-13-00.h5" // alcohol, flying from (-1.6-0.6, -1.2, 1.25) to (1.6-0.6, -1.2, 1.25), fan shake, fan 25 Hz
 
 int main(int argc, char* argv[])
 {
@@ -103,8 +107,8 @@ int main(int argc, char* argv[])
 
     FOC_Input_t input;   
     Flying_Odor_Compass foc;
-    for (int i = 20*60*1; i < 20*60*3; i++)
-    //for (int i = 20*20; i < 20*40; i++)
+    //for (int i = 20*60*1; i < 20*60*3; i++)
+    for (int i = 20*(15); i < 20*(15+180); i++)
     //for (int i = 6000; i < 7000; i++)
     {
         // read position

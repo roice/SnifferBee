@@ -231,7 +231,7 @@ static float calculate_likelihood_of_two_tdoa(float* x, float* y)
  *      feature     feature of combinations of sensor maxlines, containing TDOA etc. info
  *      est         direction estimation
  */
-bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector<FOC_Estimation_t>& data_est, std::vector<FOC_Input_t>& data_raw, int size_of_signal)
+bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector<FOC_Estimation_t>& data_est, std::vector<FOC_Input_t>& data_raw, int size_of_signal, std::vector<float> data_wt[FOC_NUM_SENSORS][FOC_WT_LEVELS])
 {
     if (feature.size() == 0)
         return false;
@@ -414,8 +414,15 @@ if (temp_sum_hd[0][1] > 0 or temp_sum_hd[1][1] > 0) {
         average_att[i] /= (float)count_valid_features;
         average_pos[i] /= (float)count_valid_features;
     }
+    // save to result
+    memcpy(new_est.pos, average_pos, 3*sizeof(float));
+    new_est.t = current_time;
+#if 0
+printf("average pos = [ %f, %f, %f ]\n", average_pos[0], average_pos[1], average_pos[2]);
+#endif
 
     // Phase 1: add up fluctuations
+# if 0    
     float fluct[FOC_NUM_SENSORS] = {0}; // sum of fluctuations (std)
     for (int idx_f = 0; idx_f < feature.size(); idx_f++) {
         if (feature.at(idx_f).toa[0] <= current_time - FOC_RECENT_TIME_TO_EST or feature.at(idx_f).valid_to_infer_direction == false)
@@ -423,6 +430,16 @@ if (temp_sum_hd[0][1] > 0 or temp_sum_hd[1][1] > 0) {
         for (int i = 0; i < FOC_NUM_SENSORS; i++)
             fluct[i] += feature.at(idx_f).abs_top_level_wt_value[i];
     }
+#else
+    double sum_fluct[FOC_NUM_SENSORS] = {0};
+    for (int i = 0; i < FOC_NUM_SENSORS; i++) {
+        for (int j = 0; j < FOC_LEN_RECENT_INFO; j++)
+            sum_fluct[i] += std::abs(data_wt[i][FOC_WT_LEVELS-1].at((int)data_wt[i][FOC_WT_LEVELS-1].size()-FOC_LEN_RECENT_INFO+j>0?(int)data_wt[i][FOC_WT_LEVELS-1].size()-FOC_LEN_RECENT_INFO+j:0));
+    }
+    float fluct[FOC_NUM_SENSORS] = {0};
+    for (int i = 0; i < FOC_NUM_SENSORS; i++)
+        fluct[i] = sum_fluct[i]/1000.;
+#endif
 
 //printf("fluct = [ %f, %f, %f ]\n", fluct[0], fluct[1], fluct[2]);
 for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
@@ -431,8 +448,14 @@ for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
 
     // Phase 2: spread particles
     float reverse_joint_hd[3] = {0}; // reverse of joint (odor & wind) horizontal direction
+    float norm_reverse_joint_hd = 0;
     for (int i = 0; i < 2; i++)
         reverse_joint_hd[i] = -joint_hd_odor_wind[i];
+    for (int i = 0; i < 2; i++)
+        norm_reverse_joint_hd += reverse_joint_hd[i]*reverse_joint_hd[i];
+    norm_reverse_joint_hd = std::sqrt(norm_reverse_joint_hd);
+    for (int i = 0; i < 2; i++)
+        reverse_joint_hd[i] /= norm_reverse_joint_hd;
     init_particles(rand_seed, 0, FOC_MAX_PARTICLES, radius_particle_to_robot, reverse_joint_hd, particles);
 
     // Phase 3: release virtual plumes and calculate weights
@@ -466,7 +489,7 @@ for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
         return false;
     }
 
-    printf("max alt = %f\n", std::asin(particles.at(idx_max_weight).pos_r[2]/radius_particle_to_robot)*180./M_PI);
+    printf("max alt = %f\n", std::atan2(particles.at(idx_max_weight).pos_r[2], radius_particle_to_robot)*180./M_PI);
 
 #if 0 
     float hd[3] = {0};
@@ -482,7 +505,7 @@ for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
 
 //    if (alt_est_valid_count == 0)
 //    return false;
-    new_est.direction[2] = std::asin(particles.at(idx_max_weight).pos_r[2]/radius_particle_to_robot);
+    new_est.direction[2] = std::atan2(particles.at(idx_max_weight).pos_r[2], radius_particle_to_robot);
     new_est.particles = &particles;
     data_est.push_back(new_est);
 
@@ -663,7 +686,7 @@ static void init_particles(unsigned int seed, int insert_idx, int num, float rad
 #if 0
         float angle_z = (((float)rand()/(float)RAND_MAX)-0.5)*POSSIBLE_ANG_RANGE+M_PI/2.0; // particles are uniformly distributed
 #else
-        float angle_z = ((float)(i-insert_idx)/(float)num)*M_PI/2.0;
+        float angle_z = ((float)(i-insert_idx)/(float)num)*(M_PI/18.0+M_PI/2.0-M_PI/18.) + M_PI/18.0;
 #endif
 
 #if 1
@@ -673,9 +696,16 @@ static void init_particles(unsigned int seed, int insert_idx, int num, float rad
         rotate_vector(e, temp_e, ((float)rand()/(float)RAND_MAX-0.5)*M_PI, 0, 0);
         float angle_xy = std::atan2(temp_e[1], temp_e[0]);
 #endif
+
+#if 0
         temp_pos[0] = std::cos(angle_xy)*std::sin(angle_z)*radius_particle_to_robot;
         temp_pos[1] = std::sin(angle_xy)*std::sin(angle_z)*radius_particle_to_robot;
         temp_pos[2] = std::cos(angle_z)*radius_particle_to_robot;
+#else
+        temp_pos[0] = e[0]*radius_particle_to_robot;
+        temp_pos[1] = e[1]*radius_particle_to_robot;
+        temp_pos[2] = radius_particle_to_robot/std::tan(angle_z);
+#endif
         memcpy(out.at(i).pos_r, temp_pos, 3*sizeof(float));
         out.at(i).weight = 1.0/FOC_MAX_PARTICLES;
     }

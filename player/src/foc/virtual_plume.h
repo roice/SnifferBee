@@ -4,7 +4,7 @@
 #include <vector>
 #include "foc/flying_odor_compass.h"
 
-#define N_PUFFS     500  // number of puffs per virtual plume
+#define N_PUFFS     600  // number of puffs per virtual plume
 #define     VIRTUAL_PLUME_DT    0.01   // second
 
 #ifndef GPU_COMPUTING

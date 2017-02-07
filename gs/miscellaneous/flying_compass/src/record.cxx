@@ -305,9 +305,32 @@ void Record_Data(Flying_Odor_Compass& foc)
         free(int_pointer); // free space
 
 
-    // save data_est.wind_p
+    // save data_est
     data_dims[0] = foc.data_est.size();
     data_dims[1] = 3;
+    // save data_est.t 
+    dataspace_id = H5Screate_simple(1, data_dims, NULL); 
+    dataset_id = H5Dcreate2(group_id, "est_t", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        data_pointer[idx] = foc.data_est.at(idx).t;
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+    free(data_pointer); // free space
+    // save data_est.pos
+    dataspace_id = H5Screate_simple(2, data_dims, NULL); 
+    dataset_id = H5Dcreate2(group_id, "est_pos", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
+    data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
+    for (int idx = 0; idx < data_dims[0]; idx++)    // prepare data
+        memcpy(&(data_pointer[idx*3]), &(foc.data_est.at(idx).pos[0]), 3*sizeof(float));
+    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data_pointer); // write data
+    status = H5Dclose(dataset_id); // End access to the dataset and release resources used by it. 
+    status = H5Sclose(dataspace_id); // Terminate access to the data space. 
+    free(data_pointer); // free space
+    // save data_est.wind_p
     dataspace_id = H5Screate_simple(2, data_dims, NULL); 
     dataset_id = H5Dcreate2(group_id, "est_wind_p", H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); // create data set
     data_pointer = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data_pointer));
@@ -391,7 +414,7 @@ void Record_Data(Flying_Odor_Compass& foc)
     free(char_pointer); // free space
 
 // Debug info
-#if 0
+#if 1
     /* Create a group named "/Debug" in the file */
     group_id = H5Gcreate2(file_id, "/Debug", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     

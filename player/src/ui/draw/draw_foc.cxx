@@ -49,7 +49,7 @@ void draw_foc(void)
     if (data_est.size() > 0)
     {
         // draw particles
-        draw_particles(data_raw, data_est.back().particles);
+ //       draw_particles(data_raw, data_est.back().particles);
         //draw_main_particles(data_est.back().particles);
         // draw qr wakes
         //draw_wakes(wake_rings);

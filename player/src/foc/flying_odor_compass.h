@@ -87,6 +87,8 @@ typedef struct {
 typedef struct {
     std::vector<FOC_Particle_t>* particles; // particles, virtual sources
     std::vector<FOC_Particle_t>* hist_particles;
+    float t; // time of this est, seconds
+    float pos[3]; // average position of the helicopter
     float wind_p[3];    // plane coord, x/y
     float wind[3];      // global coord, e/n
     float direction[3]; // direction of gas source
