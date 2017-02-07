@@ -34,6 +34,8 @@ if(APPLE)
 elseif(UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
     message("Compile on UNIX")
+    set(REAL_TIME_TRACING  "enable")
+    add_definitions(-DREAL_TIME_TRACING)
 endif()
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -56,9 +58,12 @@ find_package(OpenGL REQUIRED)
 include(${FLTK_USE_FILE})
 
 #---- External CUDA related settings ----
-#find_package(CUDA REQUIRED)
-# nvcc flags
-#set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math)
+if (REAL_TIME_TRACING)
+    find_package(CUDA REQUIRED)
+    # nvcc flags
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math)
+    link_directories(${CUDA_LIBRARY_DIRS})
+endif()
 
 #---- External HDF5 related, for data recording
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
@@ -108,6 +113,21 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/draw/draw_arrow.cxx src/ui/draw/draw_wind.cxx
     # 3rdparty fltk widgets
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
+# make a library for FOC
+if (REAL_TIME_TRACING)
+    set(LIB_FOC_NAME foc)
+    cuda_add_library(${LIB_FOC_NAME}
+        src/method/foc/flying_odor_compass.cxx
+        src/method/foc/foc_interp.cxx
+        src/method/foc/foc_wavelet.cu
+        src/method/foc/foc_feature.cxx
+        src/method/foc/foc_estimate.cxx
+        src/method/foc/vector_rotation.cxx
+        src/method/foc/virtual_plume_gpu.cu
+        src/method/foc/wake_qr.cxx
+        ../../3rdparty/ziggurat/ziggurat.cpp
+        )
+endif()
 # compile main file
 add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
     src/GSRAO_thread_comm.cxx
@@ -115,15 +135,21 @@ add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
     src/io/serial_anemometer.cxx src/io/record.cxx
     src/mocap/packet_client.cxx src/mocap/mocap_noise_reduction.cxx
     src/robot/robot.cxx src/robot/microbee.cxx
-    src/method/method.cxx src/method/hover_measure.cxx src/method/back_forth_measure.cxx src/method/circle_measure.cxx
+    src/method/method.cxx src/method/hover_measure.cxx src/method/back_forth_measure.cxx src/method/circle_measure.cxx src/method/flying_compass.cxx
     src/common/vector_rotation.cxx)
 target_compile_features(${PRJ_NAME} PRIVATE cxx_constexpr)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})
+if (REAL_TIME_TRACING)
+    add_dependencies(${PRJ_NAME} ${LIB_FOC_NAME})
+endif()
 
 #---- start linking ----
 # Note: the former line depends on the next line
 # link GUI library created above
 target_link_libraries(${PRJ_NAME} ${LIB_UI_NAME})
+if (REAL_TIME_TRACING)
+    target_link_libraries(${PRJ_NAME} ${LIB_FOC_NAME})
+endif()
 # link external FLTK library
 target_link_libraries(${PRJ_NAME} fltk)
 # link external OpenGL library

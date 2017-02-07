@@ -507,7 +507,7 @@ static void microbee_leso(float dt, int robot_index, float* pos, float* vel, flo
 //printf("z3 = [ %f, %f, %f ]\n", state[robot_index][0].z3, state[robot_index][1].z3, state[robot_index][2].z3);
 
     // convert to wind vector and save to robot state
-    float factor_z3_to_wind = 1.0;
+    float factor_z3_to_wind = 2.8;
     Robot_State_t* robot_state = robot_get_state();
     GSRAO_thread_comm_t* tc = GSRAO_get_thread_comm();
     pthread_mutex_lock(&(tc->lock_robot_state)); // keep other threads from visiting robot_state

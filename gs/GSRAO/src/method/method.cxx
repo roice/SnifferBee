@@ -11,6 +11,7 @@
 #include "method/hover_measure.h"
 #include "method/back_forth_measure.h"
 #include "method/circle_measure.h"
+#include "method/flying_compass.h"
 
 static methodName_e current_method = METHOD_NONE;
 
@@ -35,6 +36,11 @@ bool method_start(methodName_e method_name)
             if (result)
                 current_method = METHOD_CIRCLE_MEASURE;
             break;
+        case METHOD_FLYING_COMPASS:
+            result = flying_compass_init();
+            if (result)
+                current_method = METHOD_FLYING_COMPASS;
+            break;
         default:
             break;
     }
@@ -56,6 +62,10 @@ void method_stop(void)
             break;
         case METHOD_CIRCLE_MEASURE:
             circle_measure_stop();
+            current_method = METHOD_NONE;
+            break;
+        case METHOD_FLYING_COMPASS:
+            flying_compass_stop();
             current_method = METHOD_NONE;
             break;
         default:
