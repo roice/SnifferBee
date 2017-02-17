@@ -489,7 +489,7 @@ for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
         return false;
     }
 
-    printf("max alt = %f\n", std::atan2(particles.at(idx_max_weight).pos_r[2], radius_particle_to_robot)*180./M_PI);
+    //printf("max alt = %f\n", std::atan2(particles.at(idx_max_weight).pos_r[2], radius_particle_to_robot)*180./M_PI);
 
 #if 0 
     float hd[3] = {0};

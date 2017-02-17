@@ -57,13 +57,13 @@ static void* flying_compass_loop(void* exit)
     req.tv_nsec = 50000000; // 0.05 s
 
     // moving step
-    float moving_step = 0.005; // 5 mm
+    float moving_step = 0.2; // 1 cm
 
     // azimuth obtained from FOC routine
     float azimuth;
 
     // int position of robot
-    float pos_robot[3] = {0.6, 0.6, 1.3};
+    float pos_robot[3] = {1.4, 0., 1.3};
 
     int mb_idx = 0; // microbee 1
 
@@ -118,7 +118,7 @@ static void* flying_compass_loop(void* exit)
                     // calculate the next waypoint
                     for (int i = 0; i < 2; i++)
                         pos_robot[i] += planar_e[i]*moving_step;
-//                    memcpy(robot_ref[mb_idx].enu, pos_robot, 3*sizeof(float));
+                        memcpy(robot_ref[mb_idx].enu, pos_robot, 3*sizeof(float));
 
 printf("The ref pos of robot is [ %.2f %.2f %.2f ]\n", pos_robot[0], pos_robot[1], pos_robot[2]);
 
