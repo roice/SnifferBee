@@ -30,6 +30,7 @@ typedef struct {
 }GSRAO_Config_Mocap_t;
 
 typedef struct {
+    int type_of_robot; // type of robot
     int num_of_robots; // amount of robots
     std::string ppm_serial_port_path;
     std::string dnet_serial_port_path[4]; // 4 robots max

@@ -133,9 +133,10 @@ add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
     src/GSRAO_thread_comm.cxx
     src/io/serial.cxx src/io/serial_spp.cxx src/io/serial_mbsp.cxx
     src/io/serial_anemometer.cxx src/io/record.cxx
+    src/io/udp_ocdev.cxx
     src/mocap/packet_client.cxx src/mocap/mocap_noise_reduction.cxx
-    src/robot/robot.cxx src/robot/microbee.cxx
-    src/method/method.cxx src/method/hover_measure.cxx src/method/back_forth_measure.cxx src/method/circle_measure.cxx src/method/flying_compass.cxx
+    src/robot/robot.cxx src/robot/microbee.cxx src/robot/pioneer.cxx
+    src/method/method.cxx src/method/hover_measure.cxx src/method/back_forth_measure.cxx src/method/circle_measure.cxx src/method/flying_compass.cxx src/method/odor_compass.cxx
     src/common/vector_rotation.cxx)
 target_compile_features(${PRJ_NAME} PRIVATE cxx_constexpr)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})

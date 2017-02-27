@@ -12,6 +12,9 @@
 #include <string.h>
 #include "robot/robot.h"
 #include "robot/microbee.h"
+#include "robot/pioneer.h"
+
+static int type_of_robot; // 0 for ground robot, 1 for flying robot
 
 static int amount_of_robots; // 1/2/3/4
 
@@ -24,8 +27,16 @@ std::vector<Robot_Debug_Record_t> robot_debug_record[4]; // 4 robots max
 //#define DEBUG_HANDHELD_DEVICE
 
 /* robot init */
-bool robot_init(int num_robots)
+bool robot_init(int type_robot, int num_robots)
 {
+    if (type_robot < 0 || type_robot > 1)
+    {
+        type_of_robot = 1;
+        printf("Robot init: type_robot not recognized, set to flying robot by default.\n");
+    }
+    else
+        type_of_robot = type_robot;
+
     if (num_robots < 1 || num_robots > 4)
     {
         amount_of_robots = 1;
@@ -42,22 +53,32 @@ bool robot_init(int num_robots)
     for (int i = 0; i < amount_of_robots; i++) // 4 robots max
         robot_record[i].reserve(10*60*10); // 10 min record for 10 Hz sample
 
-    if (!microbee_state_init())
-        return false;
+    if (type_robot == 0) { // ground robot
+        if (!pioneer_control_init())
+            return false;
+    }
+    else { // flying robot
+        if (!microbee_state_init())
+            return false;
 #ifndef DEBUG_HANDHELD_DEVICE
-    if (!microbee_control_init(amount_of_robots))
-        return false;
-#endif 
+        if (!microbee_control_init(amount_of_robots))
+            return false;
+#endif
+    }
 
     return true;
 }
 
 void robot_shutdown(void)
 {
+    if (type_of_robot == 0) // ground robot
+        pioneer_control_close();
+    else {
 #ifndef DEBUG_HANDHELD_DEVICE
-    microbee_control_close(amount_of_robots);
+        microbee_control_close(amount_of_robots);
 #endif
-    microbee_state_close();
+        microbee_state_close();
+    }
 }
 
 Robot_Ref_State_t* robot_get_ref_state(void)

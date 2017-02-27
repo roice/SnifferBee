@@ -90,7 +90,7 @@ std::vector<Robot_Record_t>* robot_get_record(void);
 
 std::vector<Robot_Debug_Record_t>* robot_get_debug_record(void);
 
-bool robot_init(int);
+bool robot_init(int, int);
 void robot_shutdown(void);
 
 #endif

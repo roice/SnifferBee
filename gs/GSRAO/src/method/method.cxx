@@ -12,6 +12,7 @@
 #include "method/back_forth_measure.h"
 #include "method/circle_measure.h"
 #include "method/flying_compass.h"
+#include "method/odor_compass.h"
 
 static methodName_e current_method = METHOD_NONE;
 
@@ -41,6 +42,11 @@ bool method_start(methodName_e method_name)
             if (result)
                 current_method = METHOD_FLYING_COMPASS;
             break;
+        case METHOD_ODOR_COMPASS:
+            result = odor_compass_init();
+            if (result)
+                current_method = METHOD_ODOR_COMPASS;
+            break;
         default:
             break;
     }
@@ -66,6 +72,10 @@ void method_stop(void)
             break;
         case METHOD_FLYING_COMPASS:
             flying_compass_stop();
+            current_method = METHOD_NONE;
+            break;
+        case METHOD_ODOR_COMPASS:
+            odor_compass_stop();
             current_method = METHOD_NONE;
             break;
         default:

@@ -48,6 +48,7 @@ void GSRAO_Config_restore(void)
         settings.mocap.model_name_of_robot[2] = pt.get<std::string>("Mocap.model_name_of_robot_3");
         settings.mocap.model_name_of_robot[3] = pt.get<std::string>("Mocap.model_name_of_robot_4");
         // Robot
+        settings.robot.type_of_robot = pt.get<int>("Robot.type_of_robot");
         settings.robot.num_of_robots = pt.get<int>("Robot.num_of_robots");
         settings.robot.ppm_serial_port_path = pt.get<std::string>("Robot.ppm_serial_port_path");
         settings.robot.dnet_serial_port_path[0] = pt.get<std::string>("Robot.dnet_serial_port_path[0]");
@@ -143,6 +144,7 @@ void GSRAO_Config_save(void)
     pt.put("Mocap.model_name_of_robot_3", settings.mocap.model_name_of_robot[2]);
     pt.put("Mocap.model_name_of_robot_4", settings.mocap.model_name_of_robot[3]);
     // Robot
+    pt.put("Robot.type_of_robot", settings.robot.type_of_robot);
     pt.put("Robot.num_of_robots", settings.robot.num_of_robots);
     pt.put("Robot.ppm_serial_port_path", settings.robot.ppm_serial_port_path);
     pt.put("Robot.dnet_serial_port_path[0]", settings.robot.dnet_serial_port_path[0]);
@@ -241,6 +243,7 @@ void GSRAO_Config_init(void)
     settings.mocap.model_name_of_robot[2] = "Rigid Body 3";
     settings.mocap.model_name_of_robot[3] = "Rigid Body 4";
     // robot
+    settings.robot.type_of_robot = 1;
     settings.robot.num_of_robots = 1;
     settings.robot.ppm_serial_port_path = "/dev/ttyUSB_GSRAO_PPM";
     settings.robot.dnet_serial_port_path[0] = "/dev/ttyUSB1";

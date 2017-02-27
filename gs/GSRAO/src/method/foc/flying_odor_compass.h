@@ -148,6 +148,10 @@ class Flying_Odor_Compass
     public:
         Flying_Odor_Compass(void);
         bool update(FOC_Input_t&);
+        // type of robot
+        //   0  ground robot
+        //   1  flying robot (default)
+        int type_of_robot;
         // data
         std::vector<FOC_Wind_t>         data_wind;
         std::vector<FOC_Input_t>        data_raw;

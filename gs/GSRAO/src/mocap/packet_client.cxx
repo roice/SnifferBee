@@ -28,8 +28,8 @@
 #define MULTICAST_ADDRESS		"239.255.42.99"     // IANA, local network
 #define PORT_DATA  			    1511
 
-int fd_sock;
-struct sockaddr_in addr;
+static int fd_sock;
+static struct sockaddr_in addr;
 static pthread_t mocap_client_thread_handle;
 static bool exit_mocap_client_thread = false;
 static int NatNetVersion[4] = {2,7,0,0};

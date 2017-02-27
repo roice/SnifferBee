@@ -35,6 +35,8 @@
 
 Flying_Odor_Compass::Flying_Odor_Compass(void)
 {
+    // type of robot
+    type_of_robot = 1; // flying robot by default
     // make space for data
     data_wind.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
     data_raw.reserve(FOC_RECORD_LEN*FOC_MOX_DAQ_FREQ);
