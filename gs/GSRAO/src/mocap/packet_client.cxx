@@ -141,7 +141,7 @@ void mocap_client_close(void)
     if (!exit_mocap_client_thread) // if still running
     {
         // exit mocap client thread
-        exit_mocap_client_thread = true;
+        exit_mocap_client_thread = true;       
         pthread_join(mocap_client_thread_handle, NULL);
         // close socket
         close(fd_sock);

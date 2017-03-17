@@ -14,7 +14,7 @@
 
 static int fd; // file descriptor for the port connecting PPM encoder
 static pthread_t spp_thread_handle;
-static bool exit_spp_thread = false;
+static bool exit_spp_thread = true;
 static SPP_RC_DATA_t spp_rc_data[4];
 static char spp_frame[100];
 

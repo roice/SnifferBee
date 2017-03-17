@@ -67,12 +67,17 @@ void foc_estimate_source_init(std::vector<FOC_Estimation_t>& out)
  */
 bool estimate_horizontal_plume_dispersion_direction_according_to_toa(FOC_Feature_t& feature, float* out)
 {
+    
+    //printf("toa = [%f, %f, %f]\n", feature.toa[0], feature.toa[1], feature.toa[2]);
+
     float e_x, e_y, dt_lf = feature.toa[1]-feature.toa[0], dt_rf = feature.toa[2]-feature.toa[0], speed;
     float sqrt_3 = sqrt(3);
 
     // check if dt is valid
     if (dt_lf == 0 and dt_rf == 0)
         return false;
+
+    //printf("dt_lf = %f, dt_rf = %f\n", dt_lf, dt_rf);
 
     // calculate e_x & e_y
     if (dt_lf == dt_rf) {
@@ -107,6 +112,8 @@ bool estimate_horizontal_plume_dispersion_direction_according_to_toa(FOC_Feature
         }
     }
 
+    //printf("e_x = %f, e_y = %f\n", e_x, e_y);
+
     // calculate wind speed
     //if (absf(dt_lf) > absf(dt_rf)) // math.h
     if (std::abs(dt_lf) > std::abs(dt_rf)) // cmath
@@ -116,6 +123,7 @@ bool estimate_horizontal_plume_dispersion_direction_according_to_toa(FOC_Feature
         //speed = sqrt_3*FOC_RADIUS/2.0*absf(e_x-sqrt_3*e_y)/absf(dt_rf); // math.h
         speed = sqrt_3*FOC_RADIUS/2.0*std::abs(e_x-sqrt_3*e_y)/std::abs(dt_rf); // cmath
 
+    //printf("speed = %f\n", speed);
     // check if wind speed is valid
     if (speed > FOC_WIND_MAX or speed < FOC_WIND_MIN)
         return false;
@@ -123,6 +131,8 @@ bool estimate_horizontal_plume_dispersion_direction_according_to_toa(FOC_Feature
     // save result
     out[0] = e_x; //*speed;
     out[1] = e_y; //*speed;
+
+    //printf("e_x = %f, e_y = %f\n", e_x, e_y);
 
     return true;
 }
@@ -224,14 +234,12 @@ static float calculate_likelihood_of_two_tdoa(float* x, float* y)
         //return 1.0/std::exp(angle);
 }
 
-//#define FOC_2D
-
 /* Estimate the 3D direction the odor comes from 
  * Args:
  *      feature     feature of combinations of sensor maxlines, containing TDOA etc. info
  *      est         direction estimation
  */
-bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector<FOC_Estimation_t>& data_est, std::vector<FOC_Input_t>& data_raw, int size_of_signal, std::vector<float> data_wt[FOC_NUM_SENSORS][FOC_WT_LEVELS])
+bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector<FOC_Estimation_t>& data_est, std::vector<FOC_Input_t>& data_raw, int size_of_signal, std::vector<float> data_wt[FOC_NUM_SENSORS][FOC_WT_LEVELS], int type_of_robot)
 {
     if (feature.size() == 0)
         return false;
@@ -240,7 +248,7 @@ bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector
 
     FOC_Estimation_t new_est;
 
-#ifdef FOC_2D
+if (type_of_robot == 0) { // ground robot
 /* ===============  Calculate horizontal flow vector of odor parcel  ===================== */
     float est_horizontal_odor_trans_direction[3] = {0};   // estimated horizontal odor transport direction, e/n
     float est_horizontal_odor_std_deviation[FOC_NUM_SENSORS] = {0};   // standard deviations of odor sensors
@@ -254,6 +262,7 @@ bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector
         if(estimate_horizontal_plume_dispersion_direction_according_to_toa(feature.at(i), feature.at(i).direction_p)) {
             memset(feature.at(i).direction, 0, 3*sizeof(float));
             rotate_vector(feature.at(i).direction_p, feature.at(i).direction, data_raw.at(int(feature.at(i).toa[0]*FOC_MOX_DAQ_FREQ)).attitude[2], 0, 0); // vehicle coord to ENU coord
+            //memcpy(feature.at(i).direction, feature.at(i).direction_p, 3*sizeof(float));
 
 /*
             feature.at(i).direction[0] += data_raw.at(int(feature.at(i).toa[0]*FOC_MOX_DAQ_FREQ)).wind[0];
@@ -267,6 +276,7 @@ bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector
         else
             feature.at(i).valid_to_infer_direction = false;
     }
+#if 0 // experiments show better results achieved without this part of routine. -_-!
     for (int sign = 0; sign < 2; sign++) {
         if (count_num_valid_features[sign] == 0)
             continue;
@@ -280,10 +290,27 @@ bool foc_estimate_source_update(std::vector<FOC_Feature_t>& feature, std::vector
             }
         }
     }
-    
+#else
+    for (int sign = 0; sign < 2; sign++) {
+        if (count_num_valid_features[sign] == 0)
+            continue;
+        for (int i = 0; i < feature.size(); i++) {
+            if (feature.at(i).toa[0] >= current_time - FOC_RECENT_TIME_TO_EST and feature.at(i).type == sign and feature.at(i).valid_to_infer_direction == true) {
+                for (int j = 0; j < 2; j++)
+                    temp_sum_hd[sign][j] += feature.at(i).direction[j];
+            }
+        }
+    }
+#endif
+     
     float temp_mod_sum_hd;
     for (int sign = 0; sign < 2; sign++) {
         temp_mod_sum_hd = std::sqrt(temp_sum_hd[sign][0]*temp_sum_hd[sign][0]+temp_sum_hd[sign][1]*temp_sum_hd[sign][1]);
+        if (temp_mod_sum_hd == 0.) {
+            for (int i = 0; i < 2; i++)
+                temp_sum_hd[sign][i] = 0.;
+            continue;
+        }
         for (int i = 0; i < 2; i++)
             temp_sum_hd[sign][i] /= temp_mod_sum_hd;
     }
@@ -308,12 +335,21 @@ if (temp_sum_hd[0][1] > 0 or temp_sum_hd[1][1] > 0) {
          * Note: for ground robots, it can only consider odor arrival events, so 0.1:0.9 is OK
          *     But for flying robots, 0.3:0.7 is appropriate */
         //hd[i] = 0.3*temp_sum_hd[0][i] + 0.7*temp_sum_hd[1][i];
-        hd[i] = 0.2*temp_sum_hd[0][i] + 0.8*temp_sum_hd[1][i];
-    
+        hd[i] = 0.3*temp_sum_hd[0][i] + 0.7*temp_sum_hd[1][i];
+
+    float norm_hd = std::sqrt(hd[0]*hd[0]+hd[1]*hd[1]);
+    if (norm_hd <= 0)
+        return false;
+    for (int i = 0; i < 2; i++)
+        hd[i] /= norm_hd;
+  
+//printf("hd = [%f, %f]\n", hd[0], hd[1]);
+
     memcpy(new_est.direction, hd, 3*sizeof(float));
     data_est.push_back(new_est);
-
-#else /* 3D, default */
+    
+} // type_of_robot is ground robot
+else {/* 3D, default */
     float est_horizontal_odor_trans_direction[3] = {0};   // estimated horizontal odor transport direction, e/n
     float est_horizontal_odor_std_deviation[FOC_NUM_SENSORS] = {0};   // standard deviations of odor sensors
 /*======== Step 1: calculate horizontal direction ========*/ 
@@ -511,7 +547,7 @@ for (int i = 0; i < FOC_MAX_PARTICLES; i++) {
     new_est.particles = &particles;
     data_est.push_back(new_est);
 
-#endif
+} // type_of_robot is flying robot
 
 #if 0
     

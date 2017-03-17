@@ -34,6 +34,8 @@ typedef struct {
     int num_of_robots; // amount of robots
     std::string ppm_serial_port_path;
     std::string dnet_serial_port_path[4]; // 4 robots max
+    std::string dnet_udp_send_to_robot;
+    std::string dnet_udp_recv_from_robot;
     pidProfile_t    pidProfile[4]; // 4 robots max
     adrcProfile_t   adrcProfile[4]; // 4 robots max
 }GSRAO_Config_Robot_t;

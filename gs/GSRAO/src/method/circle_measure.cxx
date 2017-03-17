@@ -55,10 +55,10 @@ static void* circle_measure_loop(void* exit)
     req.tv_nsec = 100000000; // 0.1 s
 
     // velocity setting
-    float moving_vel = 0.5; // degree
+    float moving_vel = 10; // degree
     // circle location setting
     float pos_center_circle[3] = {-0., -2.8, 1.30}; // m
-    float R = 1.5; // m
+    float R = 2.0; // m
     // angle_A positive, angle_B negative
     float angle_A = 45.0; // degree
     float angle_B = -45.0; // degree
@@ -77,8 +77,8 @@ static void* circle_measure_loop(void* exit)
     
     bool direction = true; // true for A-B, false for B-A
 
-    for (int i = 0; i < 150; i++)
-        nanosleep(&req, &rem); // 0.1 s
+    //for (int i = 0; i < 150; i++)
+    //    nanosleep(&req, &rem); // 0.1 s
 
     while (!*((bool*)exit))
     {

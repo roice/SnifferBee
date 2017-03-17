@@ -55,7 +55,7 @@ static void* back_forth_measure_loop(void* exit)
     req.tv_nsec = 100000000; // 0.1 s
 
     // velocity setting
-    float moving_vel = 0.3; // 0.3 m/s
+    float moving_vel = 0.05; // 0.3 m/s
     // back-forth location setting
     float moving_pos_A[3] = {0.3, 0, 1.7};
     float moving_pos_B[3] = {0.3, -2.4, 1.7};
@@ -107,6 +107,8 @@ static void* back_forth_measure_loop(void* exit)
             }
         }
         
+
+printf("robot_ref = [%f, %f]\n", robot_ref[0].enu[0], robot_ref[0].enu[1]);
 
         nanosleep(&req, &rem); // 0.1 s
     }

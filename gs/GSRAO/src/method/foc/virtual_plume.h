@@ -7,7 +7,9 @@
 #define N_PUFFS     600  // number of puffs per virtual plume
 #define     VIRTUAL_PLUME_DT    0.01   // second
 
+#ifndef GPU_COMPUTING
 #define GPU_COMPUTING
+#endif
 
 #ifndef GPU_COMPUTING
 // CPU version

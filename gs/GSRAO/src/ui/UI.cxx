@@ -36,6 +36,7 @@
 #include "io/serial.h"
 #include "io/record.h"
 #include "io/udp_ocdev.h"
+#include "io/udp_pioneer.h"
 #include "mocap/packet_client.h"
 #include "robot/robot.h"
 #include "robot/microbee.h"
@@ -60,6 +61,9 @@ struct ConfigDlg_Widgets { // for parameter saving
     Fl_Input* ppmcnt_serial_port;
     // serial port receiving data
     Fl_Input* dnet_serial_port[4]; // 4 robots max
+    // udp link sending and receiving data
+    Fl_Choice* dnet_udp_send_to_robot;
+    Fl_Choice* dnet_udp_recv_from_robot;
     // serial port receiving anemometer data
     Fl_Choice* num_of_anemometers;
     Fl_Input* anemo_serial_port[SERIAL_MAX_ANEMOMETERS];
@@ -110,9 +114,13 @@ void ConfigDlg::cb_change_type_of_robot(Fl_Widget* w, void* data)
         ws->mocap_model_name_of_robot[0]->activate();
         for (char i = 1; i < 4; i++)
             ws->mocap_model_name_of_robot[i]->deactivate();
-        for (char i = 0; i < 4; i++) // ground robot use udp link
-            ws->dnet_serial_port[i]->deactivate();
-        ws->ppmcnt_serial_port->deactivate(); // ground robot does't use ppm
+        ws->ppmcnt_serial_port->deactivate(); // ground robot doesn't use ppm
+        // hide serial port of data networks as ground robot doesn't use serial
+        for (char i = 0; i < 4; i++)
+            ws->dnet_serial_port[i]->hide();
+        // show UDP link
+        ws->dnet_udp_send_to_robot->show();
+        ws->dnet_udp_recv_from_robot->show();
     }
     else { // flying robot
         ws->scenario_num_of_robots->activate();
@@ -128,6 +136,12 @@ void ConfigDlg::cb_change_type_of_robot(Fl_Widget* w, void* data)
         for (char i = 0; i <= ws->scenario_num_of_robots->value(); i++)
             ws->dnet_serial_port[i]->activate();
         ws->ppmcnt_serial_port->activate();
+        // show serial link of flying robot
+        for (char i = 0; i < 4; i++)
+            ws->dnet_serial_port[i]->show();
+        // hide UDP link of ground robot
+        ws->dnet_udp_send_to_robot->hide();
+        ws->dnet_udp_recv_from_robot->hide();
     }
 }
 
@@ -173,6 +187,8 @@ void ConfigDlg::save_value_to_configs(ConfigDlg_Widgets* ws) {
     configs->robot.ppm_serial_port_path = ws->ppmcnt_serial_port->value(); // serial port path for PPM
     for (int i = 0; i < 4; i++) // 4 robots max
         configs->robot.dnet_serial_port_path[i] = ws->dnet_serial_port[i]->value(); // serial port path for data
+    configs->robot.dnet_udp_send_to_robot = ws->dnet_udp_send_to_robot->menu()[ws->dnet_udp_send_to_robot->value()].label();
+    configs->robot.dnet_udp_recv_from_robot = ws->dnet_udp_recv_from_robot->menu()[ws->dnet_udp_recv_from_robot->value()].label();
     // Link
     configs->mocap.netcard = ws->mocap_netcard->menu()[ws->mocap_netcard->value()].label();
     //configs->mocap.netcard = ws->mocap_netcard->value(); // save netcard num
@@ -207,9 +223,17 @@ void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
     ws->ppmcnt_serial_port->value(configs->robot.ppm_serial_port_path.c_str()); // serial port path for PPM
     for (int i = 0; i < 4; i++) // 4 robots max
         ws->dnet_serial_port[i]->value(configs->robot.dnet_serial_port_path[i].c_str()); // serial port path for data
+    
+    // UDP link
+    char netcard_index = ((Fl_Menu_*)ws->dnet_udp_send_to_robot)->find_index(configs->robot.dnet_udp_send_to_robot.c_str());
+    if (netcard_index < 0) netcard_index = 0;
+    ws->dnet_udp_send_to_robot->value(netcard_index);
+    netcard_index = ((Fl_Menu_*)ws->dnet_udp_recv_from_robot)->find_index(configs->robot.dnet_udp_recv_from_robot.c_str());
+    if (netcard_index < 0) netcard_index = 0;
+    ws->dnet_udp_recv_from_robot->value(netcard_index);
 
     // Link mocap
-    char netcard_index = ((Fl_Menu_*)ws->mocap_netcard)->find_index(configs->mocap.netcard.c_str());
+    netcard_index = ((Fl_Menu_*)ws->mocap_netcard)->find_index(configs->mocap.netcard.c_str());
     if (netcard_index < 0) netcard_index = 0;
     ws->mocap_netcard->value(netcard_index); // netcard
     
@@ -228,7 +252,6 @@ void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
             ws->dnet_serial_port[i]->activate();
         else
             ws->dnet_serial_port[i]->deactivate();
-
     }
 
     // Anemometers
@@ -251,6 +274,12 @@ void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
         }
     }
 
+    if (ws->scenario_type_of_robot->value() == 1) {// flying robot
+        for (char i = 0; i < 4; i++)
+            ws->dnet_serial_port[i]->show();
+        ws->dnet_udp_send_to_robot->hide();
+        ws->dnet_udp_recv_from_robot->hide();
+    }
     // if ground robot
     if (ws->scenario_type_of_robot->value() == 0) {// ground robot
         ws->scenario_num_of_robots->value(0); // only support one
@@ -259,8 +288,10 @@ void ConfigDlg::get_value_from_configs(ConfigDlg_Widgets* ws) {
         for (char i = 1; i < 4; i++)
             ws->mocap_model_name_of_robot[i]->deactivate();
         for (char i = 0; i < 4; i++) // ground robot use udp link
-            ws->dnet_serial_port[i]->deactivate();
+            ws->dnet_serial_port[i]->hide();
         ws->ppmcnt_serial_port->deactivate(); // ground robot does't use ppm
+        ws->dnet_udp_send_to_robot->show();
+        ws->dnet_udp_recv_from_robot->show();
     }
 }
 
@@ -325,7 +356,9 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             dnet->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
             //   Set serial port receiving the data
             for (int i = 0; i < 4; i++)
-                ws.dnet_serial_port[i] = new Fl_Input(t_x+10+100, t_y+25+10+25*i+100, 200, 25, "Serial Port "); 
+                ws.dnet_serial_port[i] = new Fl_Input(t_x+10+100, t_y+25+10+25*i+100, 200, 25, "Serial Port ");
+            ws.dnet_udp_send_to_robot = new Fl_Choice(t_x+10+100, t_y+25+10+25*0+100, 200, 25, "UDP Send ");
+            ws.dnet_udp_recv_from_robot = new Fl_Choice(t_x+10+100, t_y+25+10+25*2+100, 200, 25, "UDP Receive ");
 
             // Motion capture settings
             Fl_Box *mocap = new Fl_Box(t_x+10, t_y+25+10+140+75, 370, 130,"Motion Capture");
@@ -353,6 +386,8 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
                     // add this net interface to choice list
                     snprintf(ncName, 100, "%s IPv4 %s", ifa->ifa_name, addressBuffer);
                     ws.mocap_netcard->add(ncName);
+                    ws.dnet_udp_send_to_robot->add(ncName);
+                    ws.dnet_udp_recv_from_robot->add(ncName);
                 }
 #if 0
                 /* IPv6 is not supported yet. The routers and motion capture system use IPv4 */
@@ -369,6 +404,8 @@ ConfigDlg::ConfigDlg(int xpos, int ypos, int width, int height,
             }
             if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct); 
             ws.mocap_netcard->tooltip("Select which network interface receives multicast info from Motive software");
+            ws.dnet_udp_send_to_robot->tooltip("Select which network interface sends commands to pioneer robot");
+            ws.dnet_udp_recv_from_robot->tooltip("Select which network interface receives data from pioneer robot");
 
             //   Config rigid body index for microdrones
             const char* robot_name[] = {"robot 1", "robot 2", "robot 3", "robot 4"};
@@ -936,6 +973,8 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 robot_rec[i].clear();
         
             // Init link with robots
+            std::size_t find_ip;
+            std::string ip_addr;
             if (configs->robot.type_of_robot == 1) { // flying robot
                 if (!spp_init(configs->robot.ppm_serial_port_path.c_str())) // link with PPM encoder
                 {
@@ -955,9 +994,50 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 }
             }
             else if (configs->robot.type_of_robot == 0) { // ground robot
-                if (!ocdev_receive_init("192.168.10.22")) // udp link with odor compass dev
+                // UDP receive
+                find_ip = configs->robot.dnet_udp_recv_from_robot.rfind("IPv4 ");
+                if (find_ip == std::string::npos)
                 {
-                    widgets->msg_zone->label("Odor Compass UDP Receive Failed!");
+                    widgets->msg_zone->label("UDP rcv: Not a IPv4 address");
+                    widgets->msg_zone->labelcolor(FL_RED);
+                    ((Fl_Button*)w)->value(0);
+                    return;
+                }
+                if (configs->robot.dnet_udp_recv_from_robot.size() < find_ip + 4+1+1) // "IPv4"+" "+"X", X is whatever
+                {
+                    widgets->msg_zone->label("UDP rcv: Cannot find valid IP address");
+                    widgets->msg_zone->labelcolor(FL_RED);
+                    ((Fl_Button*)w)->value(0);
+                    return;
+                }
+                ip_addr = configs->robot.dnet_udp_recv_from_robot.substr(find_ip+5, configs->robot.dnet_udp_recv_from_robot.size()-5-find_ip);
+                if (!ocdev_receive_init(ip_addr.c_str())) // udp link with odor compass dev
+                {
+                    widgets->msg_zone->label("UDP rcv: Setup Failed!");
+                    widgets->msg_zone->labelcolor(FL_RED);
+                    ((Fl_Button*)w)->value(0);
+                    return;
+                }
+                // UDP send
+                find_ip = configs->robot.dnet_udp_send_to_robot.rfind("IPv4 ");
+                if (find_ip == std::string::npos)
+                {
+                    widgets->msg_zone->label("UDP send: Not a IPv4 address");
+                    widgets->msg_zone->labelcolor(FL_RED);
+                    ((Fl_Button*)w)->value(0);
+                    return;
+                }
+                if (configs->robot.dnet_udp_send_to_robot.size() < find_ip + 4+1+1) // "IPv4"+" "+"X", X is whatever
+                {
+                    widgets->msg_zone->label("UDP send: Cannot find valid IP address");
+                    widgets->msg_zone->labelcolor(FL_RED);
+                    ((Fl_Button*)w)->value(0);
+                    return;
+                }
+                ip_addr = configs->robot.dnet_udp_send_to_robot.substr(find_ip+5, configs->robot.dnet_udp_send_to_robot.size()-5-find_ip);
+                if (!pioneer_send_init(ip_addr.c_str())) // udp link with odor compass dev
+                {
+                    widgets->msg_zone->label("UDP send: Setup Failed!");
                     widgets->msg_zone->labelcolor(FL_RED);
                     ((Fl_Button*)w)->value(0);
                     return;
@@ -965,7 +1045,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             }
             // Init link with Motion Capture System
             mocap_set_request(configs->mocap.model_name_of_robot);
-            std::size_t find_ip = configs->mocap.netcard.rfind("IPv4 ");
+            find_ip = configs->mocap.netcard.rfind("IPv4 ");
             if (find_ip == std::string::npos)
             {
                 widgets->msg_zone->label("Netcard not a IPv4 address");
@@ -978,6 +1058,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 }
                 else if (configs->robot.type_of_robot == 0) { // ground robot
                     ocdev_receive_close();
+                    pioneer_send_close();
                 }
                 return;
             }
@@ -993,10 +1074,11 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 }
                 else if (configs->robot.type_of_robot == 0) { // ground robot
                     ocdev_receive_close();
+                    pioneer_send_close();
                 }
                 return;
             }
-            std::string ip_addr = configs->mocap.netcard.substr(find_ip+5, configs->mocap.netcard.size()-5-find_ip);
+            ip_addr = configs->mocap.netcard.substr(find_ip+5, configs->mocap.netcard.size()-5-find_ip);
             if (!mocap_client_init(ip_addr.c_str()))
             {
                 widgets->msg_zone->label("Mocap client init failed!");
@@ -1009,6 +1091,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 }
                 else if (configs->robot.type_of_robot == 0) { // ground robot
                     ocdev_receive_close();
+                    pioneer_send_close();
                 }
                 return;
             }
@@ -1025,6 +1108,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 }
                 else if (configs->robot.type_of_robot == 0) { // ground robot
                     ocdev_receive_close();
+                    pioneer_send_close();
                 }
                 // close mocap
                 mocap_client_close();
@@ -1033,7 +1117,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
             // Init method
             //if (!method_start(METHOD_HOVER_MEASURE)) // start hover measure task
             //if (!method_start(METHOD_BACK_FORTH_MEASURE)) // start back-forth measure task
-            //if (!method_start(METHOD_CIRCLE_MEASURE)) // start circle measure task
+            if (!method_start(METHOD_CIRCLE_MEASURE)) // start circle measure task
             //if (!method_start(METHOD_FLYING_COMPASS)) // start odor compass
             if (!method_start(METHOD_ODOR_COMPASS)) // start odor compass
             {
@@ -1047,6 +1131,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 }
                 else if (configs->robot.type_of_robot == 0) { // ground robot
                     ocdev_receive_close();
+                    pioneer_send_close();
                 }
                 // close mocap, robot
                 mocap_client_close();
@@ -1076,6 +1161,7 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                     }
                     else if (configs->robot.type_of_robot == 0) { // ground robot
                         ocdev_receive_close();
+                        pioneer_send_close();
                     }
                     mocap_client_close(); 
                     return;
@@ -1131,6 +1217,7 @@ void ToolBar::cb_button_stop(Fl_Widget *w, void *data)
     }
     else if (configs->robot.type_of_robot == 0) { // ground robot
         ocdev_receive_close();
+        pioneer_send_close();
     }
     mocap_client_close(); // close udp net link with motion capture system
     View_stop_count_time(); // stop counting experiment time
@@ -1315,12 +1402,20 @@ Fl_Group(Xpos, Ypos, Width, Height)
  * ============== UI ==================
  * ==================================== */
 void UI::cb_close(Fl_Widget* w, void* data) { 
+    GSRAO_Config_t* configs = GSRAO_Config_get_configs(); // get runtime configs
     // close GSRAO
     if (Fl::event() == FL_CLOSE) {
         // close Link with robots and Motion Capture System
+        method_stop();
         robot_shutdown(); // shutdown robots
-        spp_close(); // close serial link with PPM encoder
-        mbsp_close(); // close serial link with DATA receiver
+        if (configs->robot.type_of_robot == 1) { // flying robot
+            spp_close(); // close serial link with PPM encoder
+            mbsp_close(); // close serial link with DATA receiver
+        }
+        else if (configs->robot.type_of_robot == 0) { // ground robot
+            ocdev_receive_close();
+            pioneer_send_close();
+        }
         mocap_client_close(); // close udp net link with motion capture system
         Fl::remove_timeout(cb_repeated_tasks_2hz); // remove timeout callback for repeated tasks
         Fl::remove_timeout(cb_repeated_tasks_10hz); // remove timeout callback for repeated tasks

@@ -98,6 +98,7 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
     memcpy(new_wind.wind, new_in.wind, 3*sizeof(float));
     data_wind.push_back(new_wind); // save wind data
 
+if (type_of_robot == 1) // flying robot
 /* Step 1: FIR interpolation (`zero-stuffing' upsampling + filtering)
  *         delay = FOC_SIGNAL_DELAY/2 s */
     if (!foc_interp_update(new_in.mox_reading, data_interp))
@@ -122,7 +123,7 @@ bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
 #if 1
 /* Step 6: Estimate source
  * Warning: FOC_NUM_SENSORS = 3 */
-    if (!foc_estimate_source_update(data_feature, data_est, data_raw, data_wt_out[0][0].size(), data_wt_out))
+    if (!foc_estimate_source_update(data_feature, data_est, data_raw, data_wt_out[0][0].size(), data_wt_out, type_of_robot))
         return false;
 #endif
 
