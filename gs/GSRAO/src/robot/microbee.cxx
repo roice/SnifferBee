@@ -11,6 +11,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <cmath>
 #include <math.h>
 /* thread */
 #include <pthread.h>
@@ -312,7 +313,7 @@ static void microbee_throttle_control_pid(float dt, int robot_index, float AltHo
 
     /* altitude control, throttle */
     // Altitude P-Controller
-    float error = constrain(AltHold - EstAlt, -0.5, 0.5); // -0.5 - 0.5 m boundary
+    float error = constrain(AltHold - EstAlt, -1.0, 1.0); // -0.5 - 0.5 m boundary
     error = applyDeadband(error, 0.01); // 1 cm deadband, remove small P parameter to reduce noise near zero position
     float setVel = constrain((pidProfile[robot_index].P[PIDALT]*error), -2.0, 2.0); // limit velocity to +/- 2.0 m/s
 
@@ -344,14 +345,7 @@ static void microbee_throttle_control_pid(float dt, int robot_index, float AltHo
 
 static void microbee_roll_pitch_control_pid(float dt, int robot_index, float* pos_ref, float* pos, float* vel, float* acc, float* att)
 {
-    static float errorPositionI[4][2] = {0};
-    float error_enu[2]; // error vector in earth coordinate
-    float error_p[2];// error vector in robot's coordinate
-    float heading_e_front[2]; // heading unit vector, indicating front direction
-    float heading_e_right[2]; // perpendicular vector of heading, indicating right
-    float target_vel[2];
-    float error;
-    float result; 
+    static float errorPositionI[4][2] = {0}; 
 
     // get configs
     GSRAO_Config_t* configs = GSRAO_Config_get_configs();
@@ -361,66 +355,40 @@ static void microbee_roll_pitch_control_pid(float dt, int robot_index, float* po
     SPP_RC_DATA_t* rc_data = spp_get_rc_data();
     
     // get position error vector in earth coordinate
+    float error_en[2]; // error vector in earth coordinate
     for (int i = 0; i < 2; i++)
-        error_enu[i] = pos_ref[i] - pos[i];
-
-    // get heading unit vectors
-    float heading_angle = att[2];
-    heading_e_front[0] = -sin(heading_angle); // for pitch
-    heading_e_front[1] = cos(heading_angle);
-    heading_e_right[0] = heading_e_front[1]; // for roll
-    heading_e_right[1] = -heading_e_front[0];
-    
-    // convert error to robot's coordinate
-    error_p[0] = cblas_sdot(2, error_enu, 1, heading_e_right, 1); // for roll
-    error_p[1] = cblas_sdot(2, error_enu, 1, heading_e_front, 1); // for pitch
-
-    // convert velocity to robot's coordinate
-    float vel_p[3];
-    vel_p[0] = cblas_sdot(2, vel, 1, heading_e_right, 1); // for roll
-    vel_p[1] = cblas_sdot(2, vel, 1, heading_e_front, 1); // for pitch
-    vel_p[2] = vel[2];
-
-    // convert acceleration to robot's coordinate
-    float acc_p[3];
-    acc_p[0] = cblas_sdot(2, acc, 1, heading_e_right, 1); // for roll
-    acc_p[1] = cblas_sdot(2, acc, 1, heading_e_front, 1); // for pitch
-    acc_p[2] = acc[2];
-
-#if 0
-    printf("heading angle is %f\n", heading_angle);
-    printf("pos_ref is [%f, %f] m, pos is [%f, %f] m\n", pos_ref[0], pos_ref[1], pos[0], pos[1]);
-    printf("front error is %f m, right error is %f m\n", error_p[1], error_p[0]);
-#endif
-#if 0
-    printf("error_enu is [%f, %f] m\n", error_enu[0], error_enu[1]);
-#endif
+        error_en[i] = pos_ref[i] - pos[i];
 
     // Velocity-PID
+    float target_vel[2]; // in inertial frame
+    float err_pos_vel;
+    float result_pos_i[2]; // in inertial frame
     for (int i = 0; i < 2; i++) // 0 for roll, 1 for pitch
     {
         // Position PID-Controller for east(x)/north(y) axis
-        target_vel[i] = constrain(pidProfile[robot_index].P[PIDPOS]*error_p[i], -0.3, 0.3); // limit error to +/- 0.3 m/s;
+        target_vel[i] = constrain(pidProfile[robot_index].P[PIDPOS]*error_en[i], -0.3, 0.3); // limit error to +/- 0.3 m/s;
         target_vel[i] = applyDeadband(target_vel[i], 0.01); // 1 cm/s
 
         // Velocity PID-Controller
-        error = target_vel[i]-vel_p[i];
+        err_pos_vel = target_vel[i]-vel[i];
 
         // P
-        result = constrain((pidProfile[robot_index].P[PIDPOSR]*error), -100, 100); // limit to +/- 100
+        result_pos_i[i] = constrain((pidProfile[robot_index].P[PIDPOSR]*err_pos_vel), -200, 200); // limit to +/- 100
         // I
-        errorPositionI[robot_index][i] += (pidProfile[robot_index].I[PIDPOSR]*error);
+        errorPositionI[robot_index][i] += (pidProfile[robot_index].I[PIDPOSR]*err_pos_vel);
         errorPositionI[robot_index][i] = constrain(errorPositionI[robot_index][i], -200.0, 200.0); // limit to +/- 200
-        result += errorPositionI[robot_index][i];
+        result_pos_i[i] += errorPositionI[robot_index][i];
         // D
-        result -= constrain(pidProfile[robot_index].D[PIDPOSR]*acc_p[i], -100, 100); // limit
-
-        // update roll/pitch value 
-        if (i == 0)
-            rc_data[robot_index].roll = constrain(1500 + result, 1000, 2000);
-        else if (i == 1)
-            rc_data[robot_index].pitch = constrain(1500 + result, 1000, 2000);
-    } 
+        result_pos_i[i] -= constrain(pidProfile[robot_index].D[PIDPOSR]*acc[i], -100, 100); // limit
+    }
+    // transform result_pos from inertial frame to body frame
+    float heading_angle = att[2]; // in inertial frame
+    float result_pos[2]; // in body frame
+    result_pos[0] = std::cos(heading_angle)*result_pos_i[0] + std::sin(heading_angle)*result_pos_i[1];
+    result_pos[1] = -std::sin(heading_angle)*result_pos_i[0] + std::cos(heading_angle)*result_pos_i[1];
+    // update roll/pitch value 
+    rc_data[robot_index].roll = constrain(1500 + result_pos[0], 1000, 2000);
+    rc_data[robot_index].pitch = constrain(1500 + result_pos[1], 1000, 2000); 
 }
 
 /* ADRC state vector type */
