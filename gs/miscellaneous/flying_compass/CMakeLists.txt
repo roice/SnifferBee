@@ -64,7 +64,7 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/../../../player/src/)
 include_directories(${PROJECT_SOURCE_DIR}/../../../player/src/foc/kf)
 #   add liquid-dsp dir to search for liquid.h header for dsp
-include_directories(${PROJECT_SOURCE_DIR}/3rd-party/liquid-dsp/include)
+include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/liquid-dsp/include)
 #   add cblas dir to search for cblas.h header for linear algebra
 include_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/CBLAS/include)
 #   add ziggurat source file to generate normal distribution random numbers
@@ -75,7 +75,7 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 #---- library files path settings ----
 # add library dir into lib path
 #   add liquid-dsp lib dir
-link_directories(${PROJECT_SOURCE_DIR}/3rd-party/liquid-dsp)
+link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/liquid-dsp)
 #   add blas and cblas lib dir
 link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/BLAS-3.6.0)
 link_directories(${PROJECT_SOURCE_DIR}/../../../3rdparty/blas/CBLAS/lib)
