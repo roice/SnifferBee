@@ -61,9 +61,9 @@ void loop() {
   buf[7] = checksum;
   // send
   mySerial.write(buf, 8);
-  // 2 Hz
+  // 20 Hz
   Toggle(LED_PIN);
-  delay(500); // 500 ms
+  delay(50); // 50 ms
  }
 
 void Toggle(byte led){

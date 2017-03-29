@@ -366,7 +366,7 @@ static void microbee_roll_pitch_control_pid(float dt, int robot_index, float* po
     for (int i = 0; i < 2; i++) // 0 for roll, 1 for pitch
     {
         // Position PID-Controller for east(x)/north(y) axis
-        target_vel[i] = constrain(pidProfile[robot_index].P[PIDPOS]*error_en[i], -0.3, 0.3); // limit error to +/- 0.3 m/s;
+        target_vel[i] = constrain(pidProfile[robot_index].P[PIDPOS]*error_en[i], -1.0, 1.0); // limit error to +/- 1.0 m/s;
         target_vel[i] = applyDeadband(target_vel[i], 0.01); // 1 cm/s
 
         // Velocity PID-Controller
@@ -439,54 +439,124 @@ static void microbee_yaw_control_adrc(float dt, int robot_index, float heading_r
 
 static void microbee_leso(float dt, int robot_index, float* pos, float* vel, float* acc, float* att)
 {
-    // LESO parameter
-    float w0 = 10.0;
+    float w0 = 18;
+    float m = 0.122; // kg
+    float thrust_U0 = 3.2258259;
+    float c_x = 0.2;
+    float c_y = 0.2;
+    float c_z = 0.8;
 
-    static ADRC_State_t state[4][3] = {{{0},{0}}, {{0},{0}}, {{0},{0}}, {{0},{0}}}; // 4 robots max
-    static float mb_leso_z3_offset[4][3] = {{0.0919253, 0.0771345, 0}, {0}, {0}, {0}};
+    static ADRC_State_t state[4][3] = {{0}, {0}, {0}, {0}}; // 4 robots max
+    float *z1[3], *z2[3], *z3[3];
+    for (int i = 0; i < 3; i++) {
+        z1[i] = &(state[robot_index][i].z1);
+        z2[i] = &(state[robot_index][i].z2);
+        z3[i] = &(state[robot_index][i].z3);
+    }
 
-    // LESO
-    float leso_err[3] = {pos[0]-state[robot_index][0].z1, pos[1]-state[robot_index][1].z1, pos[2]-state[robot_index][2].z1};
+    // result
+    float wind_estimated[3];
+
+    // body frame to inertial frame
+    float R_BI[9] = {
+        std::cos(att[1])*std::cos(att[2]),
+        std::sin(att[0])*std::sin(att[1])*std::cos(att[2]) - std::cos(att[0])*std::sin(att[2]),
+        std::cos(att[2])*std::sin(att[1])*std::cos(att[0]) + std::sin(att[0])*std::sin(att[2]),
+        std::cos(att[1])*std::sin(att[2]),
+        std::sin(att[1])*std::sin(att[0])*std::sin(att[2]) + std::cos(att[0])*std::cos(att[2]),
+        std::cos(att[0])*std::sin(att[1])*std::sin(att[2]) - std::sin(att[0])*std::cos(att[2]),
+        -std::sin(att[1]),
+        std::sin(att[0])*std::cos(att[1]),
+        std::cos(att[0])*std::cos(att[1]) 
+    };
+    // inertial frame to body frame
+    float R_IB[9] = {
+        std::cos(att[2])*std::cos(att[1]),
+        std::sin(att[2])*std::cos(att[1]),
+        -std::sin(att[1]),
+        std::sin(att[0])*std::cos(att[2])*std::sin(att[1]) - std::cos(att[0])*std::sin(att[2]),
+        std::sin(att[0])*std::sin(att[2])*std::sin(att[1]) + std::cos(att[0])*std::cos(att[2]),
+        std::sin(att[0])*std::cos(att[1]),
+        std::cos(att[0])*std::cos(att[2])*std::sin(att[1]) + std::sin(att[0])*std::sin(att[2]),
+        std::cos(att[0])*std::sin(att[2])*std::sin(att[1]) - std::sin(att[0])*std::cos(att[2]),
+        std::cos(att[0])*std::cos(att[1])
+    };
+    
+    float leso_err[3] = {
+        pos[0] - *(z1[0]),
+        pos[1] - *(z1[1]),
+        pos[2] - *(z1[2]) };
     
     // get motor value and calculate force vector
-    float scale_motor_value = 0.01;
-    float temp_force[3] = {0., 0., (float)(pow(microbee[robot_index].motor[0]*scale_motor_value,2)+pow(microbee[robot_index].motor[1]*scale_motor_value,2)+pow(microbee[robot_index].motor[2]*scale_motor_value,2)+pow(microbee[robot_index].motor[3]*scale_motor_value,2))};
-    float force[3] = {0};
-
-    // convert force vector to earth coord
-    rotate_vector(temp_force, force, att[2], att[1], att[0]);
-
-    // factor to convert motor value to u
-    float factor_motor_to_u = (acc[2] + 9.8)/force[2];
-    for (int i = 0; i < 3; i++)
-        force[i] *= factor_motor_to_u;
+    float scale_motor_value = 0.0003;
+    float thrust_U_B[3] = {
+        0., 
+        0., 
+        (float)(std::pow(microbee[robot_index].motor[0]*scale_motor_value,2)+std::pow(microbee[robot_index].motor[1]*scale_motor_value,2)+std::pow(microbee[robot_index].motor[2]*scale_motor_value,2)+std::pow(microbee[robot_index].motor[3]*scale_motor_value,2))*microbee[robot_index].state.bat_volt };  
+    //printf("thrust_U_B = [ %f, %f, %f ]\n", thrust_U_B[0], thrust_U_B[1], thrust_U_B[2]); 
+    float thrust_B[3] = {0., 0., thrust_U_B[2]*9.8/thrust_U0};
+    float thrust[3] = {0};
+    cblas_sgemv(CblasRowMajor, CblasNoTrans, 3, 3, 1.0, R_BI, 3, thrust_B, 1, 1.0, thrust, 1); // B to I
+    // kappa
+    float kappa[3] = {0, 0, -9.8};
+    cblas_saxpy(3, 1.0, thrust, 1, kappa, 1); // kappa <- 1.0*thrust+G
 
     for (int i = 0; i < 3; i++) // 0 for roll, 1 for pitch, 2 for throttle
     {
-        state[robot_index][i].z1 += dt*(state[robot_index][i].z2 + 3*w0*leso_err[i]);
-        if (i == 2)
-            state[robot_index][i].z2 += dt*(state[robot_index][i].z3 + 3*pow(w0,2)*leso_err[i] + force[i]-9.8);
-        else
-            state[robot_index][i].z2 += dt*(state[robot_index][i].z3 + 3*pow(w0,2)*leso_err[i] + force[i]);
-        state[robot_index][i].z3 += dt*(pow(w0,3)*leso_err[i]);
+        *(z1[i]) += dt*(*(z2[i]) + 3*w0*leso_err[i]);
+        *(z2[i]) += dt*(*(z3[i]) + 3*std::pow(w0,2)*leso_err[i] + kappa[i]);
+        *(z3[i]) += dt*(std::pow(w0,3)*leso_err[i]);
     }
- 
-// DEBUG
-//printf("z3 = [ %f, %f, %f ]\n", state[robot_index][0].z3, state[robot_index][1].z3, state[robot_index][2].z3);
 
-    // convert to wind vector and save to robot state
-    float factor_z3_to_wind = 2.8;
+    float a_v[3] = {-*(z3[0]), -*(z3[1]), -*(z3[2])};
+    
+    // convert a_v to wind vector
+    //                 [ 1/c_x, 0, 0 ]
+    // v = m * R_B^I * [ 0, 1/c_y, 0 ] * R_I^B * a_v
+    //                 [ 0, 0, 1/c_z ]
+    // u = qr_speed - v 
+    float c[9] = { 1./c_x, 0., 0.,
+                   0., 1./c_y, 0.,
+                   0., 0., 1./c_z};
+    float c_B[9] = {0};
+    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 3, 3, 3, 1.0, R_BI, 3, c, 3, 0.0, c_B, 3); // B to I
+    float c_BI[9] = {0};
+    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 3, 3, 3, 1.0, c_B, 3, R_IB, 3, 0.0, c_BI, 3); // B to I
+    float v[3] = {0};
+    cblas_sgemv(CblasRowMajor, CblasNoTrans, 3, 3, m, c_BI, 3, a_v, 1, 0.0, v, 1);
+    float u[3]; memcpy(u, vel, 3*sizeof(float));
+    cblas_saxpy(3, -1.0, v, 1, u, 1); // u <- -1.0*v+vel
+    memcpy(wind_estimated, u, 3*sizeof(float));
+
+#if 1
+    printf("pos =  [ %f, %f, %f ]\n", pos[0], pos[1], pos[2]);
+    printf("*z1  = [ %f, %f, %f ]\n", *(z1[0]), *(z1[1]), *(z1[2]));
+    printf("*z2  = [ %f, %f, %f ]\n", *(z2[0]), *(z2[1]), *(z2[2]));
+    printf("*z3  = [ %f, %f, %f ]\n", *(z3[0]), *(z3[1]), *(z3[2]));
+    printf("u   = [ %f, %f, %f ]\n", kappa[0], kappa[1], kappa[2]);
+    printf("a_v = [ %f, %f, %f ]\n", a_v[0], a_v[1], a_v[2]);
+    printf("c_B = [ %f, %f, %f \n \
+                    %f, %f, %f \n \
+                    %f, %f, %f ]\n", c_B[0], c_B[1], c_B[2], c_B[3], c_B[4], c_B[5], c_B[6], c_B[7], c_B[8]);
+    printf("v   = [ %f, %f, %f ]\n", v[0], v[1], v[2]);
+    printf("u   = [ %f, %f, %f ]\n", u[0], u[1], u[2]);
+#endif
+
+#if 1 // calculate c
+    // vel_B
+    float vel_B[3];
+    cblas_sgemv(CblasRowMajor, CblasNoTrans, 3, 3, 1.0, R_IB, 3, vel, 1, 0.0, vel_B, 1);
+    // av_B
+    float av_B[3];
+    cblas_sgemv(CblasRowMajor, CblasNoTrans, 3, 3, 1.0, R_IB, 3, a_v, 1, 0.0, av_B, 1);
+    float c_est[3];
+    for (int i = 0; i < 3; i++)
+        c_est[i] = m*av_B[i]/vel_B[i];
+#endif
+
+    // robot state
     Robot_State_t* robot_state = robot_get_state();
-    GSRAO_thread_comm_t* tc = GSRAO_get_thread_comm();
-    pthread_mutex_lock(&(tc->lock_robot_state)); // keep other threads from visiting robot_state
-    //  ENU coord
-    robot_state[robot_index].wind[0] = factor_z3_to_wind*(state[robot_index][0].z3 - mb_leso_z3_offset[robot_index][0]);
-    robot_state[robot_index].wind[1] = factor_z3_to_wind*(state[robot_index][1].z3 - mb_leso_z3_offset[robot_index][1]);
-    robot_state[robot_index].wind[2] = factor_z3_to_wind*(state[robot_index][2].z3);
-    //  plane coord
-    memset(robot_state[robot_index].wind_p, 0, 3*sizeof(float));
-    rotate_vector(robot_state[robot_index].wind, robot_state[robot_index].wind_p, -att[2], 0, 0);
-    pthread_mutex_unlock(&(tc->lock_robot_state));
+    memcpy(robot_state[robot_index].wind, wind_estimated, 3*sizeof(float));
 
     // for debug
     Anemometer_Data_t* wind_data = sonic_anemometer_get_wind_data();
@@ -498,15 +568,20 @@ static void microbee_leso(float dt, int robot_index, float* pos, float* vel, flo
     memcpy(new_dbg_rec.vel, vel, 3*sizeof(float));
     memcpy(new_dbg_rec.acc, acc, 3*sizeof(float));
     new_dbg_rec.throttle = rc_data[robot_index].throttle;
-    new_dbg_rec.roll = rc_data[robot_index].roll - 1500;
-    new_dbg_rec.pitch = rc_data[robot_index].pitch - 1500;
+    new_dbg_rec.roll = rc_data[robot_index].roll;
+    new_dbg_rec.pitch = rc_data[robot_index].pitch;
     new_dbg_rec.yaw = rc_data[robot_index].yaw;
     new_dbg_rec.leso_z1[0] = state[robot_index][0].z1;
     new_dbg_rec.leso_z1[1] = state[robot_index][1].z1;
+    new_dbg_rec.leso_z1[2] = state[robot_index][2].z1;
     new_dbg_rec.leso_z2[0] = state[robot_index][0].z2;
     new_dbg_rec.leso_z2[1] = state[robot_index][1].z2;
+    new_dbg_rec.leso_z2[2] = state[robot_index][2].z2;
     new_dbg_rec.leso_z3[0] = state[robot_index][0].z3;
     new_dbg_rec.leso_z3[1] = state[robot_index][1].z3;
+    new_dbg_rec.leso_z3[2] = state[robot_index][2].z3;
+    memcpy(new_dbg_rec.wind_estimated, wind_estimated, 3*sizeof(float));
+    memcpy(new_dbg_rec.wind_resist_coef, c_est, 3*sizeof(float));
     memcpy(new_dbg_rec.anemometer[0], wind_data[0].speed, 3*sizeof(float));
     memcpy(new_dbg_rec.anemometer[1], wind_data[1].speed, 3*sizeof(float));
     memcpy(new_dbg_rec.anemometer[2], wind_data[2].speed, 3*sizeof(float));

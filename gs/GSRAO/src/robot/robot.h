@@ -79,6 +79,8 @@ typedef struct {
     float leso_z1[3];   // roll pitch throttle
     float leso_z2[3];
     float leso_z3[3];
+    float wind_estimated[3];
+    float wind_resist_coef[3];
     float anemometer[SERIAL_MAX_ANEMOMETERS][3];
 } Robot_Debug_Record_t;
 

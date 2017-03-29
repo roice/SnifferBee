@@ -506,6 +506,46 @@ void GSRAO_Save_Data(void)
         // free space
         free(data);
 
+        // robot wind_estimated
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "wind_estimated", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).wind_estimated), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
+        // robot wind_resist coef
+        data_dims[0] = robot_debug_rec[i].size();
+        data_dims[1] = 3;
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "wind_resist_coef", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_debug_rec[i].at(idx).wind_resist_coef), 3*sizeof(float));
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
         for (int anemo_idx = 0; anemo_idx < 3; anemo_idx++) {
             // anemometer
             data_dims[0] = robot_debug_rec[i].size();
