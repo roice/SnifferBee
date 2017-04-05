@@ -51,21 +51,24 @@ Enable the `VBAT` feature.
 
 Configure min/max cell voltages using the following CLI setting:
 
-`vbat_scale` - Adjust this to match actual measured battery voltage to reported value.
+`vbat_scale` - Adjust this to match actual measured battery voltage to reported value (which may be displayed via the `status` command)
 
 `vbat_max_cell_voltage` - Maximum voltage per cell, used for auto-detecting battery voltage in 0.1V units, i.e. 43 = 4.3V
 
-`set vbat_warning_cell_voltage` - Warning voltage per cell; this triggers battery-out alarms, in 0.1V units, i.e. 34 = 3.4V
+`vbat_min_cell_voltage` - Minimum voltage per cell; this triggers battery-critical alarms, in 0.1V units, i.e. 33 = 3.3V
 
-`vbat_min_cell_voltage` - Minimum voltage per cell; this triggers battery-out alarms, in 0.1V units, i.e. 33 = 3.3V
+`vbat_warning_cell_voltage` - Warning voltage per cell; this triggers battery-warning alarms, in 0.1V units, i.e. 34 = 3.4V
+
+`vbat_hysteresis` - Sets the hysteresis value for low-battery alarms, in 0.1V units, i.e. 1 = 0.1V
 
 e.g.
 
 ```
 set vbat_scale = 110
 set vbat_max_cell_voltage = 43
-set vbat_warning_cell_voltage = 34
 set vbat_min_cell_voltage = 33
+set vbat_warning_cell_voltage = 34
+set vbat_hysteresis = 1
 ```
 
 # Current Monitoring
@@ -85,17 +88,17 @@ Enable current monitoring using the CLI command:
 feature CURRENT_METER
 ```
 
-Configure the current meter type using the `current_meter_type` settings here:
+Configure the current meter type using the `amperage_meter_type` settings here:
 
-| Value | Sensor Type            |
-| ----- | ---------------------- | 
-| 0     | None                   |
-| 1     | ADC/hardware sensor    |
-| 2     | Virtual sensor         |
+| Value   | Sensor Type            |
+| ------- | ---------------------- | 
+| NONE    | None                   |
+| ADC     | ADC/hardware sensor    |
+| VIRTUAL | Virtual sensor         |
 
 Configure capacity using the `battery_capacity` setting, in mAh units.
 
-If you're using an OSD that expects the multiwii current meter output value, then set `multiwii_current_meter_output` to `1` (this multiplies amperage sent to MSP by 10).
+If you're using an OSD that expects the multiwii current meter output value, then set `multiwii_amperage_meter_output` to `ON` (this multiplies amperage sent to MSP by 10 and truncates negative values)).
 
 ### ADC Sensor
 
@@ -103,8 +106,10 @@ The current meter may need to be configured so the value read at the ADC input m
 
 Use the following settings to adjust calibration:
 
-`current_meter_scale`
-`current_meter_offset`
+`amperage_meter_scale`
+`amperage_meter_offset`
+
+It is recommended to set `multiwii_amperage_meter_output` to `OFF` when calibrating ADC current sensor.
 
 ### Virtual Sensor
 
@@ -112,29 +117,29 @@ The virtual sensor uses the throttle position to calculate an estimated current 
 
 | Setting                       | Description                                              |
 | ----------------------------- | -------------------------------------------------------- | 
-| `current_meter_scale`      | The throttle scaling factor [centiamps, i.e. 1/100th A]  |
-| `current_meter_offset`     | The current at zero throttle (while disarmed) [centiamps, i.e. 1/100th A] |
+| `amperage_meter_scale`     | The throttle scaling factor [centiamps, i.e. 1/100th A]  |
+| `amperage_meter_offset`    | The current at zero throttle (while disarmed) [centiamps, i.e. 1/100th A] |
 
 There are two simple methods to tune these parameters:  one uses a battery charger and another depends on actual current measurements.
 
 #### Tuning Using Actual Current Measurements
-If you know your craft's current draw while disarmed (Imin) and at maximum throttle while armed (Imax), calculate the scaling factors as follows:
+If you know your craft's current draw (in Amperes) while disarmed (Imin) and at maximum throttle while armed (Imax), calculate the scaling factors as follows:
 ```
-current_meter_scale = (Imax - Imin) * 100000 / (Tmax + (Tmax * Tmax / 50))
-current_meter_offset = Imin * 100
+amperage_meter_scale = (Imax - Imin) * 100000 / (Tmax + (Tmax * Tmax / 50))
+amperage_meter_offset = Imin * 100
 ```
 Note: Tmax is maximum throttle offset (i.e. for `max_throttle` = 1850, Tmax = 1850 - 1000 = 850)
 
 For example, assuming a maximum current of 34.2A, a minimum current of 2.8A, and a Tmax `max_throttle` = 1850:
 ```
-current_meter_scale = (Imax - Imin) * 100000 / (Tmax + (Tmax * Tmax / 50))
+amperage_meter_scale = (Imax - Imin) * 100000 / (Tmax + (Tmax * Tmax / 50))
                     = (34.2 - 2.8) * 100000 / (850 + (850 * 850 / 50))
                     = 205
-current_meter_offset = Imin * 100 = 280
+amperage_meter_offset = Imin * 100 = 280
 ```
 #### Tuning Using Battery Charger Measurement
 If you cannot measure current draw directly, you can approximate it indirectly using your battery charger.  
-However, note it may be difficult to adjust `current_meter_offset` using this method unless you can 
+However, note it may be difficult to adjust `amperage_meter_offset` using this method unless you can 
 measure the actual current draw with the craft disarmed.
 
 Note:
@@ -148,21 +153,21 @@ The general method is:
 2. Fly your craft, using >50% of your battery pack capacity (estimated)
 3. Note Cleanflight's reported mAh draw
 4. Re-charge your flight battery, noting the mAh charging data needed to restore the pack to fully charged
-5. Adjust `current_meter_scale` to according to the formula given below
+5. Adjust `amperage_meter_scale` to according to the formula given below
 6. Repeat and test
 
-Given (a) the reported mAh draw and the (b) mAh charging data, calculate a new `current_meter_scale` value as follows:
+Given (a) the reported mAh draw and the (b) mAh charging data, calculate a new `amperage_meter_scale` value as follows:
 ```
-current_meter_scale = (charging_data_mAh / reported_draw_mAh) * old_current_meter_scale
+amperage_meter_scale = (charging_data_mAh / reported_draw_mAh) * old_amperage_meter_scale
 ```
 For example, assuming:
 + A Cleanflight reported current draw of 1260 mAh
 + Charging data to restore full charge of 1158 mAh
-+ A existing `current_meter_scale` value of 400 (the default)
++ A existing `amperage_meter_scale` value of 400 (the default)
 
-Then the updated `current_meter_scale` is:
+Then the updated `amperage_meter_scale` is:
 ```
-current_meter_scale = (charging_data_mAh / reported_draw_mAh) * old_current_meter_scale
+amperage_meter_scale = (charging_data_mAh / reported_draw_mAh) * old_amperage_meter_scale
                     = (1158 / 1260) * 400
                     = 368
 ```

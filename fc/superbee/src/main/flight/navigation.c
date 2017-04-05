@@ -22,34 +22,48 @@
 #include <string.h>
 #include <math.h>
 
-#include "platform.h"
-#include "debug.h"
+#include <platform.h>
+
+#include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/maths.h"
 #include "common/axis.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+#include "config/profile.h"
+#include "config/config_reset.h"
+
+#include "drivers/dma.h"
 #include "drivers/system.h"
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
 #include "drivers/gpio.h"
 #include "drivers/light_led.h"
+#include "drivers/sensor.h"
+#include "drivers/accgyro.h"
 
 #include "sensors/sensors.h"
-
-#include "io/beeper.h"
-#include "io/serial.h"
-#include "io/gps.h"
-#include "io/rc_controls.h"
+#include "sensors/boardalignment.h"
+#include "sensors/acceleration.h"
 
 #include "flight/pid.h"
 #include "flight/navigation.h"
 #include "flight/gps_conversion.h"
+#include "flight/imu.h"
+
+#include "fc/fc_serial.h"
+
+#include "io/beeper.h"
+#include "io/serial.h"
+#include "io/gps.h"
+
+#include "fc/rc_controls.h"
 
 #include "rx/rx.h"
 
-
-#include "config/config.h"
-#include "config/runtime_config.h"
+#include "fc/runtime_config.h"
 
 extern int16_t magHold;
 
@@ -71,17 +85,22 @@ static int16_t nav[2];
 static int16_t nav_rated[2];               // Adding a rate controller to the navigation to make it smoother
 navigationMode_e nav_mode = NAV_MODE_NONE;    // Navigation mode
 
-static gpsProfile_t *gpsProfile;
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(gpsProfile_t, gpsProfile, PG_NAVIGATION_CONFIG, 0);
 
-void gpsUseProfile(gpsProfile_t *gpsProfileToUse)
-{
-    gpsProfile = gpsProfileToUse;
-}
+PG_RESET_TEMPLATE(gpsProfile_t, gpsProfile,
+    .gps_wp_radius = 200,
+    .gps_lpf = 20,
+    .nav_slew_rate = 30,
+    .nav_controls_heading = 1,
+    .nav_speed_min = 100,
+    .nav_speed_max = 300,
+    .ap_mode = 40,
+);
+
 
 // When using PWM input GPS usage reduces number of available channels by 2 - see pwm_common.c/pwmInit()
-void navigationInit(gpsProfile_t *initialGpsProfile, pidProfile_t *pidProfile)
+void navigationInit(pidProfile_t *pidProfile)
 {
-    gpsUseProfile(initialGpsProfile);
     gpsUsePIDs(pidProfile);
 }
 
@@ -162,7 +181,7 @@ static int32_t get_D(int32_t input, float *dt, PID *pid, PID_PARAM *pid_param)
 
     // Low pass filter cut frequency for derivative calculation
     // Set to  "1 / ( 2 * PI * gps_lpf )
-    float pidFilter = (1.0f / (2.0f * M_PIf * (float)gpsProfile->gps_lpf));
+    float pidFilter = (1.0f / (2.0f * M_PIf * (float)gpsProfile()->gps_lpf));
     // discrete low pass filter, cuts out the
     // high frequency noise that can drive the controller crazy
     pid->derivative = pid->last_derivative + (*dt / (pidFilter + *dt)) * (pid->derivative - pid->last_derivative);
@@ -281,25 +300,11 @@ void onGpsNewData(void)
     GPS_filter_index = (GPS_filter_index + 1) % GPS_FILTER_VECTOR_LENGTH;
     for (axis = 0; axis < 2; axis++) {
         GPS_read[axis] = GPS_coord[axis];               // latest unfiltered data is in GPS_latitude and GPS_longitude
-
-        /* Modified by Roice, 20150720 */
-        /* for LLH, 10^(-7) degree is approx. equal to 1.11 cm
-         * this is not enough for indoor nav (& OptiTrack accuracy is 1 mm)
-         * so 10^(-8) is nesessary for OptiTrack indoor nav*/
-        #if defined(MOCAP)
-        // Note: GPS_FILTER_VECTOR_LENGTH must be limited (say, below 21 if using 'Guineabay~'), as the supreme of int_32_t is 2.1*10^9
-        GPS_degree[axis] = GPS_read[axis] / 100000000;
-        #else
         GPS_degree[axis] = GPS_read[axis] / 10000000;   // get the degree to assure the sum fits to the int32_t
-        #endif
 
         // How close we are to a degree line ? its the first three digits from the fractions of degree
         // later we use it to Check if we are close to a degree line, if yes, disable averaging,
-        #if defined(MOCAP)
-        fraction3[axis] = (GPS_read[axis] - GPS_degree[axis] * 100000000) / 100000;
-        #else
         fraction3[axis] = (GPS_read[axis] - GPS_degree[axis] * 10000000) / 10000;
-        #endif
 
         GPS_filter_sum[axis] -= GPS_filter[axis][GPS_filter_index];
         GPS_filter[axis][GPS_filter_index] = GPS_read[axis] - (GPS_degree[axis] * 10000000);
@@ -326,7 +331,7 @@ void onGpsNewData(void)
     // calculate the current velocity based on gps coordinates continously to get a valid speed at the moment when we start navigating
     GPS_calc_velocity();
 
-    if (FLIGHT_MODE(GPS_HOLD_MODE) || FLIGHT_MODE(GPS_HOME_MODE) || FLIGHT_MODE(MOCAP_MODE)) {
+    if (FLIGHT_MODE(GPS_HOLD_MODE) || FLIGHT_MODE(GPS_HOME_MODE)) {
         // we are navigating
 
         // gps nav calculations, these are common for nav and poshold
@@ -340,13 +345,13 @@ void onGpsNewData(void)
             break;
 
         case NAV_MODE_WP:
-            speed = GPS_calc_desired_speed(gpsProfile->nav_speed_max, NAV_SLOW_NAV);    // slow navigation
+            speed = GPS_calc_desired_speed(gpsProfile()->nav_speed_max, NAV_SLOW_NAV);    // slow navigation
             // use error as the desired rate towards the target
             // Desired output is in nav_lat and nav_lon where 1deg inclination is 100
             GPS_calc_nav_rate(speed);
 
             // Tail control
-            if (gpsProfile->nav_controls_heading) {
+            if (gpsProfile()->nav_controls_heading) {
                 if (NAV_TAIL_FIRST) {
                     magHold = wrap_18000(nav_bearing - 18000) / 100;
                 } else {
@@ -354,7 +359,7 @@ void onGpsNewData(void)
                 }
             }
             // Are we there yet ?(within x meters of the destination)
-            if ((wp_distance <= gpsProfile->gps_wp_radius) || check_missed_wp()) {      // if yes switch to poshold mode
+            if ((wp_distance <= gpsProfile()->gps_wp_radius) || check_missed_wp()) {      // if yes switch to poshold mode
                 nav_mode = NAV_MODE_POSHOLD;
                 if (NAV_SET_TAKEOFF_HEADING) {
                     magHold = nav_takeoff_bearing;
@@ -373,7 +378,7 @@ void GPS_reset_home_position(void)
         GPS_home[LAT] = GPS_coord[LAT];
         GPS_home[LON] = GPS_coord[LON];
         GPS_calc_longitude_scaling(GPS_coord[LAT]); // need an initial value for distance and bearing calc
-        nav_takeoff_bearing = heading;              // save takeoff heading
+        nav_takeoff_bearing = DECIDEGREES_TO_DEGREES(attitude.values.yaw);              // save takeoff heading
         // Set ground altitude
         ENABLE_STATE(GPS_FIX_HOME);
     }
@@ -427,7 +432,7 @@ void gpsUsePIDs(pidProfile_t *pidProfile)
 static void GPS_calc_longitude_scaling(int32_t lat)
 {
     float rads = (ABS((float)lat) / 10000000.0f) * 0.0174532925f;
-    GPS_scaleLonDown = cosf(rads);
+    GPS_scaleLonDown = cos_approx(rads);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -444,7 +449,7 @@ void GPS_set_next_wp(int32_t *lat, int32_t *lon)
     nav_bearing = target_bearing;
     GPS_calc_location_error(&GPS_WP[LAT], &GPS_WP[LON], &GPS_coord[LAT], &GPS_coord[LON]);
     original_target_bearing = target_bearing;
-    waypoint_speed_gov = gpsProfile->nav_speed_min;
+    waypoint_speed_gov = gpsProfile()->nav_speed_min;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -470,7 +475,7 @@ static void GPS_distance_cm_bearing(int32_t *currentLat1, int32_t *currentLon1, 
     float dLon = (float)(*destinationLon2 - *currentLon1) * GPS_scaleLonDown;
     *dist = sqrtf(sq(dLat) + sq(dLon)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR_IN_HUNDREDS_OF_KILOMETERS;
 
-    *bearing = 9000.0f + atan2f(-dLat, dLon) * TAN_89_99_DEGREES;      // Convert the output radians to 100xdeg
+    *bearing = 9000.0f + atan2_approx(-dLat, dLon) * TAN_89_99_DEGREES;      // Convert the output radians to 100xdeg
     if (*bearing < 0)
         *bearing += 36000;
 }
@@ -573,8 +578,8 @@ static void GPS_calc_nav_rate(uint16_t max_speed)
 
     // nav_bearing includes crosstrack
     temp = (9000l - nav_bearing) * RADX100;
-    trig[GPS_X] = cosf(temp);
-    trig[GPS_Y] = sinf(temp);
+    trig[GPS_X] = cos_approx(temp);
+    trig[GPS_Y] = sin_approx(temp);
 
     for (axis = 0; axis < 2; axis++) {
         rate_error[axis] = (trig[axis] * max_speed) - actual_speed[axis];
@@ -597,7 +602,7 @@ static void GPS_update_crosstrack(void)
 {
     if (ABS(wrap_18000(target_bearing - original_target_bearing)) < 4500) {     // If we are too far off or too close we don't do track following
         float temp = (target_bearing - original_target_bearing) * RADX100;
-        crosstrack_error = sinf(temp) * (wp_distance * CROSSTRACK_GAIN); // Meters we are off track line
+        crosstrack_error = sin_approx(temp) * (wp_distance * CROSSTRACK_GAIN); // Meters we are off track line
         nav_bearing = target_bearing + constrain(crosstrack_error, -3000, 3000);
         nav_bearing = wrap_36000(nav_bearing);
     } else {
@@ -623,7 +628,7 @@ static uint16_t GPS_calc_desired_speed(uint16_t max_speed, bool _slow)
         max_speed = MIN(max_speed, wp_distance / 2);
     } else {
         max_speed = MIN(max_speed, wp_distance);
-        max_speed = MAX(max_speed, gpsProfile->nav_speed_min);      // go at least 100cm/s
+        max_speed = MAX(max_speed, gpsProfile()->nav_speed_min);      // go at least 100cm/s
     }
 
     // limit the ramp up of the speed
@@ -658,11 +663,11 @@ static int32_t wrap_36000(int32_t angle)
 
 void updateGpsStateForHomeAndHoldMode(void)
 {
-    float sin_yaw_y = sinf(heading * 0.0174532925f);
-    float cos_yaw_x = cosf(heading * 0.0174532925f);
-    if (gpsProfile->nav_slew_rate) {
-        nav_rated[LON] += constrain(wrap_18000(nav[LON] - nav_rated[LON]), -gpsProfile->nav_slew_rate, gpsProfile->nav_slew_rate); // TODO check this on uint8
-        nav_rated[LAT] += constrain(wrap_18000(nav[LAT] - nav_rated[LAT]), -gpsProfile->nav_slew_rate, gpsProfile->nav_slew_rate);
+    float sin_yaw_y = sin_approx(DECIDEGREES_TO_DEGREES(attitude.values.yaw) * 0.0174532925f);
+    float cos_yaw_x = cos_approx(DECIDEGREES_TO_DEGREES(attitude.values.yaw) * 0.0174532925f);
+    if (gpsProfile()->nav_slew_rate) {
+        nav_rated[LON] += constrain(wrap_18000(nav[LON] - nav_rated[LON]), -gpsProfile()->nav_slew_rate, gpsProfile()->nav_slew_rate); // TODO check this on uint8
+        nav_rated[LAT] += constrain(wrap_18000(nav[LAT] - nav_rated[LAT]), -gpsProfile()->nav_slew_rate, gpsProfile()->nav_slew_rate);
         GPS_angle[AI_ROLL] = (nav_rated[LON] * cos_yaw_x - nav_rated[LAT] * sin_yaw_y) / 10;
         GPS_angle[AI_PITCH] = (nav_rated[LON] * sin_yaw_y + nav_rated[LAT] * cos_yaw_x) / 10;
     } else {
@@ -683,7 +688,7 @@ void updateGpsWaypointsAndMode(void)
         //
         // HOME mode takes priority over HOLD mode.
 
-        if (IS_RC_MODE_ACTIVE(BOXGPSHOME)) {
+        if (rcModeIsActive(BOXGPSHOME)) {
             if (!FLIGHT_MODE(GPS_HOME_MODE)) {
 
                 // Transition to HOME mode
@@ -706,7 +711,7 @@ void updateGpsWaypointsAndMode(void)
             // process HOLD mode
             //
 
-            if (IS_RC_MODE_ACTIVE(BOXGPSHOLD) && areSticksInApModePosition(gpsProfile->ap_mode)) {
+            if (rcModeIsActive(BOXGPSHOLD) && areSticksInApModePosition(gpsProfile()->ap_mode)) {
                 if (!FLIGHT_MODE(GPS_HOLD_MODE)) {
 
                     // Transition to HOLD mode

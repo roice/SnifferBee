@@ -18,11 +18,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "platform.h"
+#include <platform.h>
 
 #include "gpio.h"
 
-void gpioInit(GPIO_TypeDef *gpio, gpio_config_t *config)
+void gpioInit(GPIO_TypeDef *gpio, const gpio_config_t *config)
 {
     uint32_t pinpos;
     for (pinpos = 0; pinpos < 16; pinpos++) {
@@ -52,15 +52,6 @@ void gpioInit(GPIO_TypeDef *gpio, gpio_config_t *config)
             }
         }
     }
-}
-
-void gpioExtiLineConfig(uint8_t portsrc, uint8_t pinsrc)
-{
-    uint32_t tmp = 0x00;
-
-    tmp = ((uint32_t)0x0F) << (0x04 * (pinsrc & (uint8_t)0x03));
-    AFIO->EXTICR[pinsrc >> 0x02] &= ~tmp;
-    AFIO->EXTICR[pinsrc >> 0x02] |= (((uint32_t)portsrc) << (0x04 * (pinsrc & (uint8_t)0x03)));
 }
 
 #define LSB_MASK                    ((uint16_t)0xFFFF)

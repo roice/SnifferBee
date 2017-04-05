@@ -34,7 +34,7 @@ typedef struct int16_flightDynamicsTrims_s {
     int16_t yaw;
 } flightDynamicsTrims_def_t;
 
-typedef union {
+typedef union flightDynamicsTrims_u {
     int16_t raw[3];
     flightDynamicsTrims_def_t values;
 } flightDynamicsTrims_t;
@@ -51,9 +51,6 @@ typedef enum {
     SENSOR_SONAR = 1 << 4,
     SENSOR_GPS = 1 << 5,
     SENSOR_GPSMAG = 1 << 6,
-#if defined(MOCAP)
-    SENSOR_MOCAP = 1 << 7,
-#endif
 } sensors_e;
 
 typedef enum {
@@ -74,4 +71,18 @@ typedef struct sensorAlignmentConfig_s {
     sensor_align_e mag_align;               // mag alignment
 } sensorAlignmentConfig_t;
 
-extern int16_t heading;
+typedef struct sensorSelectionConfig_s {
+    uint8_t acc_hardware;                   // Which acc hardware to use on boards with more than one device
+    uint8_t mag_hardware;                   // Which mag hardware to use on boards with more than one device
+    uint8_t baro_hardware;                  // Barometer hardware to use
+} sensorSelectionConfig_t;
+
+typedef struct sensorTrims_s {
+    flightDynamicsTrims_t accZero;
+    flightDynamicsTrims_t magZero;
+} sensorTrims_t;
+
+PG_DECLARE(sensorSelectionConfig_t, sensorSelectionConfig);
+PG_DECLARE(sensorAlignmentConfig_t, sensorAlignmentConfig);
+PG_DECLARE(sensorTrims_t, sensorTrims);
+

@@ -19,9 +19,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "platform.h"
+#include <platform.h>
 
-#include "build_config.h"
+#include "build/build_config.h"
 
 #include "system.h"
 #include "gpio.h"

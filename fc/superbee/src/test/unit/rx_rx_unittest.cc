@@ -19,116 +19,142 @@
 #include <stdbool.h>
 
 #include <limits.h>
+#include <algorithm>
 
 extern "C" {
-    #include "platform.h"
+    #include <platform.h>
+
+    #include "config/parameter_group.h"
+    #include "config/parameter_group_ids.h"
 
     #include "rx/rx.h"
+    #include "fc/rc_controls.h"
+    #include "common/maths.h"
+    #include "common/utils.h"
 
-    void rxInit(rxConfig_t *rxConfig);
-    void rxCheckPulse(uint8_t channel, uint16_t pulseDuration);
+    uint32_t rcModeActivationMask;
+
+    void rxInit(modeActivationCondition_t *modeActivationConditions);
+    void rxResetFlightChannelStatus(void);
+    bool rxHaveValidFlightChannels(void);
+    bool isPulseValid(uint16_t pulseDuration);
+    void rxUpdateFlightChannelStatus(uint8_t channel, uint16_t pulseDuration);
 }
 
 #include "unittest_macros.h"
 #include "gtest/gtest.h"
 
-enum {
-    COUNTER_FAILSAFE_ON_VALID_DATA_RECEIVED = 0,
-};
-#define CALL_COUNT_ITEM_COUNT 1
-
-static int callCounts[CALL_COUNT_ITEM_COUNT];
-
-#define CALL_COUNTER(item) (callCounts[item])
-
-void resetCallCounters(void) {
-    memset(&callCounts, 0, sizeof(callCounts));
-}
+#define DE_ACTIVATE_ALL_BOXES   0
 
 typedef struct testData_s {
     bool isPPMDataBeingReceived;
+    bool isPWMDataBeingReceived;
 } testData_t;
 
 static testData_t testData;
 
-TEST(RxTest, TestFailsafeInformedOfValidData)
+TEST(RxTest, TestValidFlightChannels)
 {
     // given
-    resetCallCounters();
     memset(&testData, 0, sizeof(testData));
+    rcModeActivationMask = DE_ACTIVATE_ALL_BOXES;   // BOXFAILSAFE must be OFF
 
     // and
-    rxConfig_t rxConfig;
+    modeActivationCondition_t modeActivationConditions[MAX_MODE_ACTIVATION_CONDITION_COUNT];
 
-    memset(&rxConfig, 0, sizeof(rxConfig));
-    rxConfig.rx_min_usec = 1000;
-    rxConfig.rx_max_usec = 2000;
+    memset(rxConfig(), 0, sizeof(*rxConfig()));
+    rxConfig()->rx_min_usec = 1000;
+    rxConfig()->rx_max_usec = 2000;
+
+    memset(&modeActivationConditions, 0, sizeof(modeActivationConditions));
+    modeActivationConditions[0].auxChannelIndex = 0;
+    modeActivationConditions[0].modeId = BOXARM;
+    modeActivationConditions[0].range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
+    modeActivationConditions[0].range.endStep = CHANNEL_VALUE_TO_STEP(1600);
 
     // when
-    rxInit(&rxConfig);
+    rxInit(modeActivationConditions);
 
+    // then (ARM channel should be positioned just 1 step above active range to init to OFF)
+    EXPECT_EQ(1625, rcData[modeActivationConditions[0].auxChannelIndex +  NON_AUX_CHANNEL_COUNT]);
+
+    // given
+    rxResetFlightChannelStatus();
+
+    // and
     for (uint8_t channelIndex = 0; channelIndex < MAX_SUPPORTED_RC_CHANNEL_COUNT; channelIndex++) {
-        rxCheckPulse(channelIndex, 1500);
+        bool validPulse = isPulseValid(1500);
+        rxUpdateFlightChannelStatus(channelIndex, validPulse);
     }
 
     // then
-    EXPECT_EQ(1, CALL_COUNTER(COUNTER_FAILSAFE_ON_VALID_DATA_RECEIVED));
+    EXPECT_TRUE(rxHaveValidFlightChannels());
 }
 
-TEST(RxTest, TestFailsafeNotInformedOfValidDataWhenStickChannelsAreBad)
+TEST(RxTest, TestInvalidFlightChannels)
 {
     // given
     memset(&testData, 0, sizeof(testData));
 
     // and
-    rxConfig_t rxConfig;
+    modeActivationCondition_t modeActivationConditions[MAX_MODE_ACTIVATION_CONDITION_COUNT];
 
-    memset(&rxConfig, 0, sizeof(rxConfig));
-    rxConfig.rx_min_usec = 1000;
-    rxConfig.rx_max_usec = 2000;
+    memset(rxConfig(), 0, sizeof(*rxConfig()));
+    rxConfig()->rx_min_usec = 1000;
+    rxConfig()->rx_max_usec = 2000;
+
+    memset(&modeActivationConditions, 0, sizeof(modeActivationConditions));
+    modeActivationConditions[0].auxChannelIndex = 0;
+    modeActivationConditions[0].modeId = BOXARM;
+    modeActivationConditions[0].range.startStep = CHANNEL_VALUE_TO_STEP(1400);
+    modeActivationConditions[0].range.endStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MAX);
 
     // and
     uint16_t channelPulses[MAX_SUPPORTED_RC_CHANNEL_COUNT];
-    memset(&channelPulses, 1500, sizeof(channelPulses));
+    std::fill( channelPulses, ARRAYEND(channelPulses), 1500 );
 
     // and
-    rxInit(&rxConfig);
+    rxInit(modeActivationConditions);
+
+    // then (ARM channel should be positioned just 1 step below active range to init to OFF)
+    EXPECT_EQ(1375, rcData[modeActivationConditions[0].auxChannelIndex +  NON_AUX_CHANNEL_COUNT]);
 
     // and
-
     for (uint8_t stickChannelIndex = 0; stickChannelIndex < STICK_CHANNEL_COUNT; stickChannelIndex++) {
 
         // given
-        resetCallCounters();
+        rxResetFlightChannelStatus();
 
-        for (uint8_t channelIndex = 0; channelIndex < STICK_CHANNEL_COUNT; channelIndex++) {
-            channelPulses[stickChannelIndex] = rxConfig.rx_min_usec;
+        for (uint8_t otherStickChannelIndex = 0; otherStickChannelIndex < STICK_CHANNEL_COUNT; otherStickChannelIndex++) {
+            channelPulses[otherStickChannelIndex] = rxConfig()->rx_min_usec;
         }
-        channelPulses[stickChannelIndex] = rxConfig.rx_min_usec - 1;
+        channelPulses[stickChannelIndex] = rxConfig()->rx_min_usec - 1;
 
         // when
         for (uint8_t channelIndex = 0; channelIndex < MAX_SUPPORTED_RC_CHANNEL_COUNT; channelIndex++) {
-            rxCheckPulse(channelIndex, channelPulses[channelIndex]);
+            bool validPulse = isPulseValid(channelPulses[channelIndex]);
+            rxUpdateFlightChannelStatus(channelIndex, validPulse);
         }
 
         // then
-        EXPECT_EQ(0, CALL_COUNTER(COUNTER_FAILSAFE_ON_VALID_DATA_RECEIVED));
+        EXPECT_FALSE(rxHaveValidFlightChannels());
 
         // given
-        resetCallCounters();
+        rxResetFlightChannelStatus();
 
-        for (uint8_t channelIndex = 0; channelIndex < STICK_CHANNEL_COUNT; channelIndex++) {
-            channelPulses[stickChannelIndex] = rxConfig.rx_max_usec;
+        for (uint8_t otherStickChannelIndex = 0; otherStickChannelIndex < STICK_CHANNEL_COUNT; otherStickChannelIndex++) {
+            channelPulses[otherStickChannelIndex] = rxConfig()->rx_max_usec;
         }
-        channelPulses[stickChannelIndex] = rxConfig.rx_max_usec + 1;
+        channelPulses[stickChannelIndex] = rxConfig()->rx_max_usec + 1;
 
         // when
         for (uint8_t channelIndex = 0; channelIndex < MAX_SUPPORTED_RC_CHANNEL_COUNT; channelIndex++) {
-            rxCheckPulse(channelIndex, channelPulses[channelIndex]);
+            bool validPulse = isPulseValid(channelPulses[channelIndex]);
+            rxUpdateFlightChannelStatus(channelIndex, validPulse);
         }
 
         // then
-        EXPECT_EQ(0, CALL_COUNTER(COUNTER_FAILSAFE_ON_VALID_DATA_RECEIVED));
+        EXPECT_FALSE(rxHaveValidFlightChannels());
     }
 }
 
@@ -136,10 +162,16 @@ TEST(RxTest, TestFailsafeNotInformedOfValidDataWhenStickChannelsAreBad)
 // STUBS
 
 extern "C" {
-    void failsafeOnRxCycleStarted() {}
-    void failsafeOnValidDataReceived() {
-        callCounts[COUNTER_FAILSAFE_ON_VALID_DATA_RECEIVED]++;
-    }
+    bool rcModeIsActive(boxId_e modeId) { return rcModeActivationMask & (1 << modeId); }
+
+    void failsafeOnValidDataFailed() {}
+    void failsafeOnValidDataReceived() {}
+
+    void failsafeOnRxSuspend(uint32_t ) {}
+    void failsafeOnRxResume(void) {}
+
+    uint32_t micros(void) { return 0; }
+    uint32_t millis(void) { return 0; }
 
     bool feature(uint32_t mask) {
         UNUSED(mask);
@@ -150,13 +182,14 @@ extern "C" {
         return testData.isPPMDataBeingReceived;
     }
 
+    bool isPWMDataBeingReceived(void) {
+        return testData.isPWMDataBeingReceived;
+    }
+
     void resetPPMDataReceivedState(void) {}
 
-    bool rxMspFrameComplete(void) { return false; }
+    uint8_t rxMspFrameStatus(void) { return RX_FRAME_PENDING; }
 
-    void rxMspInit(rxConfig_t *, rxRuntimeConfig_t *, rcReadRawDataPtr *) {}
-
-    void rxPwmInit(rxRuntimeConfig_t *, rcReadRawDataPtr *) {}
-
-
+    void rxPwmInit(const rxConfig_t*, rxRuntimeConfig_t*) {}
+    void rxMspInit(const rxConfig_t*, rxRuntimeConfig_t*) {}
 }

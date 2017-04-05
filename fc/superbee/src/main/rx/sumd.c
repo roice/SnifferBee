@@ -19,10 +19,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "platform.h"
+#include <platform.h>
 
-#include "build_config.h"
+#include "build/build_config.h"
 
+#include "config/parameter_group.h"
+
+#include "drivers/dma.h"
 #include "drivers/system.h"
 
 #include "drivers/serial.h"
@@ -43,19 +46,22 @@
 #define SUMD_BAUDRATE 115200
 
 static bool sumdFrameDone = false;
-static uint32_t sumdChannels[SUMD_MAX_CHANNEL];
+static uint16_t sumdChannels[SUMD_MAX_CHANNEL];
+static uint16_t crc;
 
 static void sumdDataReceive(uint16_t c);
-static uint16_t sumdReadRawRC(rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan);
+static uint16_t sumdReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan);
+uint8_t sumdFrameStatus(void);
 
-bool sumdInit(rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, rcReadRawDataPtr *callback)
+bool sumdInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     UNUSED(rxConfig);
 
-    if (callback)
-        *callback = sumdReadRawRC;
-
     rxRuntimeConfig->channelCount = SUMD_MAX_CHANNEL;
+    rxRuntimeConfig->rxRefreshRate = 11000;
+
+    rxRuntimeConfig->rcReadRawFn = sumdReadRawRC;
+    rxRuntimeConfig->rcFrameStatusFn = sumdFrameStatus;
 
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
     if (!portConfig) {
@@ -65,6 +71,22 @@ bool sumdInit(rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, rcReadRa
     serialPort_t *sumdPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, sumdDataReceive, SUMD_BAUDRATE, MODE_RX, SERIAL_NOT_INVERTED);
 
     return sumdPort != NULL;
+}
+
+#define CRC_POLYNOME 0x1021
+
+// CRC calculation, adds a 8 bit unsigned to 16 bit crc
+static void CRC16(uint8_t value)
+{
+    uint8_t i;
+
+    crc = crc ^ (int16_t)value << 8;
+    for (i = 0; i < 8; i++) {
+    if (crc & 0x8000)
+        crc = (crc << 1) ^ CRC_POLYNOME;
+    else
+        crc = (crc << 1);
+    }
 }
 
 static uint8_t sumd[SUMD_BUFFSIZE] = { 0, };
@@ -86,17 +108,23 @@ static void sumdDataReceive(uint16_t c)
         if (c != SUMD_SYNCBYTE)
             return;
         else
+        {
             sumdFrameDone = false; // lazy main loop didnt fetch the stuff
+            crc = 0;
+        }
     }
     if (sumdIndex == 2)
         sumdChannelCount = (uint8_t)c;
     if (sumdIndex < SUMD_BUFFSIZE)
         sumd[sumdIndex] = (uint8_t)c;
     sumdIndex++;
-    if (sumdIndex == sumdChannelCount * 2 + 5) {
-        sumdIndex = 0;
-        sumdFrameDone = true;
-    }
+    if (sumdIndex < sumdChannelCount * 2 + 4)
+        CRC16((uint8_t)c);
+    else
+        if (sumdIndex == sumdChannelCount * 2 + 5) {
+            sumdIndex = 0;
+            sumdFrameDone = true;
+        }
 }
 
 #define SUMD_OFFSET_CHANNEL_1_HIGH 3
@@ -111,7 +139,7 @@ uint8_t sumdFrameStatus(void)
 {
     uint8_t channelIndex;
 
-    uint8_t frameStatus = SERIAL_RX_FRAME_PENDING;
+    uint8_t frameStatus = RX_FRAME_PENDING;
 
     if (!sumdFrameDone) {
         return frameStatus;
@@ -119,13 +147,17 @@ uint8_t sumdFrameStatus(void)
 
     sumdFrameDone = false;
 
+    // verify CRC
+    if (crc != ((sumd[SUMD_BYTES_PER_CHANNEL * sumdChannelCount + SUMD_OFFSET_CHANNEL_1_HIGH] << 8) |
+            (sumd[SUMD_BYTES_PER_CHANNEL * sumdChannelCount + SUMD_OFFSET_CHANNEL_1_LOW])))
+        return frameStatus;
 
     switch (sumd[1]) {
         case SUMD_FRAME_STATE_FAILSAFE:
-            frameStatus = SERIAL_RX_FRAME_COMPLETE | SERIAL_RX_FRAME_FAILSAFE;
+            frameStatus = RX_FRAME_COMPLETE | RX_FRAME_FAILSAFE;
             break;
         case SUMD_FRAME_STATE_OK:
-            frameStatus = SERIAL_RX_FRAME_COMPLETE;
+            frameStatus = RX_FRAME_COMPLETE;
             break;
         default:
             return frameStatus;
@@ -143,7 +175,7 @@ uint8_t sumdFrameStatus(void)
     return frameStatus;
 }
 
-static uint16_t sumdReadRawRC(rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan)
+static uint16_t sumdReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan)
 {
     UNUSED(rxRuntimeConfig);
     return sumdChannels[chan] / 8;

@@ -19,14 +19,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "platform.h"
+#include <platform.h>
 
 #if defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2)
 
-#include "build_config.h"
+#include "build/build_config.h"
 
 #include "common/utils.h"
-#include "common/atomic.h"
+#include "build/atomic.h"
 
 #include "nvic.h"
 #include "system.h"
@@ -110,7 +110,13 @@ static void softSerialGPIOConfig(GPIO_TypeDef *gpio, uint16_t pin, GPIO_Mode mod
 
 void serialInputPortConfig(const timerHardware_t *timerHardwarePtr)
 {
-    softSerialGPIOConfig(timerHardwarePtr->gpio, timerHardwarePtr->pin, timerHardwarePtr->gpioInputMode);
+#ifdef STM32F10X
+    softSerialGPIOConfig(timerHardwarePtr->gpio, timerHardwarePtr->pin, Mode_IPU);
+#else
+#ifdef STM32F303xC
+    softSerialGPIOConfig(timerHardwarePtr->gpio, timerHardwarePtr->pin, Mode_AF_PP_PU);
+#endif
+#endif
 }
 
 static bool isTimerPeriodTooLarge(uint32_t timerPeriod)
@@ -236,7 +242,7 @@ void processTxState(softSerial_t *softSerial)
 
     if (!softSerial->isTransmittingData) {
         char byteToSend;
-        if (isSoftSerialTransmitBufferEmpty((serialPort_t *)softSerial)) {
+        if (isSoftSerialTransmitBufferEmpty((const serialPort_t *)softSerial)) {
             return;
         }
 
@@ -403,15 +409,28 @@ void onSerialRxPinChange(timerCCHandlerRec_t *cbRec, captureCompare_t capture)
     }
 }
 
-uint8_t softSerialTotalBytesWaiting(serialPort_t *instance)
+uint32_t softSerialRxBytesWaiting(const serialPort_t *instance)
 {
     if ((instance->mode & MODE_RX) == 0) {
         return 0;
     }
 
-    softSerial_t *s = (softSerial_t *)instance;
+    const softSerial_t *s = (const softSerial_t *)instance;
 
     return (s->port.rxBufferHead - s->port.rxBufferTail) & (s->port.rxBufferSize - 1);
+}
+
+uint8_t softSerialTxBytesFree(const serialPort_t *instance)
+{
+    if ((instance->mode & MODE_TX) == 0) {
+        return 0;
+    }
+
+    const softSerial_t *s = (const softSerial_t *)instance;
+
+    uint8_t bytesUsed = (s->port.txBufferHead - s->port.txBufferTail) & (s->port.txBufferSize - 1);
+
+    return (s->port.txBufferSize - 1) - bytesUsed;
 }
 
 uint8_t softSerialReadByte(serialPort_t *instance)
@@ -422,7 +441,7 @@ uint8_t softSerialReadByte(serialPort_t *instance)
         return 0;
     }
 
-    if (softSerialTotalBytesWaiting(instance) == 0) {
+    if (softSerialRxBytesWaiting(instance) == 0) {
         return 0;
     }
 
@@ -452,7 +471,7 @@ void softSerialSetMode(serialPort_t *instance, portMode_t mode)
     instance->mode = mode;
 }
 
-bool isSoftSerialTransmitBufferEmpty(serialPort_t *instance)
+bool isSoftSerialTransmitBufferEmpty(const serialPort_t *instance)
 {
     return instance->txBufferHead == instance->txBufferTail;
 }
@@ -460,11 +479,13 @@ bool isSoftSerialTransmitBufferEmpty(serialPort_t *instance)
 const struct serialPortVTable softSerialVTable[] = {
     {
         softSerialWriteByte,
-        softSerialTotalBytesWaiting,
+        softSerialRxBytesWaiting,
+        softSerialTxBytesFree,
         softSerialReadByte,
         softSerialSetBaudRate,
         isSoftSerialTransmitBufferEmpty,
         softSerialSetMode,
+        .writeBuf = NULL,
     }
 };
 

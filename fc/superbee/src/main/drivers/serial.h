@@ -36,7 +36,7 @@ typedef enum portOptions_t {
 
 typedef void (*serialReceiveCallbackPtr)(uint16_t data);   // used by serial drivers to return frames to app
 
-typedef struct serialPort {
+typedef struct serialPort_s {
 
     const struct serialPortVTable *vTable;
 
@@ -62,23 +62,36 @@ typedef struct serialPort {
 struct serialPortVTable {
     void (*serialWrite)(serialPort_t *instance, uint8_t ch);
 
-    uint8_t (*serialTotalBytesWaiting)(serialPort_t *instance);
+    uint32_t (*serialTotalRxWaiting)(const serialPort_t *instance);
+    uint8_t (*serialTotalTxFree)(const serialPort_t *instance);
 
     uint8_t (*serialRead)(serialPort_t *instance);
 
     // Specified baud rate may not be allowed by an implementation, use serialGetBaudRate to determine actual baud rate in use.
     void (*serialSetBaudRate)(serialPort_t *instance, uint32_t baudRate);
 
-    bool (*isSerialTransmitBufferEmpty)(serialPort_t *instance);
+    bool (*isSerialTransmitBufferEmpty)(const serialPort_t *instance);
 
     void (*setMode)(serialPort_t *instance, portMode_t mode);
+
+    void (*writeBuf)(serialPort_t *instance, const void *data, int count);
+    // Optional functions used to buffer large writes.
+    void (*beginWrite)(serialPort_t *instance);
+    void (*endWrite)(serialPort_t *instance);
 };
 
 void serialWrite(serialPort_t *instance, uint8_t ch);
-uint8_t serialTotalBytesWaiting(serialPort_t *instance);
+uint32_t serialRxBytesWaiting(const serialPort_t *instance);
+uint8_t serialTxBytesFree(const serialPort_t *instance);
+void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count);
 uint8_t serialRead(serialPort_t *instance);
 void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate);
 void serialSetMode(serialPort_t *instance, portMode_t mode);
-bool isSerialTransmitBufferEmpty(serialPort_t *instance);
+bool isSerialTransmitBufferEmpty(const serialPort_t *instance);
 void serialPrint(serialPort_t *instance, const char *str);
 uint32_t serialGetBaudRate(serialPort_t *instance);
+
+// A shim that adapts the bufWriter API to the serialWriteBuf() API.
+void serialWriteBufShim(void *instance, uint8_t *data, int count);
+void serialBeginWrite(serialPort_t *instance);
+void serialEndWrite(serialPort_t *instance);

@@ -17,5 +17,6 @@
 
 #pragma once
 
-bool rxMspFrameComplete(void);
-void rxMspFrameRecieve(void);
+uint8_t rxMspFrameStatus(void);
+void rxMspFrameReceive(uint16_t *frame, int channelCount);
+void rxMspInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);

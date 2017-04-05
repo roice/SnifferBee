@@ -23,16 +23,19 @@ typedef enum {
     PAGE_BATTERY,
     PAGE_SENSORS,
     PAGE_RX,
-    PAGE_PROFILE
+    PAGE_PROFILE,
+#ifndef SKIP_TASK_STATISTICS
+    PAGE_TASKS,
+#endif
 #ifdef GPS
-    ,
-    PAGE_GPS
+    PAGE_GPS,
 #endif
 #ifdef ENABLE_DEBUG_OLED_PAGE
-    ,
-    PAGE_DEBUG
+    PAGE_DEBUG,
 #endif
 } pageId_e;
+
+void displayInit(void);
 
 void updateDisplay(void);
 

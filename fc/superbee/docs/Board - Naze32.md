@@ -1,4 +1,4 @@
-# Board - Naze32
+# Board - AbuseMark Naze32
 
 The Naze32 target supports all Naze hardware revisions.  Revision 4 and 5 are used and
 frequently flown by the primary maintainer.  Previous Naze hardware revisions may have issues,
@@ -50,7 +50,7 @@ When SOFTSERIAL is enabled, LED_STRIP and CURRENT_METER are unavailable, but two
 + Remove the short on the board
 
 ### Cleanflight configurator
-+ Select the correct hardware and the desired release of the Clearflight firmware
++ Select the correct hardware and the desired release of the Cleanflight firmware
 + Put a check in the "No reboot sequence" 
 + Flash firmware
 

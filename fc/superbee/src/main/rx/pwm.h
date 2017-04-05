@@ -16,3 +16,5 @@
  */
 
 #pragma once
+
+void rxPwmInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
