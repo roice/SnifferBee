@@ -62,11 +62,11 @@ int32_t AltHold;
 int32_t vario = 0;                      // variometer in cm/s
 
 
-#if defined(BARO) || defined(SONAR)
+#if defined(BARO) || defined(SONAR) || defined(MOCAP)
 
 static int16_t initialRawThrottleHold;
 static int16_t initialThrottleHold;
-static int32_t EstAlt;                // in cm
+static int32_t EstAlt;                // in cm (BARO), in mm (MOCAP)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(airplaneConfig_t, airplaneConfig, PG_AIRPLANE_ALT_HOLD_CONFIG, 0);
 
@@ -303,6 +303,11 @@ void calculateEstimatedAltitude(uint32_t currentTime)
     }
 #else
     EstAlt = accAlt;
+#endif
+
+#ifdef MOCAP
+    if (mocap_is_alt_ready())
+        EstAlt = mocap_get_alt();
 #endif
 
     baroVel = (BaroAlt - lastBaroAlt) * 1000000.0f / dTime;

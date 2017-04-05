@@ -1044,9 +1044,18 @@ void taskCalculateAltitude(void)
 #if defined(SONAR)
         || sensors(SENSOR_SONAR)
 #endif
+#if defined(MOCAP)
+        || sensors(SENSOR_MOCAP)
+#endif
         ) {
         calculateEstimatedAltitude(currentTime);
     }}
+#endif
+
+#ifdef MOCAP
+void taskUpdateMocap(void) {
+    mocap_update_state();
+}
 #endif
 
 #ifdef DISPLAY

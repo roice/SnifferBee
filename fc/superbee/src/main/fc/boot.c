@@ -835,6 +835,10 @@ void configureScheduler(void)
 #ifdef OSD
     setTaskEnabled(TASK_DRAW_SCREEN, feature(FEATURE_OSD));
 #endif
+
+#ifdef MOCAP
+    setTaskEnabled(TASK_MOCAP, true);
+#endif
 }
 
 int main(void) {

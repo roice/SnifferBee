@@ -90,6 +90,7 @@
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
+#include "sensors/mocap.h"
 
 #include "flight/mixer.h"
 #include "flight/servos.h"
@@ -523,7 +524,29 @@ int mspServerCommandHandler(mspPacket_t *cmd, mspPacket_t *reply)
 
     int len = sbufBytesRemaining(src);
 
+#ifdef MOCAP
+    Mocap_Data_t* mocap_data = mocap_get_data();
+#endif
+
     switch (cmd->cmd) {
+#ifdef MOCAP
+        case MSP_MOCAP_POS_ATT:
+            mocap_data->enu[0] = sbufReadU32(src); // pos, east
+            mocap_data->enu[1] = sbufReadU32(src); // pos, north
+            mocap_data->enu[2] = sbufReadU32(src); // pos, up
+            mocap_data->vel[0] = sbufReadU32(src); // vel, east
+            mocap_data->vel[1] = sbufReadU32(src); // vel, north
+            mocap_data->vel[2] = sbufReadU32(src); // vel, up
+            mocap_data->acc[0] = sbufReadU32(src); // acc, east
+            mocap_data->acc[1] = sbufReadU32(src); // acc, north
+            mocap_data->acc[2] = sbufReadU32(src); // acc, up
+            mocap_data->att[0] = sbufReadU32(src); // att
+            mocap_data->att[1] = sbufReadU32(src); // att
+            mocap_data->att[2] = sbufReadU32(src); // att
+            // update mocap
+            mocap_update_data();
+            break;
+#endif
         case MSP_API_VERSION:
             sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
 

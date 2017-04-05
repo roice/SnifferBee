@@ -43,6 +43,9 @@ typedef enum {
     SONAR_MODE      = (1 << 9),
     FAILSAFE_MODE   = (1 << 10),
     GTUNE_MODE      = (1 << 11),
+#ifdef MOCAP
+    MOCAP_MODE      = (1 << 12),
+#endif
 } flightModeFlags_e;
 
 extern uint16_t flightModeFlags;

@@ -147,7 +147,7 @@ cfTask_t cfTasks[] = {
     },
 #endif
 
-#if defined(BARO) || defined(SONAR)
+#if defined(BARO) || defined(SONAR) || defined(MOCAP)
     [TASK_ALTITUDE] = {
         .taskName = "ALTITUDE",
         .taskFunc = taskCalculateAltitude,
@@ -198,6 +198,15 @@ cfTask_t cfTasks[] = {
         .taskFunc = taskLedStrip,
         .desiredPeriod = TASK_PERIOD_MS(10),
         .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+
+#ifdef MOCAP
+    [TASK_MOCAP] = {
+        .taskName = "MOCAP",
+        .taskFunc = taskUpdateMocap,
+        .desiredPeriod = TASK_PERIOD_MS(200),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
 };

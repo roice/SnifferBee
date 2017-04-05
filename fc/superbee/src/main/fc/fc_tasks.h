@@ -62,6 +62,10 @@ typedef enum {
     TASK_DRAW_SCREEN,
 #endif
 
+#ifdef MOCAP
+    TASK_MOCAP,
+#endif
+
     /* Count of real tasks */
     TASK_COUNT
 } cfTaskId_e;
@@ -90,3 +94,4 @@ void taskTelemetry(void);
 void taskLedStrip(void);
 void taskTransponder(void);
 void taskDrawScreen(void);
+void taskUpdateMocap(void);

@@ -101,6 +101,12 @@
 #define MSP_NAME                        10   //out message          Returns user set board name - betaflight
 #define MSP_SET_NAME                    11   //in message           Sets board name - betaflight
 
+//
+// Private MSP commands
+//
+#ifdef MOCAP
+#define MSP_MOCAP_POS_ATT            20  //in message
+#endif
 
 //
 // MSP commands for Cleanflight original features
