@@ -17,10 +17,6 @@
 
 #pragma once
 
-#ifndef MOCAP
-#define MOCAP   // motion capture system
-#endif
-
 #define TARGET_BOARD_IDENTIFIER "SRF3"
 
 #define DEFAULT_PID_PROCESS_DENOM 1

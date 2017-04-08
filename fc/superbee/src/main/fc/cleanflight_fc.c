@@ -988,17 +988,21 @@ void taskUpdateRxMain(void)
 #endif
 }
 
-#ifdef GPS
+#if defined(GPS) || defined(MOCAP)
 void taskProcessGPS(void)
 {
     // if GPS feature is enabled, gpsThread() will be called at some intervals to check for stuck
     // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
     // change this based on available hardware
+#if defined(MOCAP)
+    gpsThread();
+#else
     if (feature(FEATURE_GPS)) {
         gpsThread();
     }
+#endif
 
-    if (sensors(SENSOR_GPS)) {
+    if (sensors(SENSOR_GPS) || sensors(SENSOR_MOCAP)) {
         updateGpsIndicator(currentTime);
     }
 }

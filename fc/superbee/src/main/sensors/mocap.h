@@ -34,3 +34,6 @@ void mocap_clear_alt_ready_flag(void);
 bool mocap_is_gps_ready(void);
 void mocap_set_gps_ready_flag(void);
 void mocap_clear_gps_ready_flag(void);
+bool mocap_is_heading_ready(void);
+void mocap_set_heading_ready_flag(void);
+void mocap_clear_heading_ready_flag(void);

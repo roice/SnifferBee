@@ -16,10 +16,13 @@
 // Motion Capture Altitude Ready Flag
 static bool mocapAltReady = false;
 static bool mocapGPSReady = false;
+static bool mocapHeadingReady = false;
 // Motion Capture Altitude data
 static int32_t mocapAlt = 0;    // in mm
 // Motion Capture virtual GPS coordinate LL
 static int32_t mocapGPS_coord[2];
+// Motion Capture heading
+static int32_t mocapHeading = 0;
 
 Mocap_Data_t mocap_data = {0};
 
@@ -60,6 +63,8 @@ bool mocap_update_data(void)
     enu2llh(position_e, converted_pos);
     mocapGPS_coord[0] = (int32_t)(converted_pos[0] * (double)100000000.0f);
     mocapGPS_coord[1] = (int32_t)(converted_pos[1] * (double)100000000.0f);
+/* Heading */
+    mocapHeading = mocap_data.att[2];
 
     mocap_data.time = millis(); // save current time
 
@@ -71,60 +76,14 @@ void mocap_update_state(void) {
         DISABLE_FLIGHT_MODE(MOCAP_MODE);
         mocap_clear_alt_ready_flag();
         mocap_clear_gps_ready_flag();
+        mocap_clear_heading_ready_flag();
     }
     else {
         ENABLE_FLIGHT_MODE(MOCAP_MODE);
         mocap_set_alt_ready_flag();
         mocap_set_gps_ready_flag();
+        mocap_set_heading_ready_flag();
     }
-
-#if 0
-    static bool navPosHold = false;
-
-    // Mocap activate
-    if (!IS_RC_MODE_ACTIVE(BOXMOCAP)) {
-        DISABLE_FLIGHT_MODE(MOCAP_MODE);
-        return;
-    }
-
-    // Mocap flight mode activate & althold gpshold init
-    if (!FLIGHT_MODE(MOCAP_MODE)) {
-        ENABLE_FLIGHT_MODE(MOCAP_MODE);
-
-        // for Alititude hold
-        AltHold = EstAlt;
-        initialThrottleHoldrcCommand = rcCommand[THROTTLE];
-        initialThrottleHoldrcData = rcData[THROTTLE];
-        errorVelocityI = 0;
-        altHoldThrottleAdjustment = 0;
-    }
-
-    // for Lat/Lon hold
-    if (FLIGHT_MODE(MOCAP_MODE))
-    {
-        if (areSticksInApModePosition(currentProfile->gpsProfile.ap_mode))
-        {// stick in middle position
-            if (navPosHold == false)
-            {// entering Position hold mode
-                GPS_hold[LAT] = GPS_coord[LAT];
-                GPS_hold[LON] = GPS_coord[LON];
-                GPS_set_next_wp(&GPS_hold[LAT], &GPS_hold[LON]);
-                nav_mode = NAV_MODE_POSHOLD;
-                GPS_reset_nav();
-                navPosHold = true;
-                // beep
-                beeper(BEEPER_ARMING_GPS_FIX);
-            }
-        }
-        else
-        {// manually control roll pitch
-            nav_mode = NAV_MODE_NONE;
-            GPS_reset_nav();
-            navPosHold = false;
-        }
-    } 
-
-#endif
 }
 
 /* Functions -- data */
@@ -138,6 +97,10 @@ int32_t mocap_get_alt(void) {
 
 int32_t* mocap_get_gpsll(void) {
     return mocapGPS_coord;
+}
+
+int32_t mocap_get_heading(void) {
+    return mocapHeading;
 }
 
 /* Functions -- Flags */
@@ -163,4 +126,16 @@ void mocap_set_gps_ready_flag(void) {
 
 void mocap_clear_gps_ready_flag(void) {
     mocapGPSReady = false;
+}
+
+bool mocap_is_heading_ready(void) {
+    return mocapHeadingReady;
+}
+
+void mocap_set_heading_ready_flag(void) {
+    mocapHeadingReady = true;
+}
+
+void mocap_clear_heading_ready_flag(void) {
+    mocapHeadingReady = false;
 }

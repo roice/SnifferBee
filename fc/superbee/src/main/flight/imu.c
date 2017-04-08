@@ -361,7 +361,12 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     /* Compute pitch/roll angles */
     attitude.values.roll = lrintf(atan2_approx(rMat[2][1], rMat[2][2]) * (1800.0f / M_PIf));
     attitude.values.pitch = lrintf(((0.5f * M_PIf) - acos_approx(-rMat[2][0])) * (1800.0f / M_PIf));
+#ifndef MOCAP
     attitude.values.yaw = lrintf((-atan2_approx(rMat[1][0], rMat[0][0]) * (1800.0f / M_PIf) + magneticDeclination));
+#else
+    if (mocap_is_heading_ready())
+        attitude.values.yaw = mocap_get_heading();
+#endif
 
     if (attitude.values.yaw < 0)
         attitude.values.yaw += 3600;
