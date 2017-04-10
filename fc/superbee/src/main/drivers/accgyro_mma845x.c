@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "platform.h"
+#include <platform.h>
 
 #include "system.h"
 #include "gpio.h"
@@ -77,8 +77,8 @@
 
 static uint8_t device_id;
 
-static void mma8452Init(void);
-static void mma8452Read(int16_t *accelData);
+static void mma8452Init(acc_t *acc);
+static bool mma8452Read(int16_t *accelData);
 
 bool mma8452Detect(acc_t *acc)
 {
@@ -100,7 +100,6 @@ static inline void mma8451ConfigureInterrupt(void)
 #ifdef NAZE
     // PA5 - ACC_INT2 output on NAZE rev3/4 hardware
     // NAZE rev.5 hardware has PA5 (ADC1_IN5) on breakout pad on bottom of board
-    // OLIMEXINO - The PA5 pin is wired up to LED1, if you need to use an mma8452 on an Olimexino use a different pin and provide support in code.
 
     gpio_config_t gpio;
 
@@ -117,7 +116,7 @@ static inline void mma8451ConfigureInterrupt(void)
     i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG5, 0); // DRDY routed to INT2
 }
 
-static void mma8452Init(void)
+static void mma8452Init(acc_t *acc)
 {
 
     i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG1, 0); // Put device in standby to configure stuff
@@ -129,15 +128,20 @@ static void mma8452Init(void)
 
     i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG1, MMA8452_CTRL_REG1_LNOISE | MMA8452_CTRL_REG1_ACTIVE); // Turn on measurements, low noise at max scale mode, Data Rate 800Hz. LNoise mode makes range +-4G.
 
-    acc_1G = 256;
+    acc->acc_1G = 256;
 }
 
-static void mma8452Read(int16_t *accelData)
+static bool mma8452Read(int16_t *accelData)
 {
     uint8_t buf[6];
 
-    i2cRead(MMA8452_ADDRESS, MMA8452_OUT_X_MSB, 6, buf);
+    if (!i2cRead(MMA8452_ADDRESS, MMA8452_OUT_X_MSB, 6, buf)) {
+        return false;
+    }
+
     accelData[0] = ((int16_t)((buf[0] << 8) | buf[1]) >> 2) / 4;
     accelData[1] = ((int16_t)((buf[2] << 8) | buf[3]) >> 2) / 4;
     accelData[2] = ((int16_t)((buf[4] << 8) | buf[5]) >> 2) / 4;
+
+    return true;
 }

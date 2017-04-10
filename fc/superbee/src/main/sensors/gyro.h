@@ -24,23 +24,33 @@ typedef enum {
     GYRO_L3G4200D,
     GYRO_MPU3050,
     GYRO_L3GD20,
-    GYRO_SPI_MPU6000,
-    GYRO_SPI_MPU6500,
+    GYRO_MPU6000,
+    GYRO_MPU6500,
     GYRO_FAKE
 } gyroSensor_e;
 
 extern gyro_t gyro;
 extern sensor_align_e gyroAlign;
 
-extern int16_t gyroADC[XYZ_AXIS_COUNT];
-extern int16_t gyroZero[FLIGHT_DYNAMICS_INDEX_COUNT];
+extern int32_t gyroADC[XYZ_AXIS_COUNT];
+extern float gyroADCf[XYZ_AXIS_COUNT];
 
 typedef struct gyroConfig_s {
-    uint8_t gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
+    uint8_t gyroMovementCalibrationThreshold;   // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
+    uint8_t gyro_lpf;                           // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
+    uint8_t gyro_soft_type;                     // Gyro Filter Type
+    uint16_t gyro_soft_lpf_hz;                  // Software based gyro filter in hz
+    uint16_t gyro_soft_notch_hz;                // Biquad gyro notch hz
+    uint16_t gyro_soft_notch_cutoff_hz;         // Biquad gyro notch low cutoff in hz
+    uint8_t gyro_sync;                          // Enable interrupt based loop
+    uint8_t pid_process_denom;                  // Processing denominator for PID controller vs gyro sampling rate
+    uint16_t gyro_sample_hz;                    // The desired gyro sample frequency.
 } gyroConfig_t;
 
-void useGyroConfig(gyroConfig_t *gyroConfigToUse);
-void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
+PG_DECLARE(gyroConfig_t, gyroConfig);
+
+void gyroInit(void);
 void gyroUpdate(void);
+void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
 bool isGyroCalibrationComplete(void);
 

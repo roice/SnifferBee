@@ -20,16 +20,18 @@
 
 #include <stdlib.h>
 
-#include "platform.h"
+#include <platform.h>
 
 #include "gpio.h"
 #include "timer.h"
 
-#include "flight/failsafe.h" // FIXME dependency into the main code from a driver
-
 #include "pwm_mapping.h"
 
 #include "pwm_output.h"
+
+#include "common/maths.h"
+
+#define MAX_PWM_OUTPUT_PORTS MAX(MAX_MOTORS, MAX_SERVOS)
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
 
@@ -47,10 +49,10 @@ static pwmOutputPort_t *motors[MAX_PWM_MOTORS];
 #ifdef USE_SERVOS
 static pwmOutputPort_t *servos[MAX_PWM_SERVOS];
 #endif
-#define PWM_BRUSHED_TIMER_MHZ 8
 
 static uint8_t allocatedOutputPortCount = 0;
 
+static bool pwmMotorsEnabled = true;
 static void pwmOCConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t value)
 {
     TIM_OCInitTypeDef  TIM_OCInitStructure;
@@ -138,7 +140,7 @@ static void pwmWriteStandard(uint8_t index, uint16_t value)
 
 void pwmWriteMotor(uint8_t index, uint16_t value)
 {
-    if (motors[index] && index < MAX_MOTORS)
+    if (motors[index] && index < MAX_MOTORS && pwmMotorsEnabled)
         motors[index]->pwmWritePtr(index, value);
 }
 
@@ -150,6 +152,16 @@ void pwmShutdownPulsesForAllMotors(uint8_t motorCount)
         // Set the compare register to 0, which stops the output pulsing if the timer overflows
         *motors[index]->ccr = 0;
     }
+}
+
+void pwmDisableMotors(void)
+{
+    pwmMotorsEnabled = false;
+}
+
+void pwmEnableMotors(void)
+{
+    pwmMotorsEnabled = true;
 }
 
 void pwmCompleteOneshotMotorUpdate(uint8_t motorCount)
@@ -170,6 +182,11 @@ void pwmCompleteOneshotMotorUpdate(uint8_t motorCount)
         // This compare register will be set to the output value on the next main loop.
         *motors[index]->ccr = 0;
     }
+}
+
+bool isMotorBrushed(uint16_t motorPwmRate)
+{
+    return (motorPwmRate > 500);
 }
 
 void pwmBrushedMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint16_t motorPwmRate, uint16_t idlePulse)

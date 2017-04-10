@@ -5,44 +5,35 @@
  *
  * Author       Date        Changelog
  * Roice Luo    2015.07.02  Create
+ * Roice Luo    2017.04.05  Modified
  */
 
 #pragma once
 
-#ifdef MOCAP
-
-/* position struct, refreshed by SBSP messages */
-struct mocap_enu_t
-{
+/* Mocap data struct */
+typedef struct {
     // local ENU, accuracy: 0.1 milimeters
     // example: if up coordinate is -330.6 mm
     //          up == -3306
-    int32_t east;
-    int32_t north;
-    int32_t up;
-    // data time
-    // this value will be checked in OPT_GPS_New_Data
-    // if it exceeds current time a predefined period, the GPS signal
-    // must be lost, the reason is probably the plane moves out of
-    // OptiTrack range...
+    int32_t enu[3];
+    int32_t vel[3];
+    int32_t acc[3];
+    int32_t att[3];
+
     uint32_t time;  // ms
-    bool fresh; // when this data is new, fresh == true
-};
+} Mocap_Data_t;
 
-#ifdef SB_DEBUG
-extern bool sb_debug_applyAltHold;
-#endif
-
-void updateMocap(int32_t e, int32_t n, int32_t u);
-bool mocapUpdatePos(void);
-int32_t mocapReadAltitude(void);
-int32_t mocapReadGPSLL(uint8_t index);
-void updateMocapState(void);
-bool isMocapAltReady(void);
-void setMocapAltReadyFlag(void);
-void clearMocapAltReadyFlag(void);
-bool isMocapGPSReady(void);
-void setMocapGPSReadyFlag(void);
-void clearMocapGPSReadyFlag(void);
-
-#endif
+bool mocap_update_data(void);
+void mocap_update_state(void);
+Mocap_Data_t* mocap_get_data(void);
+int32_t mocap_get_alt(void);
+int32_t* mocap_get_gpsll(void);
+bool mocap_is_alt_ready(void);
+void mocap_set_alt_ready_flag(void);
+void mocap_clear_alt_ready_flag(void);
+bool mocap_is_gps_ready(void);
+void mocap_set_gps_ready_flag(void);
+void mocap_clear_gps_ready_flag(void);
+bool mocap_is_heading_ready(void);
+void mocap_set_heading_ready_flag(void);
+void mocap_clear_heading_ready_flag(void);

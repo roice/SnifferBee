@@ -19,7 +19,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "platform.h"
+#include <platform.h>
+
+#ifdef USE_FLASH_M25P16
+
+#ifdef CUSTOM_FLASHCHIP
+#include "config/parameter_group.h"
+#endif
 
 #include "drivers/flash_m25p16.h"
 #include "drivers/bus_spi.h"
@@ -55,7 +61,7 @@
 #define SECTOR_ERASE_TIMEOUT_MILLIS  5000
 #define BULK_ERASE_TIMEOUT_MILLIS    21000
 
-static flashGeometry_t geometry;
+static flashGeometry_t geometry = {.pageSize = M25P16_PAGESIZE};
 
 /*
  * Whether we've performed an action that could have made the device busy for writes.
@@ -150,34 +156,47 @@ static bool m25p16_readIdentification()
     // Manufacturer, memory type, and capacity
     chipID = (in[1] << 16) | (in[2] << 8) | (in[3]);
 
+    // All supported chips use the same pagesize of 256 bytes
+
     switch (chipID) {
         case JEDEC_ID_MICRON_M25P16:
             geometry.sectors = 32;
             geometry.pagesPerSector = 256;
-            geometry.pageSize = 256;
         break;
         case JEDEC_ID_MICRON_N25Q064:
         case JEDEC_ID_WINBOND_W25Q64:
             geometry.sectors = 128;
             geometry.pagesPerSector = 256;
-            geometry.pageSize = 256;
         break;
         case JEDEC_ID_MICRON_N25Q128:
         case JEDEC_ID_WINBOND_W25Q128:
             geometry.sectors = 256;
             geometry.pagesPerSector = 256;
-            geometry.pageSize = 256;
         break;
         default:
+#ifdef CUSTOM_FLASHCHIP
+            if (chipID == flashchipConfig()->flashchip_id) {
+                geometry.sectors = flashchipConfig()->flashchip_nsect;
+                geometry.pagesPerSector = flashchipConfig()->flashchip_pps;
+                break;
+            }
+#endif
             // Unsupported chip or not an SPI NOR flash
             geometry.sectors = 0;
             geometry.pagesPerSector = 0;
-            geometry.pageSize = 0;
 
             geometry.sectorSize = 0;
             geometry.totalSize = 0;
             return false;
     }
+#ifdef CUSTOM_FLASHCHIP
+    // Write back hard coded params. Eventually go away?
+    if (flashchipConfig()->flashchip_id == 0) {
+        flashchipConfig()->flashchip_id = chipID;
+        flashchipConfig()->flashchip_nsect = geometry.sectors;
+        flashchipConfig()->flashchip_pps = geometry.pagesPerSector;
+    }
+#endif
 
     geometry.sectorSize = geometry.pagesPerSector * geometry.pageSize;
     geometry.totalSize = geometry.sectorSize * geometry.sectors;
@@ -196,7 +215,7 @@ static bool m25p16_readIdentification()
 bool m25p16_init()
 {
     //Maximum speed for standard READ command is 20mHz, other commands tolerate 25mHz
-    spiSetDivisor(M25P16_SPI_INSTANCE, SPI_18MHZ_CLOCK_DIVIDER);
+    spiSetDivisor(M25P16_SPI_INSTANCE, SPI_CLOCK_FAST);
 
     return m25p16_readIdentification();
 }
@@ -310,3 +329,5 @@ const flashGeometry_t* m25p16_getGeometry()
 {
     return &geometry;
 }
+
+#endif

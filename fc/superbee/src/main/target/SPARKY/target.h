@@ -19,6 +19,9 @@
 
 #define TARGET_BOARD_IDENTIFIER "SPKY" // SParKY
 
+#define DEFAULT_PID_PROCESS_DENOM 1
+#define DEFAULT_GYRO_SAMPLE_HZ 2000
+
 #define LED0_GPIO   GPIOB
 #define LED0_PIN    Pin_4  // Blue (Rev 1 & 2) - PB4
 #define LED0_PERIPHERAL RCC_AHBPeriph_GPIOB
@@ -29,6 +32,9 @@
 #define USABLE_TIMER_CHANNEL_COUNT 11
 
 // MPU 9150 INT connected to PA15, pulled up to VCC by 10K Resistor, contains MPU6050 and AK8975 in single component.
+#define USE_MPU_DATA_READY_SIGNAL
+#define ENSURE_MPU_DATA_READY_IS_LOW
+
 #define GYRO
 #define USE_GYRO_MPU6050
 
@@ -45,17 +51,20 @@
 #define MAG
 #define USE_MAG_AK8975
 
-#define MAG_AK8975_ALIGN CW0_DEG_FLIP
+#define MAG_AK8975_ALIGN CW180_DEG_FLIP
 
 #define LED0
 #define LED1
 
+#define USB_IO
+
 #define USE_VCP
-#define USE_USART1 // Conn 1 - TX (PB6) RX PB7 (AF7)
-#define USE_USART2 // Input - RX (PA3)
-#define USE_USART3 // Servo out - 10/RX (PB11) 11/TX (PB10)
+#define USE_UART1 // Conn 1 - TX (PB6) RX PB7 (AF7)
+#define USE_UART2 // Input - RX (PA3)
+#define USE_UART3 // Servo out - 10/RX (PB11) 11/TX (PB10)
 #define SERIAL_PORT_COUNT 4
 
+#define USE_UART1_TX_DMA
 #define UART1_TX_PIN        GPIO_Pin_6 // PB6
 #define UART1_RX_PIN        GPIO_Pin_7 // PB7
 #define UART1_GPIO          GPIOB
@@ -95,33 +104,53 @@
 
 #define USE_ADC
 
+#define USE_ADC
+#define BOARD_HAS_VOLTAGE_DIVIDER
+
 #define ADC_INSTANCE                ADC2
 #define ADC_DMA_CHANNEL             DMA2_Channel1
 #define ADC_AHB_PERIPHERAL          RCC_AHBPeriph_DMA2
 
-#define VBAT_ADC_GPIO               GPIOA
-#define VBAT_ADC_GPIO_PIN           GPIO_Pin_4
-#define VBAT_ADC_CHANNEL            ADC_Channel_1
+#define ADC0_GPIO                   GPIOA
+#define ADC0_GPIO_PIN               GPIO_Pin_4
+#define ADC0_CHANNEL                ADC_Channel_1
 
-#define CURRENT_METER_ADC_GPIO      GPIOA
-#define CURRENT_METER_ADC_GPIO_PIN  GPIO_Pin_7
-#define CURRENT_METER_ADC_CHANNEL   ADC_Channel_4
+#define ADC1_GPIO                   GPIOA
+#define ADC1_GPIO_PIN               GPIO_Pin_7
+#define ADC1_CHANNEL                ADC_Channel_4
 
-#define AUTOTUNE
+#define ADC_CHANNEL_COUNT 2
+
+#define ADC_BATTERY     ADC_CHANNEL0
+#define ADC_AMPERAGE     ADC_CHANNEL1
+
+
+#define DEFAULT_RX_FEATURE FEATURE_RX_PPM
+
 #define BLACKBOX
-#define TELEMETRY
-#define SERIAL_RX
 #define GPS
+#define GTUNE
 #define DISPLAY
+#define SERIAL_RX
+#define TELEMETRY
+#define TELEMETRY_IBUS
 #define USE_SERVOS
 #define USE_CLI
+#define USE_EXTI
+
+#define SONAR
+#define SONAR_TRIGGER_PIN           Pin_2   // PWM6 (PA2) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_TRIGGER_GPIO          GPIOA
+#define SONAR_ECHO_PIN              Pin_1   // PWM7 (PB1) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_ECHO_GPIO             GPIOB
+#define SONAR_TRIGGER_IO            PA2
+#define SONAR_ECHO_IO               PA1
 
 #define LED_STRIP
 #if 1
 // LED strip configuration using PWM motor output pin 5.
 #define LED_STRIP_TIMER TIM16
 
-#define USE_LED_STRIP_ON_DMA1_CHANNEL3
 #define WS2811_GPIO                     GPIOA
 #define WS2811_GPIO_AHB_PERIPHERAL      RCC_AHBPeriph_GPIOA
 #define WS2811_GPIO_AF                  GPIO_AF_1
@@ -131,6 +160,9 @@
 #define WS2811_TIMER_APB2_PERIPHERAL    RCC_APB2Periph_TIM16
 #define WS2811_DMA_CHANNEL              DMA1_Channel3
 #define WS2811_IRQ                      DMA1_Channel3_IRQn
+#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC3
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1Channel3Descriptor
+
 #endif
 
 #if 0
@@ -138,7 +170,6 @@
 // FIXME DMA IRQ Transfer Complete is never called because the  TIM17_DMA_RMP needs to be set in SYSCFG_CFGR1
 #define LED_STRIP_TIMER TIM17
 
-#define USE_LED_STRIP_ON_DMA1_CHANNEL7
 #define WS2811_GPIO                     GPIOA
 #define WS2811_GPIO_AHB_PERIPHERAL      RCC_AHBPeriph_GPIOA
 #define WS2811_GPIO_AF                  GPIO_AF_1
@@ -148,10 +179,19 @@
 #define WS2811_TIMER_APB2_PERIPHERAL    RCC_APB2Periph_TIM17
 #define WS2811_DMA_CHANNEL              DMA1_Channel7
 #define WS2811_IRQ                      DMA1_Channel7_IRQn
+#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC7
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1Channel7Descriptor
+
+
 #endif
 
+#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define SPEKTRUM_BIND
-// USART2, PA3
+// UART2, PA3
 #define BIND_PORT GPIOA
 #define BIND_PIN Pin_3
+
+// available IO pins (from schematics)
+#define TARGET_IO_PORTA (BIT(1)|BIT(2)|BIT(3)|BIT(4)|BIT(6)|BIT(7)|BIT(8)|BIT(9)|BIT(10)|BIT(11)|BIT(12)|BIT(13)|BIT(14)|BIT(15))
+#define TARGET_IO_PORTB (BIT(0)|BIT(1)|BIT(10)|BIT(11)|BIT(14)|BIT(15)|BIT(3)|BIT(4)|BIT(5)|BIT(6)|BIT(7)|BIT(8)|BIT(9))

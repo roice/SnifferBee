@@ -20,57 +20,19 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "platform.h"
+#include <platform.h>
 
-#include "build_config.h"
+#include "build/build_config.h"
 
+#include "dma.h"
 #include "gpio.h"
 #include "light_led.h"
 #include "sound_beeper.h"
 #include "nvic.h"
+#include "serial.h"
+#include "serial_uart.h"
 
 #include "system.h"
-
-
-#ifndef EXTI15_10_CALLBACK_HANDLER_COUNT
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 1
-#endif
-
-static extiCallbackHandler* exti15_10_handlers[EXTI15_10_CALLBACK_HANDLER_COUNT];
-
-void registerExti15_10_CallbackHandler(extiCallbackHandler *fn)
-{
-    for (int index = 0; index < EXTI15_10_CALLBACK_HANDLER_COUNT; index++) {
-        extiCallbackHandler *candidate = exti15_10_handlers[index];
-        if (!candidate) {
-            exti15_10_handlers[index] = fn;
-            return;
-        }
-    }
-    failureMode(15); // EXTI15_10_CALLBACK_HANDLER_COUNT is too low for the amount of handlers required.
-}
-
-void unregisterExti15_10_CallbackHandler(extiCallbackHandler *fn)
-{
-    for (int index = 0; index < EXTI15_10_CALLBACK_HANDLER_COUNT; index++) {
-        extiCallbackHandler *candidate = exti15_10_handlers[index];
-        if (candidate == fn) {
-            exti15_10_handlers[index] = 0;
-            return;
-        }
-    }
-}
-
-void EXTI15_10_IRQHandler(void)
-{
-    for (int index = 0; index < EXTI15_10_CALLBACK_HANDLER_COUNT; index++) {
-        extiCallbackHandler *fn = exti15_10_handlers[index];
-        if (!fn) {
-            continue;
-        }
-        fn();
-    }
-}
 
 // cycles per microsecond
 static uint32_t usTicks = 0;
@@ -99,6 +61,12 @@ uint32_t micros(void)
     do {
         ms = sysTickUptime;
         cycle_cnt = SysTick->VAL;
+
+        /*
+         * If the SysTick timer expired during the previous instruction, we need to give it a little time for that
+         * interrupt to be delivered before we can recheck sysTickUptime:
+         */
+        asm volatile("\tnop\n");
     } while (ms != sysTickUptime);
     return (ms * 1000) + (usTicks * 1000 - cycle_cnt) / usTicks;
 }
@@ -129,9 +97,9 @@ void systemInit(void)
     cachedRccCsrValue = RCC->CSR;
     RCC_ClearFlag();
 
-
     enableGPIOPowerUsageAndNoiseReductions();
 
+    usartInitAllIOSignals();
 
 #ifdef STM32F10X
     // Turn off JTAG port 'cause we're using the GPIO for leds
@@ -142,8 +110,6 @@ void systemInit(void)
     // Init cycle counter
     cycleCounterInit();
 
-
-    memset(&exti15_10_handlers, 0x00, sizeof(exti15_10_handlers));
     // SysTick
     SysTick_Config(SystemCoreClock / 1000);
 }
@@ -188,21 +154,49 @@ void delay(uint32_t ms)
         delayMicroseconds(1000);
 }
 
-// FIXME replace mode with an enum so usage can be tracked, currently mode is a magic number
-void failureMode(uint8_t mode)
-{
-    uint8_t flashesRemaining = 10;
+#define SHORT_FLASH_DURATION 50
+#define CODE_FLASH_DURATION 250
 
-    LED1_ON;
-    LED0_OFF;
-    while (flashesRemaining--) {
-        LED1_TOGGLE;
-        LED0_TOGGLE;
-        delay(475 * mode - 2);
-        BEEP_ON;
-        delay(25);
-        BEEP_OFF;
+void failureMode(failureMode_e mode)
+{
+    int codeRepeatsRemaining = 10;
+    int codeFlashesRemaining;
+    int shortFlashesRemaining;
+
+    while (codeRepeatsRemaining--) {
+        LED1_ON;
+        LED0_OFF;
+        shortFlashesRemaining = 5;
+        codeFlashesRemaining = mode + 1;
+        uint8_t flashDuration = SHORT_FLASH_DURATION;
+
+        while (shortFlashesRemaining || codeFlashesRemaining) {
+            LED1_TOGGLE;
+            LED0_TOGGLE;
+            BEEP_ON;
+            delay(flashDuration);
+
+            LED1_TOGGLE;
+            LED0_TOGGLE;
+            BEEP_OFF;
+            delay(flashDuration);
+
+            if (shortFlashesRemaining) {
+                shortFlashesRemaining--;
+                if (shortFlashesRemaining == 0) {
+                    delay(500);
+                    flashDuration = CODE_FLASH_DURATION;
+                }
+            } else {
+                codeFlashesRemaining--;
+            }
+        }
+        delay(1000);
     }
 
+#ifdef DEBUG
+    systemReset();
+#else
     systemResetToBootloader();
+#endif
 }

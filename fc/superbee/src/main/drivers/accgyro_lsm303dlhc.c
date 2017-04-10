@@ -18,9 +18,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "platform.h"
-#include "build_config.h"
-#include "debug.h"
+#include <platform.h>
+#include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/maths.h"
 #include "common/axis.h"
@@ -113,7 +113,7 @@ int32_t accelSummedSamples100Hz[3];
 
 int32_t accelSummedSamples500Hz[3];
 
-void lsm303dlhcAccInit(void)
+void lsm303dlhcAccInit(acc_t *acc)
 {
     i2cWrite(LSM303DLHC_ACCEL_ADDRESS, CTRL_REG5_A, BOOT);
 
@@ -127,18 +127,19 @@ void lsm303dlhcAccInit(void)
 
     delay(100);
 
-    acc_1G = 512 * 8;
+    acc->acc_1G = 512 * 8;
 }
 
 // Read 3 gyro values into user-provided buffer. No overrun checking is done.
-static void lsm303dlhcAccRead(int16_t *gyroADC)
+static bool lsm303dlhcAccRead(int16_t *gyroADC)
 {
     uint8_t buf[6];
 
-    bool ok = i2cRead(LSM303DLHC_ACCEL_ADDRESS, AUTO_INCREMENT_ENABLE | OUT_X_L_A, 6, buf);
+    bool ack = i2cRead(LSM303DLHC_ACCEL_ADDRESS, AUTO_INCREMENT_ENABLE | OUT_X_L_A, 6, buf);
 
-    if (!ok)
-        return;
+    if (!ack) {
+        return false;
+    }
 
     // the values range from -8192 to +8191
     gyroADC[X] = (int16_t)((buf[1] << 8) | buf[0]) / 2;
@@ -150,6 +151,8 @@ static void lsm303dlhcAccRead(int16_t *gyroADC)
     debug[1] = (int16_t)((buf[3] << 8) | buf[2]);
     debug[2] = (int16_t)((buf[5] << 8) | buf[4]);
 #endif
+
+    return true;
 }
 
 bool lsm303dlhcAccDetect(acc_t *acc)

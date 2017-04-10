@@ -2,7 +2,7 @@
 
 Spektrum bind with hardware bind plug support.
  
-The Spektrum bind code is actually enabled for the NAZE, NAZE32PRO, CJMCU, EUSTM32F103RC, SPARKY, CC3D, ALIENWIIF1, ALIENWIIF3 targets.
+The Spektrum bind code is enabled for most targets, some boards may not work due to SBus inverters.  If you need Spektrum bind code ensure the board you are using specifically provides bind support.
 
 ## Configure the bind code
 
@@ -20,11 +20,11 @@ This is to activate the hardware bind plug feature
 
 ## Hardware
 
-The hardware bind plug will be enabled via defining HARDWARE_BIND_PLUG during building of the firmware. BINDPLUG_PORT and BINDPLUG_PIN also need to be defined (please see above). This is done automatically if the AlienWii32 firmware is built. The hardware bind plug is expected between the defined bind pin and ground. 
+The hardware bind plug will be enabled via defining HARDWARE_BIND_PLUG during building of the firmware. BINDPLUG_PORT and BINDPLUG_PIN also need to be defined (please see above). This is done automatically if the AlienFlight firmware is built. The hardware bind plug is expected between the defined bind pin and ground. 
 
 ## Function
 
-The bind code will actually work for NAZE, NAZE32PRO, CJMCU, EUSTM32F103RC, SPARKY targets (USART2) and CC3D target (USART3, flex port). The spektrum_sat_bind CLI parameter is defining the number of bind impulses (1-10) send to the satellite receiver. Setting spektrum_sat_bind to zero will disable the bind mode in any case. The bind mode will only be activated after an power on or hard reset. Please refer to the table below for the different possible values.
+The spektrum_sat_bind CLI parameter is defining the number of bind impulses (1-10) send to the satellite receiver. Setting spektrum_sat_bind to zero will disable the bind mode in any case. The bind mode will only be activated after an power on or hard reset. Please refer to the table below for the different possible values.
 
 If the hardware bind plug is configured the bind mode will only be activated if the plug is set during the firmware start-up. The value of the spektrum_sat_bind parameter will be permanently preserved. The bind plug should be always removed for normal flying.
 
@@ -34,19 +34,14 @@ Please refer to the satellite receiver documentation for more details of the spe
 
 ## Table with spektrum_sat_bind parameter value
 
-| Value | Receiver mode     | Notes              |
-| ----- | ------------------| -------------------|
-| 3     | DSM2 1024bit/22ms |                    |
-| 5     | DSM2 2048bit/11ms | default AlienWii32 |
-| 7     | DSMX 1024bit/22ms |                    |
-| 9     | DSMX 2048bit/11ms |                    |
+| Value | Receiver mode     | Notes               |
+| ----- | ------------------| --------------------|
+| 3     | DSM2 1024bit/22ms |                     |
+| 5     | DSM2 2048bit/11ms | default AlienFlight |
+| 7     | DSMX 1024bit/22ms |                     |
+| 8     | DSMX 2048bit/22ms | Used by new DXe     |
+| 9     | DSMX 2048bit/11ms |                     |
 
-More detailed information regarding the satellite binding process can be found here:
-http://wiki.openpilot.org/display/Doc/Spektrum+Satellite
-
-### Supported Hardware
-
-NAZE, NAZE32PRO, CJMCU, SPARKY, EUSTM32F103RC, CC3D targets and ALIENWIIF1, ALIENWIIF3 targets with hardware bind plug
 
 ### Connecting a Spektrum-compatible satellite to a Flip32+ flight controller
 
@@ -59,6 +54,8 @@ In order to connect the satellite to a Flip32+, you have to wire the serial data
 | Satellite            | Remote         | Remark                                                   |
 | -------------------- | -------------- | -------------------------------------------------------- |
 | Orange R100          | Spektrum DX6i  | Bind value 3                                             |
+| Lemon RX DSMX        | Spektrum DX6i  | Bind value 9
 | Lemon RX DSM2/DSMX   | Spektrum DX8   | Bind value 5                                             |
 | Lemon RX DSMX        | Walkera Devo10 | Bind value 9, Deviation firmware 4.01 up to 12 channels  |
 | Lemon RX DSM2        | Walkera Devo7  | Bind value 9, Deviation firmware                         |
+| Lemon RX DSMX        | Spektrum DXe   | Bind value 8, Supports up to 9 channels                  |

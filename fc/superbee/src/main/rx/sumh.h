@@ -18,3 +18,4 @@
 #pragma once
 
 uint8_t sumhFrameStatus(void);
+bool sumhInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);

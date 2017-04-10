@@ -46,13 +46,26 @@
 #define INVERTER_PERIPHERAL RCC_APB2Periph_GPIOB
 #define INVERTER_USART USART2
 
-#define MPU6000_CS_GPIO       GPIOB
-#define MPU6000_CS_PIN        GPIO_Pin_12
-#define MPU6000_SPI_INSTANCE  SPI2
+#define USE_SPI
+#define USE_SPI_DEVICE_2
 
-#define MPU6500_CS_GPIO       GPIOB
-#define MPU6500_CS_PIN        GPIO_Pin_12
-#define MPU6500_SPI_INSTANCE  SPI2
+#define PORT103R_SPI_INSTANCE     SPI2
+#define PORT103R_SPI_CS_GPIO      GPIOB
+#define PORT103R_SPI_CS_PIN       GPIO_Pin_12
+
+#define CUSTOM_FLASHCHIP
+#define M25P16_CS_GPIO        PORT103R_SPI_CS_GPIO
+#define M25P16_CS_PIN         PORT103R_SPI_CS_PIN
+#define M25P16_SPI_INSTANCE   PORT103R_SPI_INSTANCE
+
+#define MPU6000_CS_GPIO       PORT103R_SPI_CS_GPIO
+#define MPU6000_CS_PIN        PORT103R_SPI_CS_PIN
+#define MPU6000_SPI_INSTANCE  PORT103R_SPI_INSTANCE
+
+#define MPU6500_CS_GPIO       PORT103R_SPI_CS_GPIO
+#define MPU6500_CS_PIN        PORT103R_SPI_CS_PIN
+#define MPU6500_SPI_INSTANCE  PORT103R_SPI_INSTANCE
+#define MPU6500_CS_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOB
 
 #define GYRO
 #define USE_FAKE_GYRO
@@ -60,8 +73,8 @@
 //#define USE_GYRO_L3GD20
 //#define USE_GYRO_MPU3050
 #define USE_GYRO_MPU6050
-//#define USE_GYRO_SPI_MPU6000
-//#define USE_GYRO_SPI_MPU6500
+#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO_SPI_MPU6500
 
 #define ACC
 #define USE_FAKE_ACC
@@ -69,8 +82,8 @@
 //#define USE_ACC_BMA280
 //#define USE_ACC_MMA8452
 #define USE_ACC_MPU6050
-//#define USE_ACC_SPI_MPU6000
-//#define USE_ACC_SPI_MPU6500
+#define USE_ACC_SPI_MPU6000
+#define USE_ACC_SPI_MPU6500
 
 #define BARO
 #define USE_BARO_MS5611
@@ -80,7 +93,10 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_AK8975
 
-#define SONAR
+#define USE_FLASHFS
+#define USE_FLASHTOOLS
+#define USE_FLASH_M25P16
+
 #define BEEPER
 #define LED0
 #define LED1
@@ -88,11 +104,29 @@
 #define INVERTER
 #define DISPLAY
 
-#define USE_USART1
-#define USE_USART2
+#define SONAR
+#define SONAR_PWM_TRIGGER_PIN       Pin_8   // PWM5 (PB8) - 5v tolerant
+#define SONAR_PWM_TRIGGER_GPIO      GPIOB
+#define SONAR_PWM_ECHO_PIN          Pin_9   // PWM6 (PB9) - 5v tolerant
+#define SONAR_PWM_ECHO_GPIO         GPIOB
+#define SONAR_PWM_TRIGGER_IO        PB8
+#define SONAR_PWM_ECHO_IO           PB9
+
+#define SONAR_TRIGGER_PIN           Pin_0   // RX7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_TRIGGER_GPIO          GPIOB
+#define SONAR_ECHO_PIN              Pin_1   // RX8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_ECHO_GPIO             GPIOB
+#define SONAR_TRIGGER_IO            PB0
+#define SONAR_ECHO_IO               PB1
+
+#define USE_UART1
+#define USE_UART2
+#define USE_UART3
+#define USE_UART4
+#define USE_UART5
 #define USE_SOFTSERIAL1
 #define USE_SOFTSERIAL2
-#define SERIAL_PORT_COUNT 4
+#define SERIAL_PORT_COUNT 7
 
 #define SOFTSERIAL_1_TIMER TIM3
 #define SOFTSERIAL_1_TIMER_RX_HARDWARE 4 // PWM 5
@@ -100,6 +134,8 @@
 #define SOFTSERIAL_2_TIMER TIM3
 #define SOFTSERIAL_2_TIMER_RX_HARDWARE 6 // PWM 7
 #define SOFTSERIAL_2_TIMER_TX_HARDWARE 7 // PWM 8
+
+#define USE_UART1_TX_DMA
 
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_2)
@@ -110,30 +146,55 @@
 
 #define USE_ADC
 
-#define CURRENT_METER_ADC_GPIO      GPIOB
-#define CURRENT_METER_ADC_GPIO_PIN  GPIO_Pin_1
-#define CURRENT_METER_ADC_CHANNEL   ADC_Channel_9
+#define ADC_INSTANCE                ADC1
+#define ADC_ABP2_PERIPHERAL         RCC_APB2Periph_ADC1
+#define ADC_AHB_PERIPHERAL          RCC_AHBPeriph_DMA1
+#define ADC_DMA_CHANNEL             DMA1_Channel1
 
-#define VBAT_ADC_GPIO               GPIOA
-#define VBAT_ADC_GPIO_PIN           GPIO_Pin_4
-#define VBAT_ADC_CHANNEL            ADC_Channel_4
+#define ADC0_GPIO                   GPIOB
+#define ADC0_GPIO_PIN               GPIO_Pin_1
+#define ADC0_CHANNEL                ADC_Channel_9
 
-#define RSSI_ADC_GPIO               GPIOA
-#define RSSI_ADC_GPIO_PIN           GPIO_Pin_1
-#define RSSI_ADC_CHANNEL            ADC_Channel_1
+#define ADC1_GPIO                   GPIOA
+#define ADC1_GPIO_PIN               GPIO_Pin_4
+#define ADC1_CHANNEL                ADC_Channel_4
 
-#define EXTERNAL1_ADC_GPIO          GPIOA
-#define EXTERNAL1_ADC_GPIO_PIN      GPIO_Pin_5
-#define EXTERNAL1_ADC_CHANNEL       ADC_Channel_5
+#define ADC2_GPIO                   GPIOA
+#define ADC2_GPIO_PIN               GPIO_Pin_1
+#define ADC2_CHANNEL                ADC_Channel_1
+
+#define ADC3_GPIO                   GPIOA
+#define ADC3_GPIO_PIN               GPIO_Pin_5
+#define ADC3_CHANNEL                ADC_Channel_5
+
+#define ADC_CHANNEL_COUNT 4
+
+#define ADC_AMPERAGE     ADC_CHANNEL0
+#define ADC_BATTERY     ADC_CHANNEL1
+#define ADC_RSSI        ADC_CHANNEL2
+#define ADC_EXTERNAL    ADC_CHANNEL3
 
 #define LED0
-#define GPS
+
 #define LED_STRIP
 #define LED_STRIP_TIMER TIM3
+#define WS2811_DMA_TC_FLAG           DMA1_FLAG_TC6
+#define WS2811_DMA_HANDLER_IDENTIFER DMA1Channel6Descriptor
 
 #define BLACKBOX
-#define TELEMETRY
+#define GPS
+#define GTUNE
 #define SERIAL_RX
-#define AUTOTUNE
+#define TELEMETRY
+#define TELEMETRY_IBUS
 #define USE_SERVOS
 #define USE_CLI
+#define USE_EXTI
+
+#define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
+// IO - stm32f103RCT6 in 64pin package
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC 0xffff
+#define TARGET_IO_PORTD (BIT(0)|BIT(1)|BIT(2))

@@ -15,27 +15,19 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "io/escservo.h"
-#include "io/rc_controls.h"
-#include "flight/pid.h"
-
-#include "sensors/barometer.h"
-
 extern int32_t AltHold;
-extern int32_t EstAlt;
 extern int32_t vario;
-extern int32_t altHoldThrottleAdjustment;
-extern int32_t errorVelocityI;
-extern int16_t initialThrottleHoldrcCommand;
-extern int16_t initialThrottleHoldrcData;
 
-void configureAltitudeHold(pidProfile_t *initialPidProfile, barometerConfig_t *intialBarometerConfig, rcControlsConfig_t *initialRcControlsConfig, escAndServoConfig_t *initialEscAndServoConfig);
-void applyAltHold(airplaneConfig_t *airplaneConfig);
+typedef struct airplaneConfig_s {
+    int8_t fixedwing_althold_dir;           // +1 or -1 for pitch/althold gain. later check if need more than just sign
+} airplaneConfig_t;
+
+PG_DECLARE(airplaneConfig_t, airplaneConfig);
+
+void calculateEstimatedAltitude(uint32_t currentTime);
+
+void applyAltHold(void);
 void updateAltHoldState(void);
 void updateSonarAltHoldState(void);
 
 int32_t altitudeHoldGetEstimatedAltitude(void);
-
-#ifdef SB_DEBUG
-uint8_t sb_debug_ReadAltHoldPID(uint8_t index);
-#endif
