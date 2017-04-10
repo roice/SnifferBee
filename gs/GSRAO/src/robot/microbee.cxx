@@ -441,7 +441,7 @@ static void microbee_leso(float dt, int robot_index, float* pos, float* vel, flo
 {
     float w0 = 18;
     float m = 0.122; // kg
-    float thrust_U0 = 3.2258259;
+    float thrust_U0 = 2.90324338;
     float c_x = 0.2;
     float c_y = 0.2;
     float c_z = 0.8;
@@ -528,7 +528,7 @@ static void microbee_leso(float dt, int robot_index, float* pos, float* vel, flo
     cblas_saxpy(3, -1.0, v, 1, u, 1); // u <- -1.0*v+vel
     memcpy(wind_estimated, u, 3*sizeof(float));
 
-#if 1
+#if 0
     printf("pos =  [ %f, %f, %f ]\n", pos[0], pos[1], pos[2]);
     printf("*z1  = [ %f, %f, %f ]\n", *(z1[0]), *(z1[1]), *(z1[2]));
     printf("*z2  = [ %f, %f, %f ]\n", *(z2[0]), *(z2[1]), *(z2[2]));

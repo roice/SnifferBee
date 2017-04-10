@@ -57,13 +57,13 @@ static void* flying_compass_loop(void* exit)
     req.tv_nsec = 50000000; // 0.05 s
 
     // moving step
-    float moving_step = 0.2; // 1 cm
+    float moving_step = 0.01; // 1 cm
 
     // azimuth obtained from FOC routine
     float azimuth;
 
     // int position of robot
-    float pos_robot[3] = {1.4, 0., 1.3};
+    float pos_robot[3] = {1.8, 0., 1.3};
 
     int mb_idx = 0; // microbee 1
 

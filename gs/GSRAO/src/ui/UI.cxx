@@ -1115,10 +1115,10 @@ void ToolBar::cb_button_start(Fl_Widget *w, void *data)
                 return;
             }
             // Init method
-            if (!method_start(METHOD_HOVER_MEASURE)) // start hover measure task
+            //if (!method_start(METHOD_HOVER_MEASURE)) // start hover measure task
             //if (!method_start(METHOD_BACK_FORTH_MEASURE)) // start back-forth measure task
             //if (!method_start(METHOD_CIRCLE_MEASURE)) // start circle measure task
-            //if (!method_start(METHOD_FLYING_COMPASS)) // start odor compass
+            if (!method_start(METHOD_FLYING_COMPASS)) // start odor compass
             //if (!method_start(METHOD_ODOR_COMPASS)) // start odor compass
             {
                 widgets->msg_zone->label("Method start failed!");
