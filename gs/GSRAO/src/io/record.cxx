@@ -76,6 +76,26 @@ void GSRAO_Save_Data(void)
         // free space
         free(time_seq);
 
+        // robot reference enu info
+        data_dims[0] = robot_rec[i].size();
+        data_dims[1] = 3; // ref_enu[3]
+        dataspace_id = H5Screate_simple(2, data_dims, NULL);
+        // create data set
+        dataset_id = H5Dcreate2(group_id, "ref_enu", H5T_NATIVE_FLOAT, dataspace_id,
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // write data
+        data = (float*)malloc(data_dims[0]*data_dims[1]*sizeof(*data));
+        for (int idx = 0; idx < data_dims[0]; idx++)
+            memcpy(&(data[idx*3]), &(robot_rec[i].at(idx).ref_enu[0]), 3*sizeof(float)); // ref_enu
+        status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                      H5P_DEFAULT, data);
+        /* End access to the dataset and release resources used by it. */
+        status = H5Dclose(dataset_id);
+        /* Terminate access to the data space. */ 
+        status = H5Sclose(dataspace_id);
+        // free space
+        free(data);
+
         // robot enu info
         data_dims[0] = robot_rec[i].size();
         data_dims[1] = 3; // enu[3]

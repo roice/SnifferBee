@@ -181,6 +181,8 @@ static void mbspEvaluateData(int index_mb)
                 memcpy(record.wind_p, robot_state[mbsp_data[index_mb].from-1].wind_p, 3*sizeof(float));
                 memcpy(record.wind, robot_state[mbsp_data[index_mb].from-1].wind, 3*sizeof(float));
                 pthread_mutex_unlock(&(tc->lock_robot_state));
+                // save reference position
+                memcpy(record.ref_enu, (robot_get_ref_state())[mbsp_data[index_mb].from-1].enu, 3*sizeof(float));
                 robot_rec[mbsp_data[index_mb].from-1].push_back(record);
                 break;
             }

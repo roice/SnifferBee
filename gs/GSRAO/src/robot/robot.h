@@ -65,6 +65,8 @@ typedef struct {
     float bat_volt; // battery voltage
     int count;
     double time;
+    // reference position
+    float ref_enu[3];
 } Robot_Record_t;
 
 typedef struct {
