@@ -20,6 +20,8 @@
 #include <cmath>
 #include "io/serial.h"
 
+#define YOUNG_PROTOCOL_TYPE_ASCII
+
 // RM Young Binary Frame Type
 typedef struct {
     // frame
@@ -38,6 +40,22 @@ typedef struct {
     char    status;     // status, byte, non-zero=error
     char    checksum;   // byte, XOR of all chars, hex val
 } Young_Binary_Frame_t;
+
+// RM Young ASCII Frame Type
+typedef struct {
+    //protocol
+    char protocol[50] = {'E',' ',' ','S','X','.','X','X',' ',' ','S','X','.','X','X',' ',' ','S','X','.','X','X',' ',' ',' ','X','X','.','X','X','D','C'};//'D' 'C' means checksum
+    //Frame
+    char frame[100];
+    //pointer
+    int pointer = 0;
+    //parsed value
+    float u;
+    float v;
+    float w;
+    float T;
+    char checksum;
+} Young_ASCII_Frame_t;
 
 // Gill ASCII Frame Type
 typedef struct {
@@ -67,7 +85,11 @@ Anemometer_Data_t   wind_data[SERIAL_MAX_ANEMOMETERS];
 std::vector<Anemometer_Data_t> wind_record[SERIAL_MAX_ANEMOMETERS];
 std::string anemometer_port_path[SERIAL_MAX_ANEMOMETERS];
 std::string anemometer_type[SERIAL_MAX_ANEMOMETERS];
+#ifndef YOUNG_PROTOCOL_TYPE_ASCII
 static Young_Binary_Frame_t young_frame[SERIAL_MAX_ANEMOMETERS];
+#else
+static Young_ASCII_Frame_t young_frame[SERIAL_MAX_ANEMOMETERS];
+#endif
 
 // RM Young
 static void* young_write_loop(void*);
@@ -98,7 +120,7 @@ bool sonic_anemometer_init(int n_ports = 1, std::string* ports = NULL, std::stri
             return false; // type not recognized
     }
 
-    // clear anemometer frames
+    // clear anemometer frames(set ASCII 0)
     memset(young_frame, 0, sizeof(young_frame));
 
     // create thread for receiving anemometer measurements
@@ -118,8 +140,10 @@ bool sonic_anemometer_init(int n_ports = 1, std::string* ports = NULL, std::stri
         }
     }
 
+#ifndef YOUNG_PROTOCOL_TYPE_ASCII
     if (pthread_create(&write_thread_handle, NULL, &young_write_loop, (void*)&exit_thread) != 0)
-            return false;
+        return false;
+#endif
 
     return true;
 }
@@ -140,12 +164,13 @@ void sonic_anemometer_close(void)
     }
 }
 
+#ifndef YOUNG_PROTOCOL_TYPE_ASCII
 static void youngProcessFrame(char* buf, int len, int index)
 { 
     if (index < 0 or index >= SERIAL_MAX_ANEMOMETERS)
         return;
 
-    for (int i = 0; i < len; i++) {
+   for (int i = 0; i < len; i++) {
         if (young_frame[index].pointer < 18)
             young_frame[index].frame[young_frame[index].pointer++] = buf[i];
         if (young_frame[index].pointer >= 18) {
@@ -181,6 +206,108 @@ if (index == 0) {
         }
     }
 }
+#else
+//Young type have serveral anemometers,so add [index]
+//debug
+//  int counter=0;
+static void youngProcessFrame(char* buf, int len, int index)
+{   
+    /* TODO:
+     * Why did you place this line here again, ty?*/
+    static Young_ASCII_Frame_t young_frame[SERIAL_MAX_ANEMOMETERS];    
+ 
+    if (index < 0 or index >= SERIAL_MAX_ANEMOMETERS)
+        return;
+
+    if (len <= 0)
+        return;
+	
+    for (int i = 0; i < len; i++) {
+//debug
+    //printf("%c",buf[i]);
+        switch (young_frame[index].protocol[young_frame[index].pointer]) 
+	{
+            case 'E': // start frame
+               // printf("E   ");
+                if (buf[i] == 0x0D)
+                    young_frame[index].frame[young_frame[index].pointer++] = buf[i];
+                break;
+	        case ' ': //' '
+                if (buf[i] == ' ')
+                    young_frame[index].frame[young_frame[index].pointer++] = buf[i];
+                else
+                    young_frame[index].pointer = 0;
+                break; 
+            case 'S': // '-' or ' '(means +)
+                if (buf[i] == '-' or buf[i] == ' ')
+                    young_frame[index].frame[young_frame[index].pointer++] = buf[i];
+                else
+                    young_frame[index].pointer = 0;
+                break;
+            case 'X': // number, not '.', or ' ', or '-'
+                if (buf[i] != '.' and buf[i] != ' ' and buf[i] != '-')
+                    young_frame[index].frame[young_frame[index].pointer++] = buf[i];
+                else
+                    young_frame[index].pointer = 0;
+        
+                break;
+            case '.':
+                if (buf[i] == '.')
+                    young_frame[index].frame[young_frame[index].pointer++] = buf[i];
+                else
+                    young_frame[index].pointer = 0;
+                break;
+            case 'D': 
+                    young_frame[index].frame[young_frame[index].pointer++] = buf[i];
+                break;
+            case 'C'://end frame
+            
+                  if (1) { // checksum equal
+                    young_frame[index].frame[young_frame[index].pointer++] = buf[i]; 
+                   // counter++;
+// Debug               
+    //printf("young_frame = %s\n", young_frame[index].frame);
+
+                    char temp_f[10] = {0};
+                    memcpy(temp_f, &young_frame[index].frame[1], 7*sizeof(char));
+                    young_frame[index].u = atof(temp_f);
+                    memcpy(temp_f, &young_frame[index].frame[8], 7*sizeof(char));
+                    young_frame[index].v = atof(temp_f);
+                    memcpy(temp_f, &young_frame[index].frame[15], 7*sizeof(char));
+                    young_frame[index].w = atof(temp_f);
+                    memcpy(temp_f, &young_frame[index].frame[22], 7*sizeof(char));
+                    young_frame[index].T = atof(temp_f);
+                    
+// Debug
+      //  printf("wind = [%f, %f, %f], T = %f, counter = %d\n\n", young_frame[index].u, young_frame[index].v, young_frame[index].w,     young_frame[index].T, counter);
+
+                    // save data
+                    wind_data[index].speed[0] = (float)young_frame[index].u;
+                    wind_data[index].speed[1] = (float)young_frame[index].v;
+                    wind_data[index].speed[2] = (float)young_frame[index].w;
+                    wind_data[index].temperature = (float)young_frame[index].T;
+                    // save record
+                    wind_record[index].push_back(wind_data[index]);
+                    /*if (index == 0){
+                    printf("anemometer %d , speed = [ %f, %f, %f ], temperature = %f.\n", index, wind_data[index].speed[0], wind_data[index].speed[1], wind_data[index].speed[2], wind_data[index].temperature);
+                    }*/
+
+                    young_frame[index].pointer = 0; // clear pointer
+                }
+                //debug
+                else
+                   printf("Error_ty");
+
+
+                break;
+            default:
+	        	break;		
+	}
+
+    }
+
+}
+#endif
 
 static void gillProcessFrame(char* buf, int len, int index)
 {
@@ -193,7 +320,8 @@ static void gillProcessFrame(char* buf, int len, int index)
         return;
 
     for (int i = 0; i < len; i++) {
-        switch (gill_frame.protocol[gill_frame.pointer]) {
+        switch (gill_frame.protocol[gill_frame.pointer]) 
+	{
             case 0x02: // start frame
                 if (buf[i] == 0x02)
                     gill_frame.frame[gill_frame.pointer++] = buf[i];
@@ -215,7 +343,7 @@ static void gillProcessFrame(char* buf, int len, int index)
                     gill_frame.frame[gill_frame.pointer++] = buf[i];
                 else
                     gill_frame.pointer = 0;
-                break;
+                break; 
             case '.':
                 if (buf[i] == '.')
                     gill_frame.frame[gill_frame.pointer++] = buf[i];
@@ -242,7 +370,7 @@ static void gillProcessFrame(char* buf, int len, int index)
                     gill_frame.T = atof(temp_f);
 
 // Debug
-    //printf("wind = [%f, %f, %f], T = %f\n", gill_frame.u, gill_frame.v, gill_frame.w, gill_frame.T);
+   // printf("wind = [%f, %f, %f], T = %f\n", gill_frame.u, gill_frame.v, gill_frame.w, gill_frame.T);
 
                     // save data
                     wind_data[index].speed[0] = (float)gill_frame.u;
@@ -260,7 +388,7 @@ static void gillProcessFrame(char* buf, int len, int index)
         }
     }
 }
-
+/*
 static void* young_write_loop(void* exit)
 {
     struct timespec req, rem;
@@ -279,7 +407,7 @@ static void* young_write_loop(void* exit)
         nanosleep(&req, &rem);
     }
 }
-
+*/
 static void* young_read_loop(void* args)
 {
     int nbytes;

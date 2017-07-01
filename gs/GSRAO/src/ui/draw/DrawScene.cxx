@@ -15,6 +15,7 @@
 #include "ui/draw/draw_robots.h" // robots visualization
 #include "ui/draw/draw_arena.h" // arena visualization
 #include "ui/draw/draw_wind.h"
+#include "ui/draw/draw_ref_pos.h"
 #include "ui/draw/materials.h" // create material lists
 
 GLfloat localAmb[4] = { 0.7, 0.7, 0.7, 1.0 };
@@ -56,6 +57,9 @@ void DrawScene(void)
 
     /* draw quadrotor */
     draw_robots();
+
+    /* draw robot ref pos */
+    draw_robot_ref_pos_record();
 
     /* draw anemometer results */
     draw_anemometer_results();

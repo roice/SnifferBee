@@ -111,6 +111,7 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     src/ui/draw/draw_arena.cxx src/ui/draw/draw_robots.cxx
     src/ui/draw/draw_qr.cxx src/ui/draw/draw_wave.cxx
     src/ui/draw/draw_arrow.cxx src/ui/draw/draw_wind.cxx
+    src/ui/draw/draw_ref_pos.cxx
     # 3rdparty fltk widgets
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 # make a library for FOC
@@ -137,6 +138,8 @@ add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
     src/mocap/packet_client.cxx src/mocap/mocap_noise_reduction.cxx
     src/robot/robot.cxx src/robot/microbee.cxx src/robot/pioneer.cxx
     src/method/method.cxx src/method/hover_measure.cxx src/method/back_forth_measure.cxx src/method/circle_measure.cxx src/method/flying_compass.cxx src/method/odor_compass.cxx
+    src/method/plume_finding.cxx
+    src/scene/scene.cxx
     src/common/vector_rotation.cxx)
 target_compile_features(${PRJ_NAME} PRIVATE cxx_constexpr)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})

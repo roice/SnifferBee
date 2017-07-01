@@ -1,5 +1,6 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Box.H>
+#include <FL/Fl_Scroll.H>
 #include <FL/fl_draw.H>
 #include <vector>
 #include "ui/draw/draw_wave.h"
@@ -7,7 +8,8 @@
 
 WavePlot::WavePlot(int xpos, int ypos, int width, int height, const char*title=0):Fl_Widget(xpos, ypos, width, height, title)
 {
-    robot_to_display = 0; // robot 1 by default 
+    robot_to_display = 0; // robot 1 by default
+    scroll = NULL;
 }
 
 void WavePlot::draw(void)
@@ -34,6 +36,11 @@ void WavePlot::draw(void)
             fl_line(x1, y1, x2, y2);
         }       
     }
+
+    // re-adjust scroll
+    if (scroll and rec->size() > 0 and Fl::event_button1()==0)
+        scroll->scroll_to((rec->back().time-rec->at(0).time)/time_range*w()-scroll->w() > 0 ? (rec->back().time-rec->at(0).time)/time_range*w()-scroll->w() : 0,0);
+
 }
 
 void WavePlot::Timer_CB(void* data)

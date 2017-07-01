@@ -90,7 +90,9 @@ Flying_Odor_Compass::Flying_Odor_Compass(void)
  *      false   Haven't dug out useful information
  */
 bool Flying_Odor_Compass::update(FOC_Input_t& new_in)
-{ 
+{
+    static int count = 0;
+
 /* Step 0: Pre-processing */
     // save some info to record
     data_raw.push_back(new_in); // save raw data
@@ -115,6 +117,11 @@ if (type_of_robot == 1) // flying robot
 /* Step 4: Chain maxima lines */
     if (!foc_chain_maxline_update(data_modmax, data_maxline, data_wt_out[0][0].size()))
         return false;
+
+    if (count++ < FOC_MOX_DAQ_FREQ/2) // 1s
+        return false;
+    else
+        count = 0;
 
 /* Step 5: Get features (TDOA, etc), use recent info */
     if (!foc_feature_extraction_update(data_maxline, data_feature, data_wt_out[0][0].size()))

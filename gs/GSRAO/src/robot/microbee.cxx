@@ -258,7 +258,7 @@ static void* microbee_control_loop(void* args)
         dtime = current_time - previous_time;
         previous_time = current_time;
 
-        robot_ref[idx_robot].enu[2] -= 0.3/50.0; // 0.3 m/s descending, 50 Hz control
+        robot_ref[idx_robot].enu[2] -= 0.5/50.0; // 0.5 m/s descending, 50 Hz control
 
         // position control update
         microbee_pos_control(dtime, idx_robot);
@@ -437,10 +437,10 @@ static void microbee_yaw_control_adrc(float dt, int robot_index, float heading_r
     rc_data[robot_index].yaw = constrain(1500 + result, 1050, 1950);
 }
 
-static void microbee_leso(float dt, int robot_index, float* pos, float* vel, float* acc, float* att)
+static void microbee_wind_estimation_leso(float dt, int robot_index, float* pos, float* vel, float* acc, float* att)
 {
     float w0 = 18;
-    float m = 0.122; // kg
+    float m = 0.124; // kg
     float thrust_U0 = 2.90324338;
     float c_x = 0.2;
     float c_y = 0.2;
@@ -588,6 +588,55 @@ static void microbee_leso(float dt, int robot_index, float* pos, float* vel, flo
     robot_debug_rec[robot_index].push_back(new_dbg_rec);
 }
 
+void microbee_wind_estimation_incl(int robot_index, float* att)
+{
+    float angle_incl;
+    float e[3]; // -R_B^I * [0,0,1]^T
+    float e_proj[3]; // e . [1,1,0]
+    float v[3] = {0};
+
+    // body frame to inertial frame
+    float R[9] = {
+        std::cos(att[1])*std::cos(att[2]),
+        std::sin(att[0])*std::sin(att[1])*std::cos(att[2]) - std::cos(att[0])*std::sin(att[2]),
+        std::cos(att[2])*std::sin(att[1])*std::cos(att[0]) + std::sin(att[0])*std::sin(att[2]),
+        std::cos(att[1])*std::sin(att[2]),
+        std::sin(att[1])*std::sin(att[0])*std::sin(att[2]) + std::cos(att[0])*std::cos(att[2]),
+        std::cos(att[0])*std::sin(att[1])*std::sin(att[2]) - std::sin(att[0])*std::cos(att[2]),
+        -std::sin(att[1]),
+        std::sin(att[0])*std::cos(att[1]),
+        std::cos(att[0])*std::cos(att[1]) 
+    };
+    // e = -R_B^I * [0,0,1]^T
+    memset(e, 0, 3*sizeof(float));
+    float unit[3] = {0., 0., -1.};
+    cblas_sgemv(CblasRowMajor, CblasNoTrans, 3, 3, 1.0, R, 3, unit, 1, 1.0, e, 1); // Fd B to I
+    // e_proj = e . [1,1,0]
+    memcpy(e_proj, e, 2*sizeof(float));
+    // |e_proj|
+    float nrm_e_proj = std::sqrt(e_proj[0]*e_proj[0] + e_proj[1]*e_proj[1]);
+    if (nrm_e_proj < 0.001) {
+        // no wind
+        angle_incl = 0.;
+        memset(v, 0, 3*sizeof(float));
+    }
+    else {
+        angle_incl = std::asin(nrm_e_proj);
+        // calculate wind strength
+        float alpha = std::asin(nrm_e_proj)*180./M_PI;
+        float strength = 0.00086*alpha*alpha + 0.08794*alpha + 0.06383;
+        for (int i = 0; i < 2; i++)
+            v[i] = strength*e_proj[i]/nrm_e_proj;
+    }
+    // triangle
+    //memcpy(wind_estimated, QR_vel, 3*sizeof(float));
+    //cblas_saxpy(3, -1.0, v, 1, wind_estimated, 1); // wind <- -1.0*v+vel
+    
+    // robot state
+    Robot_State_t* robot_state = robot_get_state();
+    memcpy(robot_state[robot_index].wind, v, 3*sizeof(float));
+}
+
 /*
  * TODO:
  *  dt not used
@@ -625,7 +674,9 @@ static void microbee_pos_control(float dt, int robot_index)
     microbee_throttle_control_pid(dt, robot_index, pos_ref[2], pos[2], vel[2], acc[2]);
     microbee_roll_pitch_control_pid(dt, robot_index, pos_ref, pos, vel, acc, att);
     microbee_yaw_control_adrc(dt, robot_index, robot_ref[robot_index].heading, att[2]);
-    microbee_leso(dt, robot_index, pos, vel, acc, att);
+/* Wind estimation */
+    microbee_wind_estimation_leso(dt, robot_index, pos, vel, acc, att);
+    //microbee_wind_estimation_incl(robot_index, att);
 
 //printf("pos = [ %f, %f, %f ]\n", pos[0], pos[1], pos[2]);
 }

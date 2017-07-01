@@ -16,14 +16,14 @@
 #include <vector>
 
 #define FOC_NUM_SENSORS             3
-#define FOC_RADIUS                  0.05 //0.1     // meter
-#define FOC_WIND_MIN                0.1 // 0.1    // m/s
+#define FOC_RADIUS                  0.07   // meter
+#define FOC_WIND_MIN                0.1    // m/s
 #define FOC_WIND_MAX                5.0 // 5.0    // m/s
 #define FOC_SIGNAL_DELAY            2       // seconds, int
 #define FOC_TDOA_DELAY              1       // seconds, int
-#define FOC_MOX_DAQ_FREQ            10 //20      // Hz, int
-#define FOC_MOX_INTERP_FACTOR       100 //10      // samples/symbol, > 4, int
-#define FOC_LEN_RECENT_INFO         (15*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)    // approx. 15 s
+#define FOC_MOX_DAQ_FREQ            25      // Hz, int
+#define FOC_MOX_INTERP_FACTOR       10      // samples/symbol, > 4, int
+#define FOC_LEN_RECENT_INFO         (15*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)    // approx. 10 s
 #define FOC_LEN_WAVELET             (3*FOC_MOX_DAQ_FREQ*FOC_MOX_INTERP_FACTOR)    // approx. 3 s
 #define FOC_RECENT_TIME_TO_EST      20.0    // seconds
 #define FOC_WT_LEVELS               100       // wavelet transform levels

@@ -779,6 +779,7 @@ RobotPanel::RobotPanel(int xpos, int ypos, int width, int height,
     {
         Fl_Scroll* scroll = new Fl_Scroll(t_x+230, t_y+25, 455, 165);
         ws.robot_sensor_reading = new WavePlot(t_x+230, t_y+25, 455*10, 140, ""); // *10 means 10 min length of data 
+        ws.robot_sensor_reading->scroll = scroll;
         scroll->end();
     }
 

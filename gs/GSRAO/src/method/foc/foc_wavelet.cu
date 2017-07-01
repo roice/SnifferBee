@@ -66,11 +66,11 @@ void foc_cwt_init(float *data_wvs, std::vector<int>& data_wvs_idx, std::vector<f
     for (int i = 0; i < FOC_WT_LEVELS; i++)
         data_wvs_idx.push_back(i*FOC_LEN_WAVELET);
 
-#if 0
     // storing cuda device properties, for the sheduling of parallel computing
-    cudaDeviceProp prop;
     int count; // number of devices
     HANDLE_ERROR( cudaGetDeviceCount(&count) );
+#if 0
+    cudaDeviceProp prop; 
     for (int i = 0; i < count; i++) {// print out info of all graphic cards
         HANDLE_ERROR( cudaGetDeviceProperties(&prop, i) );
         printf("======== Card %d ========\n", i+1);
@@ -88,6 +88,19 @@ void foc_cwt_init(float *data_wvs, std::vector<int>& data_wvs_idx, std::vector<f
         printf("\n");
     }
 #endif
+    if (count > 1) {// multiple graphic cards
+        if(count == 2){
+         HANDLE_ERROR( cudaSetDevice(1) );   //Set the second graphic to calculate
+        }
+        else{
+            printf("Warning: Multiple graphic cards have been found on this machine. Please modify the function WakeInit in the file src/model/wake.cu to choose the most appropriate card.\n");
+            exit(EXIT_FAILURE); // force the user to choose which card to use
+        }
+    }
+    else if (count <= 0) {// no graphic card found
+        printf("Error: No graphic cards have been found on this machine. Please run this program on the machine with NVIDIA graphic cards.\n");
+        exit(EXIT_FAILURE);
+    }
 
 /* allocate memory for wavelet tranformation of signals */ 
     // allocate device memory for wavelets
