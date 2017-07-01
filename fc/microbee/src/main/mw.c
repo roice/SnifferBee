@@ -726,8 +726,8 @@ void taskMainPidLoop(void)
     //static uint32_t mb_heart_beat_last_time = 0;
     uint32_t mb_current_time = micros();
     
-    // send gas sensor readings to ground station at 20 Hz
-    if (mb_current_time - mb_adc_last_sample_time > 50000) // 20 Hz
+    // send gas sensor readings to ground station at 25 Hz
+    if (mb_current_time - mb_adc_last_sample_time > 40000) // 25 Hz
     //if (mb_current_time - mb_adc_last_sample_time > 200000) // 5 Hz
     {
         mb_adc_last_sample_time = mb_current_time;
