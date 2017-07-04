@@ -22,12 +22,21 @@ int main(int, char**) {
 #include "GSRAO_Config.h" // settings
 #include "GSRAO_thread_comm.h"
 
+#ifdef PARALLEL_COMPUTING
+extern void GSRAO_cuda_init(void);
+#endif
+
 /***************************************************************/
 /**************************** MAIN *****************************/
 /***************************************************************/
 
 int main(int argc, char **argv) 
 {
+#ifdef PARALLEL_COMPUTING
+    /* initialize cuda */
+    GSRAO_cuda_init();
+#endif
+
     /* initialize GS settings */
     GSRAO_Config_restore();
    

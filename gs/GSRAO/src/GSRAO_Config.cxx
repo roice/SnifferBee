@@ -38,6 +38,7 @@ void GSRAO_Config_restore(void)
         boost::property_tree::ini_parser::read_ini("settings.cfg", pt);
         /* restore configs */
         // arena
+        settings.arena.field_type = pt.get<int>("Arena.field_type");
         settings.arena.w = pt.get<float>("Arena.width");
         settings.arena.l = pt.get<float>("Arena.length");
         settings.arena.h = pt.get<float>("Arena.height");
@@ -136,6 +137,7 @@ void GSRAO_Config_save(void)
     /* prepare to write configuration files */
     boost::property_tree::ptree pt;
     // arena size
+    pt.put("Arena.field_type", settings.arena.field_type);
     pt.put("Arena.width", settings.arena.w);
     pt.put("Arena.length", settings.arena.l);
     pt.put("Arena.height", settings.arena.h);
@@ -236,6 +238,7 @@ void GSRAO_Config_init(void)
 {
     /* init arena settings */
     // arena
+    settings.arena.field_type = 0; // indoor
     settings.arena.w = 10; // x
     settings.arena.l = 10; // y
     settings.arena.h = 10; // z

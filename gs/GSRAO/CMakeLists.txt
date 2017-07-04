@@ -10,10 +10,6 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 #====================================================
 # ================ User can Access ==================
 #====================================================
-# install path
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
-#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 # Project name
 set(PRJ_NAME GSRAO)
 # Debug version
@@ -34,8 +30,8 @@ if(APPLE)
 elseif(UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
     message("Compile on UNIX")
-    set(REAL_TIME_TRACING  "enable")
-    add_definitions(-DREAL_TIME_TRACING)
+    set(PARALLEL_COMPUTING  "enable")
+    add_definitions(-DPARALLEL_COMPUTING)
 endif()
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -58,7 +54,7 @@ find_package(OpenGL REQUIRED)
 include(${FLTK_USE_FILE})
 
 #---- External CUDA related settings ----
-if (REAL_TIME_TRACING)
+if (PARALLEL_COMPUTING)
     find_package(CUDA REQUIRED)
     # nvcc flags
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_50,code=sm_50;-use_fast_math)
@@ -115,7 +111,7 @@ add_library(${LIB_UI_NAME} src/ui/UI.cxx src/ui/View.cxx src/ui/agv.cxx
     # 3rdparty fltk widgets
     src/ui/widgets/Fl_LED_Button/Fl_LED_Button.cxx)
 # make a library for FOC
-if (REAL_TIME_TRACING)
+if (PARALLEL_COMPUTING)
     set(LIB_FOC_NAME foc)
     cuda_add_library(${LIB_FOC_NAME}
         src/method/foc/flying_odor_compass.cxx
@@ -129,12 +125,19 @@ if (REAL_TIME_TRACING)
         ../../3rdparty/ziggurat/ziggurat.cpp
         )
 endif()
+# make a library for cuda init
+if (PARALLEL_COMPUTING)
+    set(LIB_CUDAINIT_NAME cuda_init)
+    cuda_add_library(${LIB_CUDAINIT_NAME}
+        src/GSRAO_cuda_init.cu)
+endif()
 # compile main file
 add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
     src/GSRAO_thread_comm.cxx
     src/io/serial.cxx src/io/serial_spp.cxx src/io/serial_mbsp.cxx
     src/io/serial_anemometer.cxx src/io/record.cxx
-    src/io/udp_ocdev.cxx src/io/udp_pioneer.cxx
+    src/io/net_receive_bear_data.cxx src/io/net_send_bear_cmd.cxx
+    src/io/piobear_data_parser.cxx
     src/mocap/packet_client.cxx src/mocap/mocap_noise_reduction.cxx
     src/robot/robot.cxx src/robot/microbee.cxx src/robot/pioneer.cxx
     src/method/method.cxx src/method/hover_measure.cxx src/method/back_forth_measure.cxx src/method/circle_measure.cxx src/method/flying_compass.cxx src/method/odor_compass.cxx
@@ -143,7 +146,7 @@ add_executable(${PRJ_NAME} src/main.cxx src/GSRAO_Config.cxx
     src/common/vector_rotation.cxx)
 target_compile_features(${PRJ_NAME} PRIVATE cxx_constexpr)
 add_dependencies(${PRJ_NAME} ${LIB_UI_NAME})
-if (REAL_TIME_TRACING)
+if (PARALLEL_COMPUTING)
     add_dependencies(${PRJ_NAME} ${LIB_FOC_NAME})
 endif()
 
@@ -151,8 +154,11 @@ endif()
 # Note: the former line depends on the next line
 # link GUI library created above
 target_link_libraries(${PRJ_NAME} ${LIB_UI_NAME})
-if (REAL_TIME_TRACING)
+if (PARALLEL_COMPUTING)
     target_link_libraries(${PRJ_NAME} ${LIB_FOC_NAME})
+endif()
+if (PARALLEL_COMPUTING)
+    target_link_libraries(${PRJ_NAME} ${LIB_CUDAINIT_NAME})
 endif()
 # link external FLTK library
 target_link_libraries(${PRJ_NAME} fltk)
@@ -169,9 +175,3 @@ target_link_libraries(${PRJ_NAME} pthread)
 target_link_libraries(${PRJ_NAME} ${HDF5_LIBRARIES})
 # link external liquid-dsp library
 target_link_libraries(${PRJ_NAME} liquid)
-
-# install
-#install(TARGETS ${PRJ_NAME}
-#    RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/../bin
-#    LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/../lib
-#    )

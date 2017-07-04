@@ -18,6 +18,8 @@
 #include "io/serial.h"
 
 typedef struct {
+    /* type */
+    int field_type; // 0 for indoor, 1 for outdoor
     /* width, length and height */
     float w;
     float l;

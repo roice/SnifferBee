@@ -12,13 +12,11 @@
 #include <time.h>
 #include <math.h>
 #include <cmath>
-/* thread */
-#include <pthread.h>
 /* GSRAO */
 #include "mocap/packet_client.h"
 #include "robot/microbee.h"
 #include "robot/robot.h"
-#include "io/udp_pioneer.h"
+#include "io/net_send_bear_cmd.h"
 #include "common/vector_rotation.h"
 #include "GSRAO_Config.h"
 #include "GSRAO_thread_comm.h"
@@ -31,30 +29,20 @@
 
 #define PIO_IDX 0 // only one Pioneer
 
-static pthread_t pioneer_control_thread_handle;
-static bool exit_pioneer_control_thread = false;
-
-static void* pioneer_control_loop(void*);
-
 bool pioneer_control_init(void)
 {
-    exit_pioneer_control_thread = false;
-    if (pthread_create(&pioneer_control_thread_handle, NULL, &pioneer_control_loop, (void*)&exit_pioneer_control_thread) != 0)
+    if (net_send_bear_cmd_init(""))
+        return true;
+    else
         return false;
-
-    return true;
 }
 
 void pioneer_control_close(void)
 {
-    if (!exit_pioneer_control_thread)
-    {
-        exit_pioneer_control_thread = true;
-        pthread_join(pioneer_control_thread_handle, NULL);
-        printf("Pioneer control thread terminated\n");
-    }
+    net_send_bear_cmd_terminate();
 }
 
+#if 0
 static float pioneer_calculate_rot_angle(float current_heading, float dest_heading)
 {
     // convert (-pi~pi) to (0~2pi)
@@ -198,5 +186,7 @@ static void* pioneer_control_loop(void* exit)
         // 10 Hz
         nanosleep(&req, &rem); // 100 ms
     }
-}
 
+    net_send_bear_cmd_terminate();
+}
+#endif

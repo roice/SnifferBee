@@ -58,26 +58,12 @@ static void* odor_compass_loop(void* exit)
 
     // loop interval
     req.tv_sec = 0;
-    req.tv_nsec = 100000000; // 0.1 s
+    req.tv_nsec = 40000000; // 0.04 s, 25 Hz
 
     // moving step
-    float moving_step = 0.05; // m
-
-    // azimuth obtained from OC routine
-    float azimuth;
-
-    // int position of robot
-    float pos_robot[3] = {1.2, 0.6, 0};
+    float moving_step = 1.0; // m
 
     int robo_idx = 0; // only one pioneer
-
-    // init robot
-    Robot_Ref_State_t* robot_ref = robot_get_ref_state(); // get robot ref state
-    // robot 1
-    robot_ref[robo_idx].enu[0] = pos_robot[0];
-    robot_ref[robo_idx].enu[1] = pos_robot[1];
-    robot_ref[robo_idx].enu[2] = pos_robot[2];
-    robot_ref[robo_idx].heading = 0; // heading to north
 
     /* init odor compass */
     Flying_Odor_Compass* foc = new Flying_Odor_Compass;
@@ -107,20 +93,13 @@ static void* odor_compass_loop(void* exit)
             
             // retrieve sensor value and push to FOC
             // and get azimuth angle estimated via FOC routine
-            memcpy(&input.position[0], robot_rec[robo_idx].back().enu, 3*sizeof(float));
-            memcpy(&input.attitude[0], robot_rec[robo_idx].back().att, 3*sizeof(float));
+            //memcpy(&input.position[0], robot_rec[robo_idx].back().enu, 3*sizeof(float));
+            //memcpy(&input.attitude[0], robot_rec[robo_idx].back().att, 3*sizeof(float));
             memcpy(&input.mox_reading[0], robot_rec[robo_idx].back().sensor, 3*sizeof(float));
-            memcpy(&input.wind[0], robot_rec[robo_idx].back().wind, 3*sizeof(float));
+            //memcpy(&input.wind[0], robot_rec[robo_idx].back().wind, 3*sizeof(float));
             // wait for the complete of signal sampling
             //  and reload mox readings to foc
-            pthread_cond_wait(&(tc->cond_ocdev_data), &(tc->lock_ocdev_data));
-            for (int idx_s = 0; idx_s < 3; idx_s++)
-                for (int idx_rd = 0; idx_rd < 100; idx_rd++)
-                    foc->data_interp[idx_s].push_back(pool_ocdev_samples[idx_s*100 + idx_rd]);
-            pthread_mutex_unlock(&(tc->lock_ocdev_data));
             foc_updated = foc->update(input);
-            if (foc_update_count++ < 15*10)
-                continue;
 
 #if 0
             if (foc_updated) {
